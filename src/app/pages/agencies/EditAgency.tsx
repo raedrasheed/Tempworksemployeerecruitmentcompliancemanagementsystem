@@ -17,7 +17,7 @@ import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
-import { agenciesApi, documentsApi, resolveAssetUrl, settingsApi, getCurrentUser } from '../../services/api';
+import { agenciesApi, documentsApi, resolveAssetUrl, settingsApi, getCurrentUser, usersApi } from '../../services/api';
 
 function looksLikeWebsite(v: string): boolean {
   if (!v) return true;
@@ -58,6 +58,17 @@ export function EditAgency() {
   // backend strips these from the payload regardless; the UI locks
   // them so nothing is silently ignored.
   const isAgencyManager = currentRole === 'Agency Manager';
+  // Phase 3.15 — Tenancy Scope is a PlatformAdmin SUPER-only control.
+  // The field is fetched from the viewer's own user record; while it
+  // resolves the section stays hidden.
+  const currentUserId = getCurrentUser()?.id;
+  const [viewerIsSuperPa, setViewerIsSuperPa] = useState(false);
+  useEffect(() => {
+    if (!currentUserId) return;
+    usersApi.get(currentUserId)
+      .then((u: any) => setViewerIsSuperPa(u?.platformAdmin?.level === 'SUPER'))
+      .catch(() => setViewerIsSuperPa(false));
+  }, [currentUserId]);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -223,10 +234,11 @@ export function EditAgency() {
         contactPerson: [form.contactFirstName, form.contactMiddleName, form.contactLastName]
           .map(s => s.trim()).filter(Boolean).join(' '),
       };
-      // isSystem is a System-Admin-only switch. The backend strips it
-      // from non-admin payloads defensively, but drop it from the wire
-      // payload here too so nothing drifts in the audit log.
-      if (!isSystemAdmin) delete payload.isSystem;
+      // Tenancy Scope (isSystem) is a SUPER PlatformAdmin-only switch.
+      // The backend strips it defensively, but drop it from the wire
+      // payload too unless the viewer is SUPER so nothing drifts in
+      // the audit log.
+      if (!viewerIsSuperPa) delete payload.isSystem;
       await agenciesApi.update(id!, payload);
       toast.success(t('agencies.edit.updateSuccess'));
       navigate(`/dashboard/agencies/${id}`);
@@ -403,10 +415,11 @@ export function EditAgency() {
             </CardContent>
           </Card>
 
-          {/* Tenancy — System Admin only. Flipping this on marks the
-              agency as the Tempworks root; its users then see global
-              data instead of being scoped to the agency. */}
-          {isSystemAdmin && (
+          {/* Tenancy Scope — SUPER PlatformAdmin only. Flipping this
+              on marks the agency as the Tempworks root; its users
+              then see global data instead of being scoped to the
+              agency. Hidden from every non-SUPER viewer. */}
+          {viewerIsSuperPa && (
             <Card>
               <CardHeader><CardTitle>{t('agencies.edit.tenancyTitle')}</CardTitle></CardHeader>
               <CardContent>

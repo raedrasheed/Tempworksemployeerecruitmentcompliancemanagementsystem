@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { LoginV2Dto } from './dto/login-v2.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -39,9 +40,51 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Returns JWT tokens and user info' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  login(@Body() loginDto: LoginDto & { agencyId?: string }, @Req() req: any) {
+  login(@Body() loginDto: LoginDto & { agencyId?: string; company?: string }, @Req() req: any) {
     const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    // Phase 3.13 — when TENANT_LOGIN_REQUIRED=true the legacy endpoint
+    // requires `company` and routes to the tenant-aware path so frontends
+    // can migrate without dual-endpoint coordination.
+    // @tenant-reviewed: phase313-tenant-aware-login
+    if (process.env.TENANT_LOGIN_REQUIRED === 'true') {
+      if (!loginDto?.company || !loginDto.email || !loginDto.password) {
+        throw new UnauthorizedException({
+          code: 'AUTH.INVALID_CREDENTIALS',
+          message: 'Invalid company, email, or password',
+        });
+      }
+      return this.authService.loginV2(
+        { company: loginDto.company, email: loginDto.email, password: loginDto.password },
+        ip,
+      );
+    }
     return this.authService.login(loginDto, ip);
+  }
+
+  // Phase 3.13 — tenant-aware login. ALWAYS requires `company`, regardless
+  // of TENANT_LOGIN_REQUIRED. @tenant-reviewed: phase313-tenant-aware-login
+  @Public()
+  @Post('login-v2')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login with company, email, and password (tenant-aware)' })
+  @ApiResponse({ status: 200, description: 'Returns JWT tokens and user info' })
+  @ApiResponse({ status: 401, description: 'Invalid company, email, or password' })
+  loginV2(@Body() loginDto: LoginV2Dto, @Req() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    return this.authService.loginV2(loginDto, ip);
+  }
+
+  // Phase 3.17 — re-issue a JWT bound to a different tenant the user
+  // has an ACTIVE membership in. Requires a valid current session.
+  // @tenant-reviewed: phase317-multi-tenant-login
+  @Post('switch-tenant')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Switch the active tenant for the current session' })
+  @ApiResponse({ status: 200, description: 'New access + refresh tokens bound to the target tenant' })
+  switchTenant(@Body() body: { tenantId: string }, @Req() req: any) {
+    const userId = req?.user?.id ?? req?.user?.sub;
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    return this.authService.switchTenant(userId, body.tenantId, ip);
   }
 
   // ---------------------------------------------------------------------------
@@ -77,8 +120,10 @@ export class AuthController {
   @Get('me')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
-  getMe(@CurrentUser('id') userId: string) {
-    return this.authService.getMe(userId);
+  getMe(@CurrentUser() caller: any) {
+    // Phase 3.17 — pass the JWT-stamped tenantId so /auth/me can mark
+    // which membership is currently active in the topbar switcher.
+    return this.authService.getMe(caller?.id, { activeTenantId: caller?.tenantId });
   }
 
   // ---------------------------------------------------------------------------

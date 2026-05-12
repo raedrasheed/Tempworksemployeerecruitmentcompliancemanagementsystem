@@ -80,7 +80,15 @@ function mapApiData(data: Record<string, string>): Branding {
 
 async function fetchBranding(): Promise<Branding> {
   try {
-    const res = await fetch(`${API_URL}/settings/branding`);
+    // Phase 3.17 — forward the bearer when present so the backend can
+    // overlay the active tenant's branding. The endpoint stays public
+    // (no token required); the bearer is just a hint.
+    const token = (() => {
+      try { return localStorage.getItem('access_token') || ''; } catch { return ''; }
+    })();
+    const res = await fetch(`${API_URL}/settings/branding`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (!res.ok) return BRANDING_DEFAULTS;
     return mapApiData(await res.json());
   } catch {

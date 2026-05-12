@@ -42,9 +42,43 @@ export function WhatsAppButton({ phone, defaultCountryCode, message, label, size
     ? 'No valid WhatsApp number available'
     : `Open WhatsApp chat${phone ? ` with ${phone}` : ''}`;
 
+  // Icon-only variant: render a plain anchor with explicit 44×44
+  // dimensions so the WhatsApp glyph sits visibly bigger than the
+  // adjacent View/Edit Button shells (which are 32px). Bypasses the
+  // shared Button sizing so the icon can't be clipped by inherited
+  // padding/height rules.
+  if (size === 'icon') {
+    const shared =
+      'inline-flex items-center justify-center w-11 h-11 rounded-md transition-colors';
+    if (disabled) {
+      return (
+        <span
+          className={`${shared} text-muted-foreground opacity-50 cursor-not-allowed ${className ?? ''}`}
+          title={title}
+          aria-label={title}
+        >
+          <WhatsAppIcon className="w-8 h-8" />
+        </span>
+      );
+    }
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={title}
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className={`${shared} text-[#25D366] hover:text-[#1ebc59] hover:bg-[#25D366]/10 ${className ?? ''}`}
+      >
+        <WhatsAppIcon className="w-8 h-8" />
+      </a>
+    );
+  }
+
   const base = (
     <>
-      <WhatsAppIcon className={size === 'icon' ? 'w-4 h-4' : 'w-4 h-4 me-1.5'} />
+      <WhatsAppIcon className="w-5 h-5 me-1.5" />
       {label ? <span>{label}</span> : null}
     </>
   );
@@ -54,7 +88,7 @@ export function WhatsAppButton({ phone, defaultCountryCode, message, label, size
       <Button
         type="button"
         variant="ghost"
-        size={size === 'icon' ? 'sm' : 'sm'}
+        size="sm"
         className={`text-muted-foreground ${className ?? ''}`}
         title={title}
         aria-label={title}
@@ -72,7 +106,7 @@ export function WhatsAppButton({ phone, defaultCountryCode, message, label, size
       type="button"
       asChild
       variant="ghost"
-      size={size === 'icon' ? 'sm' : 'sm'}
+      size="sm"
       className={`text-[#25D366] hover:text-[#1ebc59] hover:bg-[#25D366]/10 ${className ?? ''}`}
       title={title}
     >

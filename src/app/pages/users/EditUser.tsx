@@ -65,6 +65,15 @@ export function EditUser() {
   // Flipping the per-user manager override flags is a tenancy-model
   // control — System Admin only.
   const isSystemAdmin = currentUser?.role === 'System Admin';
+  // Platform Admin Access card is restricted to SUPER PlatformAdmin viewers.
+  const [viewerIsSuperPa, setViewerIsSuperPa] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    usersApi.get(currentUser.id)
+      .then((u: any) => setViewerIsSuperPa(u?.platformAdmin?.level === 'SUPER'))
+      .catch(() => setViewerIsSuperPa(false));
+  }, [currentUser?.id]);
 
   const [roles, setRoles] = useState<any[]>([]);
   const [agencies, setAgencies] = useState<any[]>([]);
@@ -644,6 +653,15 @@ export function EditUser() {
             </CardContent>
           </Card>
 
+          {/* Phase 3.14 — Platform Admin Access. System Admin only.
+              Sets/clears the user's PlatformAdmin level (SUPPORT /
+              OPERATOR / SUPER / NONE). Calls users.setPlatformAdminLevel
+              which upserts the platform_admins row and writes a
+              PlatformAuditLog entry. */}
+          {viewerIsSuperPa && (
+            <PlatformAdminAccessCard targetUserId={id!} currentUserId={currentUser?.id} />
+          )}
+
           {/* Agency Manager Permissions — System Admin only, only on
               an approved agency user. Gives the admin explicit
               toggles to grant or revoke edit / delete capability to
@@ -711,5 +729,97 @@ export function EditUser() {
         </div>
       </form>
     </div>
+  );
+}
+
+// Phase 3.14 — Platform Admin access card. Renders a level select +
+// Save button; calls usersApi.setPlatformAdminLevel. Self-revoke is
+// rejected by the backend; the UI also disables NONE when editing
+// your own user.
+function PlatformAdminAccessCard({
+  targetUserId,
+  currentUserId,
+}: { targetUserId: string; currentUserId?: string }) {
+  const [level, setLevel] = useState<'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER'>('NONE');
+  const [initialLevel, setInitialLevel] = useState<'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER'>('NONE');
+  const [reason, setReason] = useState('admin-ui');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const u = await usersApi.get(targetUserId);
+        const l = (u?.platformAdmin?.level as any) ?? 'NONE';
+        if (!cancelled) { setLevel(l); setInitialLevel(l); }
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [targetUserId]);
+
+  const isSelf = currentUserId === targetUserId;
+  const disabled = saving || loading || level === initialLevel;
+
+  const onSave = async () => {
+    setSaving(true);
+    try {
+      const r = await usersApi.setPlatformAdminLevel(targetUserId, level, reason);
+      setInitialLevel(level);
+      toast.success(`Platform admin: ${r.action}`);
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to update PlatformAdmin level');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Platform Admin Access</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Grants platform-level authority independent of tenant roles. SUPER can
+          grant/revoke other PlatformAdmins. NONE removes the grant entirely.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <label className="block text-sm">
+            <span className="font-medium">Level</span>
+            <select
+              className="mt-1 block w-full rounded-md border px-3 py-2 text-sm"
+              value={level}
+              onChange={(e) => setLevel(e.target.value as any)}
+              disabled={loading || saving}
+            >
+              <option value="NONE" disabled={isSelf && initialLevel !== 'NONE'}>NONE</option>
+              <option value="SUPPORT">SUPPORT</option>
+              <option value="OPERATOR">OPERATOR</option>
+              <option value="SUPER">SUPER</option>
+            </select>
+            {isSelf && initialLevel !== 'NONE' && (
+              <span className="text-xs text-muted-foreground">Self-revoke not allowed.</span>
+            )}
+          </label>
+          <label className="block text-sm md:col-span-2">
+            <span className="font-medium">Reason</span>
+            <input
+              type="text"
+              className="mt-1 block w-full rounded-md border px-3 py-2 text-sm"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              disabled={loading || saving}
+            />
+          </label>
+        </div>
+        <div className="flex justify-end">
+          <Button type="button" onClick={onSave} disabled={disabled}>
+            {saving ? 'Saving…' : 'Save platform admin level'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

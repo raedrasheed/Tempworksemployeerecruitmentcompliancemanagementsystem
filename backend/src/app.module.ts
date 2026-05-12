@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
@@ -28,10 +29,15 @@ import { EmployeeWorkHistoryModule } from './employee-work-history/employee-work
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { BackupModule }   from './backup/backup.module';
 import { EmailModule } from './email/email.module';
+import { TenancyModule } from './saas/tenancy/tenancy.module';
+import { TenantsModule } from './tenants/tenants.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Phase 2.41 — single registration so the compliance cron has a host.
+    // The cron handler itself remains gated by COMPLIANCE_ALERT_SCHEDULER_ENABLED.
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     I18nModule,
     PrismaModule,
@@ -59,6 +65,12 @@ import { EmailModule } from './email/email.module';
     EmployeeWorkHistoryModule,
     VehiclesModule,
     BackupModule,
+    // Phase 2.2 SaaS scaffolding. The middleware + interceptor are
+    // INERT when MULTI_TENANT_ENABLED=false (production default).
+    // Activates only on staging-classified hosts.
+    TenancyModule,
+    // Phase 3.15 — Tenant Management module (PlatformAdmin only).
+    TenantsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

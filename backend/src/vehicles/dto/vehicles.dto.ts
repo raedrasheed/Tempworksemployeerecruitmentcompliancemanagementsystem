@@ -36,6 +36,13 @@ export class FilterVehiclesDto extends PaginationDto {
 // values from the settings UI without a code change.
 
 export class CreateVehicleDto {
+  // Phase 3.19 — SUPER PlatformAdmin only. Lets a SUPER user move a
+  // vehicle between tenants from the edit form. Ignored for any other
+  // caller (the service strips it before the DB write).
+  // @tenant-reviewed: phase319-fleet-tenant-scope
+  @ApiPropertyOptional({ description: 'Move the vehicle to this tenant (SUPER PlatformAdmin only)' })
+  @IsOptional() @IsString() tenantId?: string;
+
   // type is driven by the configurable Vehicle Types lookup under
   // System Settings → Vehicle Settings — accept any string the admin
   // has configured (e.g. "Truck", "Forklift", "Crane").
@@ -225,6 +232,9 @@ export class UpdateMaintenanceTypeDto {
 // ─── Workshops ────────────────────────────────────────────────────────────────
 
 export class CreateWorkshopDto {
+  @ApiPropertyOptional({ description: 'Move the workshop to this tenant (SUPER PlatformAdmin only)' })
+  @IsOptional() @IsString() tenantId?: string;
+
   @ApiProperty() @IsString() name: string;
   @ApiPropertyOptional() @IsOptional() @IsString() companyName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() logo?: string;

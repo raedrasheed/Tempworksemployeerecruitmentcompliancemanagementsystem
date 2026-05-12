@@ -56,4 +56,13 @@ export class CreateJobAdDto {
   @ApiPropertyOptional({ type: [String], description: 'Document type names that applicants must upload' })
   @IsOptional() @IsArray() @IsString({ each: true })
   requiredDocuments?: string[];
+
+  // Phase 3.18 — only honoured when the caller is a PlatformAdmin
+  // SUPER. Lets a SUPER user move a Job Ad between tenants from the
+  // edit form. Ignored silently for every other caller (the service
+  // strips it from the payload before the DB write).
+  // @tenant-reviewed: phase318-tenant-public-jobs
+  @ApiPropertyOptional({ description: 'Move the Job Ad to this tenant (SUPER PlatformAdmin only)' })
+  @IsOptional() @IsString()
+  tenantId?: string;
 }

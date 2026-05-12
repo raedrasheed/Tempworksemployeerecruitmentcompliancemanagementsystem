@@ -122,6 +122,7 @@ export class UsersService {
     callerRole?: string,
     callerAgencyId?: string,
     callerAgencyIsSystem?: boolean,
+    callerId?: string,
   ) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', roleId, status } = query;
     const skip = (Number(page) - 1) * Number(limit);
@@ -175,13 +176,38 @@ export class UsersService {
       this.prisma.user.count({ where }),
     ]);
 
+    // Phase 3.14/3.15 — attach PlatformAdmin level for the badge in the
+    // UI list. Visible only to SUPER PlatformAdmin viewers; for every
+    // other caller the field is omitted entirely so the SUPER badge
+    // does not leak through the list response.
+    try {
+      const callerPa = callerId
+        ? await (this.prisma as any).platformAdmin.findUnique({
+            where: { userId: callerId }, select: { level: true },
+          })
+        : null;
+      if (callerPa?.level === 'SUPER') {
+        const ids = data.map((u: any) => u.id);
+        if (ids.length) {
+          const pas = await (this.prisma as any).platformAdmin.findMany({
+            where: { userId: { in: ids } },
+            select: { userId: true, level: true },
+          });
+          const byId = new Map<string, string>(pas.map((p: any) => [p.userId, p.level]));
+          for (const u of data as any[]) {
+            u.platformAdmin = { level: byId.get(u.id) ?? 'NONE' };
+          }
+        }
+      }
+    } catch { /* table may not exist yet in some envs */ }
+
     return PaginatedResponse.create(data, total, page, limit);
   }
 
   // ---------------------------------------------------------------------------
   // Find one
   // ---------------------------------------------------------------------------
-  async findOne(id: string, callerRole?: string, callerAgencyId?: string, callerAgencyIsSystem?: boolean) {
+  async findOne(id: string, callerRole?: string, callerAgencyId?: string, callerAgencyIsSystem?: boolean, callerId?: string) {
     const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -215,6 +241,31 @@ export class UsersService {
     }
 
     const { passwordHash, refreshToken, ...result } = user as any;
+
+    // Phase 3.14/3.15 — enrich with PlatformAdmin level for the User
+    // edit page's "Platform Admin Access" card. Only visible when the
+    // caller is the target themself (so /users/me always works) OR
+    // when the caller is a SUPER PlatformAdmin. For every other viewer
+    // the field is omitted entirely.
+    // @tenant-reviewed: phase311-platform-admin-grant-revoke
+    try {
+      const selfLookup = !!callerId && callerId === id;
+      let allowed = selfLookup;
+      if (!allowed && callerId) {
+        const callerPa = await (this.prisma as any).platformAdmin.findUnique({
+          where: { userId: callerId }, select: { level: true },
+        });
+        allowed = callerPa?.level === 'SUPER';
+      }
+      if (allowed) {
+        const pa = await (this.prisma as any).platformAdmin.findUnique({
+          where: { userId: id },
+          select: { level: true, grantedAt: true, grantedBy: true },
+        });
+        (result as any).platformAdmin = pa ? pa : { level: 'NONE' };
+      }
+    } catch { /* table may not exist yet */ }
+
     return result;
   }
 
@@ -543,6 +594,74 @@ export class UsersService {
 
     const { passwordHash, refreshToken, ...result } = user as any;
     return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Phase 3.14 admin bootstrap — set or clear a user's PlatformAdmin level.
+  // Used by the User edit page. Writes a PlatformAuditLog row (best-effort).
+  // @tenant-reviewed: phase311-platform-admin-grant-revoke
+  async setPlatformAdminLevel(
+    targetUserId: string,
+    level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER',
+    reason: string,
+    actorUserId?: string,
+  ) {
+    if (!['NONE', 'SUPPORT', 'OPERATOR', 'SUPER'].includes(level)) {
+      throw new BadRequestException({ code: 'PLATFORM_ADMIN.INVALID_LEVEL' });
+    }
+    if (!actorUserId) {
+      throw new ForbiddenException({ code: 'PLATFORM_ADMIN.MISSING_ACTOR' });
+    }
+    const actorPa = await (this.prisma as any).platformAdmin.findUnique({
+      where: { userId: actorUserId }, select: { level: true },
+    });
+    if (!actorPa || actorPa.level !== 'SUPER') {
+      throw new ForbiddenException({ code: 'PLATFORM_ADMIN.ACTOR_NOT_SUPER' });
+    }
+    if (actorUserId === targetUserId && level === 'NONE') {
+      throw new ForbiddenException({ code: 'PLATFORM_ADMIN.SELF_REVOKE_FORBIDDEN' });
+    }
+    const target = await this.prisma.user.findFirst({
+      where: { id: targetUserId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!target) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
+
+    const existing = await (this.prisma as any).platformAdmin.findUnique({
+      where: { userId: targetUserId }, select: { level: true },
+    });
+
+    let action = 'PLATFORM_ADMIN_GRANT_IDEMPOTENT';
+    if (level === 'NONE') {
+      if (!existing) action = 'PLATFORM_ADMIN_REVOKE_IDEMPOTENT';
+      else {
+        await (this.prisma as any).platformAdmin.delete({ where: { userId: targetUserId } });
+        action = 'PLATFORM_ADMIN_REVOKED';
+      }
+    } else if (!existing) {
+      await (this.prisma as any).platformAdmin.create({
+        data: { userId: targetUserId, level: level as any, grantedBy: actorUserId ?? null },
+      });
+      action = 'PLATFORM_ADMIN_GRANTED';
+    } else if (existing.level !== level) {
+      await (this.prisma as any).platformAdmin.update({
+        where: { userId: targetUserId },
+        data: { level: level as any, grantedBy: actorUserId ?? null, grantedAt: new Date() },
+      });
+      action = 'PLATFORM_ADMIN_LEVEL_CHANGED';
+    }
+
+    try {
+      await (this.prisma as any).platformAuditLog.create({
+        data: {
+          actorId: actorUserId ?? 'system',
+          action, reason: reason || 'admin-ui',
+          target: { targetUserId, previousLevel: existing?.level ?? null, newLevel: level === 'NONE' ? null : level },
+        },
+      });
+    } catch { /* table may not exist yet in some envs */ }
+
+    return { action, targetUserId, level };
   }
 
   // ---------------------------------------------------------------------------

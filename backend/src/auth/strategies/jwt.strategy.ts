@@ -2,10 +2,18 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PlatformAdminAccessService } from '../../saas/platform-admin/platform-admin-access.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    // Phase 3.7/3.9 — authority resolver for `agencyIsSystem`. As of
+    // Phase 3.9 the legacy `Agency.isSystem` column is removed and the
+    // service answers exclusively from `PlatformAdmin`.
+    // Tag: phase390-platform-admin-only-authority
+    private platformAdminAccess: PlatformAdminAccessService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -29,7 +37,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         roleId: true,
         agencyId: true,
         role: { select: { name: true } },
-        agency: { select: { isSystem: true } },
+        // Phase 3.18 — pull the user's primary tenantId via their agency
+        // so dashboard tenant-scope filters work for legacy tokens that
+        // never went through /auth/login-v2.
+        // @tenant-reviewed: phase318-tenant-public-jobs
+        agency: { select: { tenantId: true } },
+        // Phase 3.9 — Agency.isSystem column removed; no longer selected here.
       },
     });
     if (!user) {
@@ -44,6 +57,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         params: { status: user.status.toLowerCase() },
       });
     }
+    // Phase 3.9 — `agencyIsSystem` means "platform admin per
+    // PlatformAdmin row". The field name is preserved for downstream
+    // compatibility; the column it once derived from has been dropped.
+    // @tenant-reviewed: phase390-platform-admin-only-authority
+    const agencyIsSystem = await this.platformAdminAccess.isPlatformAdmin(user.id);
     return {
       id: user.id,
       email: user.email,
@@ -52,10 +70,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       role: user.role.name,
       roleId: user.roleId,
       agencyId: user.agencyId,
-      // True when the user's agency is the Tempworks root/owner (seen
-      // globally); false — or missing — means the caller is an
-      // external tenant and every service must scope to their agency.
-      agencyIsSystem: (user as any).agency?.isSystem ?? false,
+      agencyIsSystem,
+      // Phase 3.17 — active tenant + membership stamped at login or
+      // tenant-switch time. Undefined on legacy tokens issued before
+      // 3.17 (single-tenant fallback still works).
+      // @tenant-reviewed: phase317-multi-tenant-login
+      tenantId:     payload?.tenantId ?? user.agency?.tenantId ?? undefined,
+      membershipId: payload?.membershipId,
     };
   }
 }

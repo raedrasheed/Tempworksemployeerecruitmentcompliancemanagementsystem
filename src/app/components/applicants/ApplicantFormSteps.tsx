@@ -440,7 +440,12 @@ export function getStepErrors(
     if (!d.homeAddress?.country?.trim()) errors.push(tf('validation.permanentAddressCountry'));
     if (!d.livedAbroadRecently) errors.push(tf('validation.abroadAnswerRequired'));
     if (d.livedAbroadRecently === 'yes') {
-      if (!d.abroadCountry) errors.push(tf('validation.abroadCountryRequired'));
+      // The standalone abroadCountry was removed in favour of the
+      // canonical country field inside abroadAddress. Mirror the value
+      // for backwards compat with PDF/review consumers below.
+      const abroadCountry = d.abroadAddress?.country?.trim() || d.abroadCountry?.trim() || '';
+      if (!abroadCountry) errors.push(tf('validation.abroadCountryRequired'));
+      if (!d.abroadAddress?.line1?.trim()) errors.push(tf('validation.abroadAddressLine1Required', { defaultValue: 'Previous-country address line 1 is required' }));
       if (!d.abroadDateFrom) errors.push(tf('validation.abroadDateFromRequired'));
       if (!d.abroadDateTo) errors.push(tf('validation.abroadDateToRequired'));
     }
@@ -464,10 +469,17 @@ export function getStepErrors(
   // ── Tab 3: Identification & Legal Status ──────────────────────────────────
   if (actualTab === 3) {
     if (!d.passportNumber?.trim()) errors.push(tf('validation.passportNumberRequired'));
-    // Job-ad required uploads handled on this tab (upload widgets are here)
+    // Passport upload is mandatory across the application form — not only
+    // when the job ad declares it as a required document. Accept either
+    // the job-ad-keyed slot (`required:<name>`) or the generic `passport`
+    // slot used when no required-docs list applies.
     const passportDocName = requiredDocuments?.find(n => n.toLowerCase() === 'passport');
-    if (passportDocName && !hasFile(`required:${passportDocName}`))
+    const passportUploaded =
+      (passportDocName && hasFile(`required:${passportDocName}`)) ||
+      hasFile('passport');
+    if (!passportUploaded) {
       errors.push(tf('validation.requiredPassportUpload'));
+    }
     const nationalIdDocName = requiredDocuments?.find(n => n.toLowerCase().includes('national id'));
     if (nationalIdDocName && !hasFile(`required:${nationalIdDocName}`))
       errors.push(tf('validation.requiredNationalIdUpload'));
@@ -605,10 +617,21 @@ export function getStepErrors(
   }
 
   // ── Tab 10: Documents ─────────────────────────────────────────────────────
-  if (actualTab === 10 && requiredDocuments && requiredDocuments.length > 0) {
-    for (const docName of requiredDocuments) {
-      if (!hasFile(`required:${docName}`))
-        errors.push(tf('validation.requiredDocByName', { name: docName }));
+  if (actualTab === 10) {
+    // Passport upload is mandatory on every application, regardless of
+    // the job ad's required-docs list.
+    const passportDocName = requiredDocuments?.find(n => n.toLowerCase() === 'passport');
+    const passportUploaded =
+      (passportDocName && hasFile(`required:${passportDocName}`)) ||
+      hasFile('passport');
+    if (!passportUploaded) {
+      errors.push(tf('validation.requiredPassportUpload'));
+    }
+    if (requiredDocuments && requiredDocuments.length > 0) {
+      for (const docName of requiredDocuments) {
+        if (!hasFile(`required:${docName}`))
+          errors.push(tf('validation.requiredDocByName', { name: docName }));
+      }
     }
   }
 
@@ -1128,13 +1151,25 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
         </div>
         {d.livedAbroadRecently === 'yes' && (
           <div className="space-y-4 pt-2 border-s-2 border-blue-100 ps-4">
-            <div className="space-y-1">
-              <Label className="text-xs">{t('applicants.form.step1.abroadCountry')} *</Label>
-              <CountrySelect value={d.abroadCountry} onChange={set('abroadCountry')} placeholder={t('applicants.form.common.selectCountry')} />
-            </div>
+            {/* Previous Country of Residence — the country picker lives
+                inside AddressForm so we don't render a duplicate one
+                above it. The address itself is required when the
+                applicant says yes. */}
             <div className="space-y-1">
               <Label className="text-xs">{t('applicants.form.step1.abroadAddress')} *</Label>
-              <AddressForm label="" value={d.abroadAddress ?? { ...EMPTY_ADDRESS }} onChange={set('abroadAddress')} />
+              <AddressForm
+                label=""
+                value={d.abroadAddress ?? { ...EMPTY_ADDRESS }}
+                onChange={(next) => u((prev) => ({
+                  ...prev,
+                  abroadAddress: next,
+                  // Mirror the address country into the standalone
+                  // abroadCountry field so existing PDF/review/payload
+                  // consumers keep working.
+                  abroadCountry: next?.country ?? '',
+                }))}
+                required
+              />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -1342,12 +1377,12 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
       <SectionTitle title={t('applicants.form.step3.title')} subtitle={t('applicants.form.step3.subtitle')} />
       <div className="space-y-4">
         <SubSection title={t('applicants.form.step3.passport')} />
-        {passportDocName && (
-          <div className="flex items-center gap-2 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-            {t('applicants.form.step3.passportRequiredBanner')}
-          </div>
-        )}
+        {/* Passport upload is mandatory for every application — banner
+            always shown, not gated on the job ad's required-docs list. */}
+        <div className="flex items-center gap-2 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+          {t('applicants.form.step3.passportRequiredBanner')}
+        </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label className="text-xs">{t('applicants.form.step3.passportNumber')} *</Label>
@@ -2894,9 +2929,9 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       )}
 
       {/* Education */}
-      {d.education.length > 0 && (
+      {(d.education?.length ?? 0) > 0 && (
         <ReviewSection title={t('applicants.form.step11.educationSection')}>
-          {d.education.map(e => (
+          {d.education!.map(e => (
             <div key={e.id} className="p-3 bg-gray-50 rounded-lg space-y-1">
               <p className="text-sm font-semibold text-gray-900">{e.level} — {e.institution}</p>
               {e.fieldOfStudy && <p className="text-xs text-gray-500">{e.fieldOfStudy}</p>}
@@ -2907,9 +2942,9 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       )}
 
       {/* Work History */}
-      {d.workHistory.length > 0 && (
+      {(d.workHistory?.length ?? 0) > 0 && (
         <ReviewSection title={t('applicants.form.step11.workSection')}>
-          {d.workHistory.map(w => (
+          {d.workHistory!.map(w => (
             <div key={w.id} className="p-3 bg-gray-50 rounded-lg space-y-1">
               <p className="text-sm font-semibold text-gray-900">{w.jobTitle} — {w.company}</p>
               <p className="text-xs text-gray-500">{w.country} · {w.startDate} – {w.current ? t('applicants.form.step11.presentLabel') : w.endDate}</p>
@@ -2921,10 +2956,10 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       )}
 
       {/* Languages */}
-      {d.languages.length > 0 && (
+      {(d.languages?.length ?? 0) > 0 && (
         <ReviewSection title={t('applicants.form.step11.languagesSection')}>
           <div className="grid md:grid-cols-2 gap-3">
-            {d.languages.map(l => {
+            {d.languages!.map(l => {
               // Mother-tongue speakers don't rate themselves on the CEFR scale,
               // so suppress the per-skill line entirely. For all other languages,
               // only render the skills that actually have a level set.
@@ -2957,10 +2992,10 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       )}
 
       {/* Skills */}
-      {d.skills.length > 0 && (
+      {(d.skills?.length ?? 0) > 0 && (
         <ReviewSection title={t('applicants.form.step11.skillsSection')}>
           <div className="grid md:grid-cols-2 gap-3">
-            {d.skills.map(s => (
+            {d.skills!.map(s => (
               <div key={s.id} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                 <span className="text-sm font-semibold text-gray-900">{s.skill}</span>
                 {s.level && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{enumLabel('skillLevel', s.level) || s.level}</span>}

@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { authApi, getCurrentUser, setCurrentUser, notificationsApi, resolveAssetUrl, type AuthUser } from '../../services/api';
+import { authApi, authTenantApi, getCurrentUser, setCurrentUser, setTokens, notificationsApi, resolveAssetUrl, type AuthUser } from '../../services/api';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
@@ -511,6 +511,57 @@ export function Topbar() {
               <Lock className="w-4 h-4" />
               <span>{t('topbar.changePassword')}</span>
             </DropdownMenuItem>
+
+            {/* Phase 3.17 — tenant switcher. Only rendered when the user
+                has more than one ACTIVE TenantMembership. The active
+                tenant is highlighted; clicking another fetches a fresh
+                JWT bound to that tenant and reloads /auth/me. */}
+            {(liveUser?.memberships?.length ?? 0) > 1 && (
+              <>
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {t('topbar.switchTenant', { defaultValue: 'Switch tenant' })}
+                </div>
+                {liveUser!.memberships!.map((m) => {
+                  const active =
+                    (liveUser?.activeTenantId ?? liveUser?.primaryTenantId) === m.tenantId;
+                  return (
+                    <DropdownMenuItem
+                      key={m.tenantId}
+                      className={`cursor-pointer ${active ? 'bg-blue-50' : ''}`}
+                      onClick={async () => {
+                        if (active) return;
+                        try {
+                          const res = await authTenantApi.switch(m.tenantId);
+                          setTokens(res.accessToken, res.refreshToken);
+                          // Tenant changed → branding may differ. Invalidate
+                          // the cached /settings/branding response before
+                          // we hard-reload so the new logo + name surface
+                          // immediately. Imported lazily to keep this
+                          // dropdown render-pure.
+                          try {
+                            const mod = await import('../../hooks/useBranding');
+                            mod.invalidateBrandingCache?.();
+                          } catch { /* hook missing in a minimal build */ }
+                          const me = await authApi.me();
+                          if (me) {
+                            setCurrentUser(me);
+                            updateUser?.(me);
+                          }
+                          window.location.assign('/dashboard');
+                        } catch {
+                          // setTokens has already been swapped only on success path.
+                        }
+                      }}
+                    >
+                      <Building2 className={`w-4 h-4 ${active ? 'text-blue-600' : ''}`} />
+                      <span className={`flex-1 truncate ${active ? 'font-semibold text-blue-700' : ''}`}>{m.name}</span>
+                      {active && <CheckCircle className="w-4 h-4 text-blue-600" aria-label={t('topbar.tenantActive', { defaultValue: 'active' })} />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </>
+            )}
 
             <DropdownMenuSeparator />
 

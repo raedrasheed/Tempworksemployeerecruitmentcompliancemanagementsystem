@@ -629,7 +629,8 @@
         "tier": "Úroveň",
         "applied": "Dátum podania",
         "status": "Stav",
-        "actions": "Akcie"
+        "actions": "Akcie",
+        "source": "Zdroj"
       },
       "promoteDialog": {
         "title_one": "Povýšiť {{count}} záujemcu na kandidáta",
@@ -654,7 +655,8 @@
         "agency": "Agentúra",
         "tier": "Úroveň",
         "applied": "Dátum podania",
-        "status": "Stav"
+        "status": "Stav",
+        "source": "Zdroj"
       },
       "total": "Spolu",
       "leads": "Záujemcovia",
@@ -742,7 +744,8 @@
         "agency": "Agentúra",
         "applied": "Dátum podania",
         "status": "Stav",
-        "actions": "Akcie"
+        "actions": "Akcie",
+        "source": "Zdroj"
       },
       "workflowDialog": {
         "title_one": "Pripojiť {{count}} kandidáta k workflow",
@@ -4224,6 +4227,7 @@
       "footerPage": "Strana {{page}} z {{totalPages}}",
       "cols": {
         "title": "Názov",
+        "tenant": "Nájomca",
         "category": "Kategória",
         "city": "Mesto",
         "country": "Krajina",
@@ -4338,6 +4342,7 @@
         "DOCUMENT": "Dokument",
         "DOCUMENT_TYPE": "Typ dokumentu",
         "JOB_AD": "Pracovný inzerát",
+        "JOB_TYPE": "Pracovná kategória",
         "FINANCIAL_RECORD": "Finančný záznam",
         "ROLE": "Rola",
         "NOTIFICATION": "Notifikácia",
@@ -5423,5 +5428,100 @@
         "createdAt": "Vytvorené"
       }
     }
+  },
+  "tenants": {
+    "list": {
+      "title": "Nájomcovia",
+      "subtitle": "Správa nájomcov platformy",
+      "addTenant": "Pridať nájomcu",
+      "searchPlaceholder": "Hľadať podľa názvu, slug alebo domény…",
+      "allStatuses": "Všetky stavy",
+      "includeDeleted": "Vrátane vymazaných",
+      "loading": "Načítavanie…",
+      "empty": "Žiadni nájomcovia.",
+      "view": "Zobraziť",
+      "edit": "Upraviť",
+      "archive": "Archivovať",
+      "activate": "Aktivovať",
+      "restore": "Obnoviť",
+      "delete": "Vymazať",
+      "cols": {
+        "name": "Názov",
+        "slug": "Slug",
+        "domain": "Doména",
+        "status": "Stav",
+        "created": "Vytvorené",
+        "actions": "Akcie"
+      }
+    },
+    "form": {
+      "titleCreate": "Nový nájomca",
+      "titleEdit": "Upraviť nájomcu",
+      "subtitle": "Profil a nastavenia",
+      "save": "Uložiť",
+      "saving": "Ukladám…",
+      "cancel": "Zrušiť",
+      "slugHelp": "Malé písmená, vhodné pre URL.",
+      "slugImmutable": "Zmena slug vyžaduje SUPER.",
+      "sections": {
+        "general": "Všeobecné",
+        "branding": "Branding",
+        "contact": "Kontakt a poznámky"
+      }
+    },
+    "fields": {
+      "name": "Názov",
+      "slug": "Slug",
+      "customDomain": "Vlastná doména",
+      "status": "Stav",
+      "region": "Región",
+      "logoUrl": "URL loga",
+      "primaryColor": "Hlavná farba",
+      "timezone": "Časové pásmo",
+      "locale": "Jazyk",
+      "contactEmail": "Kontaktný e-mail",
+      "contactPhone": "Telefón",
+      "address": "Adresa",
+      "notes": "Poznámky",
+      "planId": "Plán",
+      "onboardingStatus": "Onboarding",
+      "createdAt": "Vytvorené",
+      "updatedAt": "Upravené"
+    },
+    "statuses": {
+      "active": "Aktívny",
+      "suspended": "Pozastavený",
+      "inactive": "Neaktívny"
+    },
+    "tabs": {
+      "general": "Všeobecné",
+      "branding": "Branding",
+      "access": "Prístup",
+      "stats": "Štatistiky",
+      "flags": "Príznaky"
+    },
+    "stats": {
+      "agencies": "Agentúry",
+      "users": "Používatelia",
+      "employees": "Zamestnanci",
+      "applicants": "Uchádzači",
+      "documents": "Dokumenty",
+      "memberships": "Členstvá",
+      "unavailable": "Štatistiky nie sú k dispozícii."
+    },
+    "flags": {
+      "empty": "Žiadne nakonfigurované príznaky."
+    },
+    "deleted": "Vymazaný",
+    "confirmArchiveTitle": "Archivovať nájomcu?",
+    "confirmArchiveDesc": "Nájomca bude pozastavený.",
+    "confirmDeleteTitle": "Vymazať nájomcu?",
+    "confirmDeleteDesc": "Mäkké mazanie, SUPER môže obnoviť.",
+    "toastCreated": "Nájomca vytvorený",
+    "toastUpdated": "Nájomca aktualizovaný",
+    "toastArchived": "Nájomca archivovaný",
+    "toastActivated": "Nájomca aktivovaný",
+    "toastRestored": "Nájomca obnovený",
+    "toastDeleted": "Nájomca vymazaný"
   }
 }

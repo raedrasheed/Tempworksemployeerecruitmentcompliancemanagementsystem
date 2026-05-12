@@ -47,15 +47,16 @@ const asArray = (v: any): any[] => Array.isArray(v) ? v : [];
 // ── Section wrapper ──────────────────────────────────────────────────────────
 
 function Section({
-  title, icon: Icon, children, span,
+  title, icon: Icon, children, span, id,
 }: {
   title: string;
   icon: any;
   children: ReactNode;
   span?: boolean;
+  id?: string;
 }) {
   return (
-    <Card className={span ? 'lg:col-span-2' : ''}>
+    <Card id={id} className={`${span ? 'lg:col-span-2 ' : ''}scroll-mt-24`}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Icon className="w-4 h-4" />{title}
@@ -141,7 +142,7 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Addresses ─────────────────────────────────────────── */}
         {hasAny(ad.homeAddress?.line1, ad.homeAddress?.city, ad.currentAddress?.line1) && (
-          <Section title={t('applicants.applicationView.sections.addresses')} icon={MapPin} span>
+          <Section title={t('applicants.applicationView.sections.addresses')} icon={MapPin} span id="section-travel">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('applicants.applicationView.subsections.permanentAddress')}</p>
@@ -285,7 +286,7 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Driving Licence ──────────────────────────────────── */}
         {ad.hasDrivingLicense === 'yes' && (
-          <Section title={t('applicants.applicationView.sections.drivingLicence')} icon={CreditCard}>
+          <Section title={t('applicants.applicationView.sections.drivingLicence')} icon={CreditCard} id="section-driving">
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <Field label={t('applicants.applicationView.labels.number')} value={ad.licenseNumber} />
@@ -379,7 +380,7 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Education ────────────────────────────────────────── */}
         {educations.length > 0 && (
-          <Section title={t('applicants.applicationView.sections.education')} icon={GraduationCap} span>
+          <Section title={t('applicants.applicationView.sections.education')} icon={GraduationCap} span id="section-education">
             <div className="space-y-3">
               {educations.map((e: any, i: number) => (
                 <div key={e.id ?? i} className="p-3 border rounded-md">
@@ -399,7 +400,7 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Work History ─────────────────────────────────────── */}
         {workHistory.length > 0 && (
-          <Section title={t('applicants.applicationView.sections.workExperience')} icon={Briefcase} span>
+          <Section title={t('applicants.applicationView.sections.workExperience')} icon={Briefcase} span id="section-work-experience">
             <div className="space-y-3">
               {workHistory.map((w: any, i: number) => (
                 <div key={w.id ?? i} className="p-3 border rounded-md">

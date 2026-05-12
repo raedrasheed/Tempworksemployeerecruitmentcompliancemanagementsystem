@@ -12,21 +12,63 @@ import { FilterFinancialRecordsDto } from './dto/filter-financial-records.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { StorageService } from '../common/storage/storage.service';
 import * as ExcelJS from 'exceljs';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 
 // Roles that receive financial notifications
 const FINANCE_ROLES = ['System Admin', 'Finance', 'HR Manager'];
 // High-balance threshold in EUR (also check SystemSetting key 'notifications.highBalanceThreshold')
 const DEFAULT_HIGH_BALANCE_THRESHOLD = 500;
 
+/**
+ * Phase 2.16 + 2.17 — Finance pilot (reads + selected mutations).
+ *
+ * READ paths route through `pilot.client()` and spread
+ * `scope.tenantWhere()` when the pilot scope is active. Production
+ * default (flag off) is byte-identical to pre-2.16.
+ *
+ * WRITE / mutation paths (Phase 2.17):
+ *  - `create` writes `tenantId` via `scope.tenantData()` in pilot mode
+ *    (`phase217-pilot-scope`).
+ *  - `update`, `remove`, `updateStatus`, `addDeduction`,
+ *    `addAttachment`, `removeAttachment` rely on the tenant-scoped
+ *    `findOne(id)` pre-check (`phase217-pilot-scope-precheck`). The
+ *    by-id update / soft-delete therefore never reaches a foreign
+ *    tenant's row.
+ *  - `removeDeduction` adds a NEW parent tenant pre-check via
+ *    `findFirst({ where: { id, tenantWhere() } })` before deleting
+ *    the child deduction (`phase217-pilot-scope`).
+ *
+ * Audit log writes use `legacyPrisma` always (global side effect).
+ *
+ * The pilot scope is active iff:
+ *   - `TENANT_PRISMA_PILOT_ENABLED=true`
+ *   - `TENANT_PRISMA_PILOT_MODULES` empty or includes `finance`
+ *   - env classifies as SAFE_CLONE / SAFE_STAGING
+ *   - a tenant is in the active ALS frame
+ */
 @Injectable()
 export class FinanceService {
   private readonly logger = new Logger(FinanceService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly legacyPrisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly pilot: PilotPrismaAccessor,
+    private readonly tenantAuditLog: TenantAuditLogService,
   ) {}
+
+  /** Pilot-aware Prisma surface used by READ paths only. Mutation
+   *  paths use `legacyPrisma` directly. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'finance');
+  }
 
   // ── Prisma include helpers ───────────────────────────────────────────────────
 
@@ -53,7 +95,8 @@ export class FinanceService {
     } = filter as any;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null };
+    const t = this.scope().tenantWhere();
+    const where: any = { deletedAt: null, ...t };
     if (entityType) where.entityType = entityType;
     if (entityId)   where.entityId   = entityId;
     if (status)     where.status     = status;
@@ -80,12 +123,12 @@ export class FinanceService {
     const orderField = validSort.includes(sortBy) ? sortBy : 'transactionDate';
 
     const [items, total] = await Promise.all([
-      this.prisma.financialRecord.findMany({
+      this.prisma.financialRecord.findMany({ // @tenant-reviewed: phase216-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { [orderField]: sortOrder },
         include: this.recordInclude,
       }),
-      this.prisma.financialRecord.count({ where }),
+      this.prisma.financialRecord.count({ where }), // @tenant-reviewed: phase216-pilot-scope
     ]);
 
     // Attach entity (applicant / employee) name to each record so the
@@ -107,8 +150,9 @@ export class FinanceService {
    * it is informational/reconciliation data only.
    */
   async getTotals(entityType: string, entityId: string) {
-    const agg = await this.prisma.financialRecord.aggregate({
-      where: { entityType, entityId, deletedAt: null },
+    const t = this.scope().tenantWhere();
+    const agg = await this.prisma.financialRecord.aggregate({ // @tenant-reviewed: phase216-pilot-scope
+      where: { entityType, entityId, deletedAt: null, ...t },
       _sum: {
         companyDisbursedAmount:     true,
         employeeOrAgencyPaidAmount: true,
@@ -140,9 +184,10 @@ export class FinanceService {
    * the Employee profile can display it after conversion.
    */
   async getPersonRecords(applicantId: string) {
+    const t = this.scope().tenantWhere();
     // Resolve applicant (include soft-deleted so converted persons are found)
-    const applicant = await this.prisma.applicant.findUnique({
-      where: { id: applicantId },
+    const applicant = await this.prisma.applicant.findFirst({ // @tenant-reviewed: phase216-pilot-scope (id+tenant scoped when active)
+      where: { id: applicantId, ...t },
       select: {
         id: true, firstName: true, lastName: true, email: true,
         tier: true, deletedAt: true, convertedToEmployeeId: true,
@@ -155,8 +200,8 @@ export class FinanceService {
     // Resolve linked employee if converted
     let employee: any = null;
     if (applicant.convertedToEmployeeId) {
-      employee = await this.prisma.employee.findUnique({
-        where: { id: applicant.convertedToEmployeeId },
+      employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase216-pilot-scope
+        where: { id: applicant.convertedToEmployeeId, ...t },
         select: {
           id: true, firstName: true, lastName: true, email: true,
           employeeNumber: true, status: true,
@@ -165,18 +210,19 @@ export class FinanceService {
     }
 
     // All financial records across all stages for this person
-    const records = await this.prisma.financialRecord.findMany({
+    const records = await this.prisma.financialRecord.findMany({ // @tenant-reviewed: phase216-pilot-scope
       where: {
         applicantId,
         deletedAt: null,
+        ...t,
       },
       orderBy: { transactionDate: 'desc' },
       include: this.recordInclude,
     });
 
     // Aggregate totals across all stages
-    const agg = await this.prisma.financialRecord.aggregate({
-      where: { applicantId, deletedAt: null },
+    const agg = await this.prisma.financialRecord.aggregate({ // @tenant-reviewed: phase216-pilot-scope
+      where: { applicantId, deletedAt: null, ...t },
       _sum: {
         companyDisbursedAmount:     true,
         employeeOrAgencyPaidAmount: true,
@@ -230,7 +276,7 @@ export class FinanceService {
    *  so System Admins can manage it from Settings without a deploy. */
   async listTransactionTypes(): Promise<Array<{ id: string; name: string; sortOrder: number }>> {
     try {
-      return await (this.prisma as any).financeTransactionType.findMany({
+      return await (this.prisma as any).financeTransactionType.findMany({ // @tenant-reviewed: phase216-global (FinanceTransactionType is a global catalog)
         where: { isActive: true },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         select: { id: true, name: true, sortOrder: true },
@@ -244,8 +290,12 @@ export class FinanceService {
   }
 
   async findOne(id: string) {
-    const record = await this.prisma.financialRecord.findUnique({
-      where: { id, deletedAt: null },
+    const t = this.scope().tenantWhere();
+    // Use findFirst so we can additionally constrain by tenantId in
+    // pilot mode. Legacy behaviour identical (the unique `id` lookup
+    // still returns the same row when `t` is empty).
+    const record = await this.prisma.financialRecord.findFirst({ // @tenant-reviewed: phase216-pilot-scope
+      where: { id, deletedAt: null, ...t },
       include: this.recordInclude,
     });
     if (!record) throw new NotFoundException(`Financial record ${id} not found`);
@@ -257,14 +307,18 @@ export class FinanceService {
    *  ATTACHMENT_ADDED / ATTACHMENT_REMOVED / DELETE) and when. Used by
    *  the profile's ledger expand panel to show a change history. */
   async getHistory(id: string) {
+    const t = this.scope().tenantWhere();
     // Cheap existence check so we return 404 rather than an empty list
-    // when the id is wrong.
-    const record = await this.prisma.financialRecord.findUnique({
-      where: { id }, select: { id: true },
+    // when the id is wrong (or belongs to another tenant in pilot mode).
+    const record = await this.prisma.financialRecord.findFirst({ // @tenant-reviewed: phase216-pilot-scope
+      where: { id, ...t }, select: { id: true },
     });
     if (!record) throw new NotFoundException(`Financial record ${id} not found`);
 
-    const logs = await this.prisma.auditLog.findMany({
+    // Audit log is global by design (no tenant filter). The parent
+    // FinancialRecord existence + tenant check above already
+    // authorized access to this entity's history.
+    const logs = await this.legacyPrisma.auditLog.findMany({ // @tenant-reviewed: phase216-audit-log (auditLog is global; parent already tenant-checked)
       where: { entity: 'FinancialRecord', entityId: id, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -297,7 +351,8 @@ export class FinanceService {
     const { applicantId, stageAtCreation } =
       await this.resolvePersonIdentity(dto.entityType, dto.entityId);
 
-    const record = await this.prisma.financialRecord.create({
+    const tdata = this.scope().tenantData();
+    const record = await this.prisma.financialRecord.create({ // @tenant-reviewed: phase217-pilot-scope (writes tenantId in pilot mode via scope.tenantData)
       data: {
         entityType:                 dto.entityType,
         entityId:                   dto.entityId,
@@ -315,6 +370,7 @@ export class FinanceService {
         status:                     'PENDING',
         notes:                      dto.notes,
         createdById:                actorId,
+        ...tdata,
       },
       include: this.recordInclude,
     });
@@ -360,9 +416,18 @@ export class FinanceService {
   async update(id: string, dto: UpdateFinancialRecordDto, actorId?: string) {
     const existing = await this.findOne(id);
     const data: any = { ...dto };
+    // Phase 2.17.1 — defensive scrub of identity-reassignment fields.
+    // UpdateFinancialRecordDto structurally omits entityType / entityId;
+    // applicantId + stageAtCreation are computed at create time only.
+    // Stripping them here keeps the cross-entity invariant intact even
+    // if a future DTO refactor accidentally re-introduces them.
+    delete data.entityType;
+    delete data.entityId;
+    delete data.applicantId;
+    delete data.stageAtCreation;
     if (dto.transactionDate) data.transactionDate = new Date(dto.transactionDate);
 
-    const updated = await this.prisma.financialRecord.update({
+    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id }, data, include: this.recordInclude,
     });
 
@@ -408,7 +473,7 @@ export class FinanceService {
 
   async remove(id: string, actorId?: string) {
     const existing = await this.findOne(id);
-    await this.prisma.financialRecord.update({
+    await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id }, data: { deletedAt: new Date() },
     });
     await this.auditLog(actorId, 'FINANCIAL_RECORD_DELETED', id);
@@ -457,7 +522,7 @@ export class FinanceService {
     if (dto.deductionDate)    data.deductionDate    = new Date(dto.deductionDate);
     if (dto.payrollReference) data.payrollReference = dto.payrollReference;
 
-    const updated = await this.prisma.financialRecord.update({
+    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id }, data, include: this.recordInclude,
     });
 
@@ -543,7 +608,7 @@ export class FinanceService {
     // expanded panel can still show "Add another deduction".
     const nextStatus = Math.abs(newSum - disbursed) < 0.005 ? 'DEDUCTED' : 'PARTIAL';
 
-    const updated = await this.prisma.financialRecord.update({
+    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id: recordId },
       data: {
         deductionAmount: newSum,
@@ -587,6 +652,17 @@ export class FinanceService {
     if (!deduction) throw new NotFoundException('Deduction not found');
 
     const recordId: string = deduction.financialRecordId;
+
+    // Phase 2.17 — parent tenant pre-check. In pilot mode this raises
+    // 404 if the parent FinancialRecord belongs to a different tenant
+    // than the active ALS frame. Legacy mode: spread is `{}` and the
+    // lookup matches by id alone (legacy semantics preserved).
+    const parent = await this.prisma.financialRecord.findFirst({ // @tenant-reviewed: phase217-pilot-scope (parent tenant pre-check before child delete)
+      where: { id: recordId, ...this.scope().tenantWhere() },
+      select: { id: true },
+    });
+    if (!parent) throw new NotFoundException('Deduction not found');
+
     await (this.prisma as any).financialRecordDeduction.delete({ where: { id: deductionId } });
 
     // Recompute aggregates from whatever remains.
@@ -595,7 +671,7 @@ export class FinanceService {
       orderBy: { deductionDate: 'desc' },
     });
     const newSum = remaining.reduce((s: number, d: any) => s + Number(d.amount ?? 0), 0);
-    const record = await this.prisma.financialRecord.findUnique({ where: { id: recordId } });
+    const record = await this.legacyPrisma.financialRecord.findUnique({ where: { id: recordId } }); // @tenant-reviewed: phase217-pilot-scope-precheck (parent already tenant-checked above)
     const disbursed = Number(record?.companyDisbursedAmount ?? 0);
     const nextStatus = newSum === 0
       ? 'PENDING'
@@ -604,7 +680,7 @@ export class FinanceService {
         : 'PARTIAL';
     const latest = remaining[0];
 
-    const updated = await this.prisma.financialRecord.update({
+    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (parent already tenant-checked above)
       where: { id: recordId },
       data: {
         deductionAmount: newSum > 0 ? newSum : null,
@@ -640,7 +716,7 @@ export class FinanceService {
       inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
     });
 
-    const attachment = await this.prisma.financialRecordAttachment.create({
+    const attachment = await this.legacyPrisma.financialRecordAttachment.create({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       data: {
         financialRecordId: recordId,
         name: file.originalname,
@@ -664,12 +740,12 @@ export class FinanceService {
     actorId?: string,
   ) {
     await this.findOne(recordId);
-    const att = await this.prisma.financialRecordAttachment.findFirst({
+    const att = await this.legacyPrisma.financialRecordAttachment.findFirst({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped; parent FK enforces attachment scope)
       where: { id: attachmentId, financialRecordId: recordId, deletedAt: null },
     });
     if (!att) throw new NotFoundException('Attachment not found');
 
-    await this.prisma.financialRecordAttachment.update({
+    await this.legacyPrisma.financialRecordAttachment.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id: attachmentId }, data: { deletedAt: new Date() },
     });
 
@@ -932,24 +1008,25 @@ export class FinanceService {
       records.filter(r => r.entityType === 'AGENCY').map(r => r.entityId),
     )];
 
+    const t = this.scope().tenantWhere();
     const [applicants, employees, agencies] = await Promise.all([
       applicantIds.length
         // Include soft-deleted: after conversion the applicant is soft-deleted
         // but the name must still resolve for historical records
-        ? this.prisma.applicant.findMany({
-            where: { id: { in: applicantIds } },
+        ? this.prisma.applicant.findMany({ // @tenant-reviewed: phase2171-helper-narrowed (pilot mode constrains by tenantId)
+            where: { id: { in: applicantIds }, ...t },
             select: { id: true, firstName: true, lastName: true },
           })
         : [],
       employeeIds.length
-        ? this.prisma.employee.findMany({
-            where: { id: { in: employeeIds } },
+        ? this.prisma.employee.findMany({ // @tenant-reviewed: phase2171-helper-narrowed (pilot mode constrains by tenantId)
+            where: { id: { in: employeeIds }, ...t },
             select: { id: true, firstName: true, lastName: true },
           })
         : [],
       agencyIds.length
-        ? this.prisma.agency.findMany({
-            where: { id: { in: agencyIds } },
+        ? this.prisma.agency.findMany({ // @tenant-reviewed: phase2171-helper-narrowed (pilot mode constrains by tenantId)
+            where: { id: { in: agencyIds }, ...t },
             select: { id: true, name: true },
           })
         : [],
@@ -982,9 +1059,15 @@ export class FinanceService {
     entityType: string,
     entityId: string,
   ): Promise<{ applicantId: string | null; stageAtCreation: string }> {
+    // Phase 2.17.1 — narrow the entity lookup so a tenant-A caller
+    // cannot create a financial record pointing at a tenant-B entity.
+    // In pilot mode the tenant filter rejects cross-tenant ids; in
+    // legacy mode the spread is `{}` and behaviour is unchanged.
+    const t = this.scope().tenantWhere();
+
     if (entityType === 'APPLICANT') {
-      const a = await this.prisma.applicant.findUnique({
-        where: { id: entityId },
+      const a = await this.prisma.applicant.findFirst({ // @tenant-reviewed: phase2171-helper-narrowed (cross-tenant create blocked in pilot mode)
+        where: { id: entityId, ...t },
         select: { firstName: true, lastName: true, tier: true, deletedAt: true },
       });
       if (!a || (a.deletedAt !== null))
@@ -994,15 +1077,15 @@ export class FinanceService {
     }
 
     if (entityType === 'EMPLOYEE') {
-      const e = await this.prisma.employee.findUnique({
-        where: { id: entityId, deletedAt: null },
+      const e = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase2171-helper-narrowed (cross-tenant create blocked in pilot mode)
+        where: { id: entityId, deletedAt: null, ...t },
         select: { firstName: true, lastName: true },
       });
       if (!e) throw new NotFoundException(`Employee ${entityId} not found`);
 
       // Try to find the originating applicant via convertedToEmployeeId
-      const originApplicant = await this.prisma.applicant.findFirst({
-        where: { convertedToEmployeeId: entityId },
+      const originApplicant = await this.prisma.applicant.findFirst({ // @tenant-reviewed: phase2171-helper-narrowed (pilot mode constrains by tenantId)
+        where: { convertedToEmployeeId: entityId, ...t },
         select: { id: true },
       });
 
@@ -1015,8 +1098,8 @@ export class FinanceService {
     if (entityType === 'AGENCY') {
       // Agencies are not persons — no applicantId, no lifecycle stage.
       // Verify the agency exists so we don't orphan records on bad IDs.
-      const ag = await this.prisma.agency.findUnique({
-        where: { id: entityId },
+      const ag = await this.prisma.agency.findFirst({ // @tenant-reviewed: phase2171-helper-narrowed (cross-tenant create blocked in pilot mode)
+        where: { id: entityId, ...t },
         select: { id: true, deletedAt: true },
       });
       if (!ag || ag.deletedAt !== null) throw new NotFoundException(`Agency ${entityId} not found`);
@@ -1030,17 +1113,22 @@ export class FinanceService {
 
   /** Resolve a short entity name for notification messages. */
   private async resolveEntityNameForNotif(entityType: string, entityId: string): Promise<string> {
+    // Phase 2.17.1 — narrow by tenant in pilot mode. The callers
+    // (`create` etc.) hand us entityIds from already tenant-filtered
+    // records, but defending in depth keeps a future caller from
+    // leaking a cross-tenant name into a notification body.
+    const t = this.scope().tenantWhere();
     try {
       if (entityType === 'APPLICANT') {
-        const a = await this.prisma.applicant.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } });
+        const a = await this.prisma.applicant.findFirst({ where: { id: entityId, ...t }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase2171-helper-narrowed
         return a ? `${a.firstName} ${a.lastName}` : 'Unknown';
       }
       if (entityType === 'EMPLOYEE') {
-        const e = await this.prisma.employee.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } });
+        const e = await this.prisma.employee.findFirst({ where: { id: entityId, ...t }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase2171-helper-narrowed
         return e ? `${e.firstName} ${e.lastName}` : 'Unknown';
       }
       if (entityType === 'AGENCY') {
-        const ag = await this.prisma.agency.findUnique({ where: { id: entityId }, select: { name: true } });
+        const ag = await this.prisma.agency.findFirst({ where: { id: entityId, ...t }, select: { name: true } }); // @tenant-reviewed: phase2171-helper-narrowed
         return ag?.name ?? 'Unknown Agency';
       }
     } catch { /* ignore */ }
@@ -1063,7 +1151,7 @@ export class FinanceService {
     // Read threshold from system settings (if configured)
     let threshold = DEFAULT_HIGH_BALANCE_THRESHOLD;
     try {
-      const setting = await this.prisma.systemSetting.findUnique({
+      const setting = await this.legacyPrisma.systemSetting.findUnique({ // @tenant-reviewed: phase216-global
         where: { key: 'notifications.highBalanceThreshold' },
         select: { value: true },
       });
@@ -1101,18 +1189,14 @@ export class FinanceService {
     entityId: string,
     changes?: Record<string, any>,
   ): Promise<void> {
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          userId,
-          action,
-          entity: 'FinancialRecord',
-          entityId,
-          changes: changes as any,
-        },
-      });
-    } catch {
-      // Audit must never crash main flow
-    }
+    // Phase 2.30 — delegates to the shared tenant-aware audit emitter.
+    // @tenant-reviewed: phase230-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId,
+      action,
+      entity: 'FinancialRecord',
+      entityId,
+      changes,
+    });
   }
 }

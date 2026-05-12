@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
+import { applicantsApi, settingsApi, agenciesApi, documentsApi } from '../../services/api';
 import { apiError, fieldErrors as resolveFieldErrors, isValidationError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
@@ -118,12 +118,66 @@ export function EditApplicant() {
     }
   };
 
+  /**
+   * Persist any newly attached documents from the Documents step. Each
+   * item in `uploadedFiles` with a non-null `file` is treated as a new
+   * upload; the user-picked Document Type name is resolved against the
+   * settings catalogue and POSTed to /documents/upload. Existing
+   * persisted entries (no `file` set) are left alone. Items without a
+   * matching documentType (blank picker, unknown name) are skipped
+   * with a toast warning so the rest of the save still completes.
+   */
+  const uploadAttachedDocumentsIfNeeded = async () => {
+    if (!id) return;
+    const pending = uploadedFiles.filter((f: any) => f && f.file);
+    if (pending.length === 0) return;
+    let docTypes: any[] = [];
+    try { docTypes = await settingsApi.getDocumentTypes(); } catch { docTypes = []; }
+    const skipped: string[] = [];
+    let uploaded = 0;
+    for (const item of pending) {
+      const wantedName: string = (item.type || '').trim();
+      const docType = docTypes.find((d: any) =>
+        d.name?.toLowerCase() === wantedName.toLowerCase()
+        || d.name?.toLowerCase().includes(wantedName.toLowerCase())
+      );
+      if (!docType?.id) { skipped.push(item.file.name); continue; }
+      const fd = new FormData();
+      fd.append('file', item.file);
+      fd.append('name', wantedName || item.file.name);
+      fd.append('documentTypeId', docType.id);
+      fd.append('entityType', 'APPLICANT');
+      fd.append('entityId', id);
+      try {
+        await documentsApi.upload(fd);
+        uploaded++;
+      } catch (err: any) {
+        skipped.push(item.file.name);
+      }
+    }
+    // Clear the newly-uploaded `file` references so a subsequent save
+    // doesn't re-upload them; preserve everything else (sectionKey,
+    // type) so the Documents step still shows the row as filled.
+    if (uploaded > 0) {
+      setUploadedFiles((prev: any[]) =>
+        prev.map((f) => (f.file ? { ...f, file: null, savedName: f.file.name } : f)),
+      );
+      toast.success(t('applicants.toast.documentsUploaded', { count: uploaded, defaultValue: `${uploaded} document(s) uploaded` }));
+    }
+    if (skipped.length) {
+      toast.warning(t('applicants.toast.documentsSkipped', {
+        defaultValue: `${skipped.length} document(s) skipped — pick a Document Type for each upload.`,
+      }));
+    }
+  };
+
   const handleSave = async () => {
     if (!id) return;
     setSubmitting(true);
     try {
       await applicantsApi.update(id, buildPayload());
       await uploadPhotoIfNeeded();
+      await uploadAttachedDocumentsIfNeeded();
       toast.success(tc('toast.savedSuccessfully'));
     } catch (err: any) {
       if (!err?.message?.includes('photo upload failed')) {
@@ -141,6 +195,7 @@ export function EditApplicant() {
     try {
       await applicantsApi.update(id, buildPayload());
       await uploadPhotoIfNeeded();
+      await uploadAttachedDocumentsIfNeeded();
       toast.success(tc('toast.savedSuccessfully'));
       navigate(`/dashboard/applicants/${id}`);
     } catch (err: any) {

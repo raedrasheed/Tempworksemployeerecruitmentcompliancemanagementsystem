@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Put, Param, Delete, Query, UseGuards, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryUpload, IMAGE_MIME } from '../common/storage/multer.config';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
@@ -46,7 +46,7 @@ export class UsersController {
     // Pass the caller's own role + agency so the agency-scoping and
     // "hide System Admin from non-admins" checks in findOne don't reject
     // a user looking at their own profile.
-    return this.usersService.findOne(caller.id, caller.role, caller.agencyId);
+    return this.usersService.findOne(caller.id, caller.role, caller.agencyId, caller.agencyIsSystem, caller.id);
   }
 
   @Patch('profile')
@@ -79,7 +79,7 @@ export class UsersController {
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
   findAll(@Query() query: PaginationDto & { roleId?: string; status?: string }, @CurrentUser() caller: any) {
-    return this.usersService.findAll(query, caller?.role, caller?.agencyId, caller?.agencyIsSystem);
+    return this.usersService.findAll(query, caller?.role, caller?.agencyId, caller?.agencyIsSystem, caller?.id);
   }
 
   // ── Single user ───────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export class UsersController {
   @Roles('System Admin', 'HR Manager', 'Agency Manager')
   @ApiOperation({ summary: 'Get user by ID (Agency Manager limited to own-agency users)' })
   findOne(@Param('id') id: string, @CurrentUser() caller: any) {
-    return this.usersService.findOne(id, caller?.role, caller?.agencyId, caller?.agencyIsSystem);
+    return this.usersService.findOne(id, caller?.role, caller?.agencyId, caller?.agencyIsSystem, caller?.id);
   }
 
   @Post()
@@ -109,6 +109,20 @@ export class UsersController {
   })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() caller: any) {
     return this.usersService.update(id, dto, caller?.role, caller?.id, caller?.agencyIsSystem);
+  }
+
+  // Phase 3.11/3.14 bootstrap — System Admin / existing PlatformAdmin can set
+  // the platform-admin level for any user directly. Upserts platform_admins on
+  // SUPPORT|OPERATOR|SUPER and deletes the row on NONE. Self-revoke forbidden.
+  // @tenant-reviewed: phase311-platform-admin-grant-revoke
+  @Put(':id/platform-admin-level')
+  @Roles('System Admin')
+  setPlatformAdminLevel(
+    @Param('id') targetUserId: string,
+    @Body() body: { level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER'; reason?: string },
+    @CurrentUser() caller: any,
+  ) {
+    return this.usersService.setPlatformAdminLevel(targetUserId, body.level, body.reason ?? 'admin-ui', caller?.id);
   }
 
   @Delete(':id')

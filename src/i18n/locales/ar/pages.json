@@ -637,7 +637,8 @@
         "tier": "المستوى",
         "applied": "تاريخ التقديم",
         "status": "الحالة",
-        "actions": "الإجراءات"
+        "actions": "الإجراءات",
+        "source": "المصدر"
       },
       "promoteDialog": {
         "title_one": "ترقية {{count}} عميل محتمل إلى مرشح",
@@ -662,7 +663,8 @@
         "agency": "الوكالة",
         "tier": "المستوى",
         "applied": "تاريخ التقديم",
-        "status": "الحالة"
+        "status": "الحالة",
+        "source": "المصدر"
       },
       "total": "الإجمالي",
       "leads": "العملاء المحتملون",
@@ -758,7 +760,8 @@
         "agency": "الوكالة",
         "applied": "تاريخ التقديم",
         "status": "الحالة",
-        "actions": "الإجراءات"
+        "actions": "الإجراءات",
+        "source": "المصدر"
       },
       "workflowDialog": {
         "title_one": "ربط {{count}} مرشح بسير العمل",
@@ -4265,6 +4268,7 @@
       "footerPage": "الصفحة {{page}} من {{totalPages}}",
       "cols": {
         "title": "العنوان",
+        "tenant": "المستأجر",
         "category": "الفئة",
         "city": "المدينة",
         "country": "الدولة",
@@ -4377,6 +4381,7 @@
         "DOCUMENT": "وثيقة",
         "DOCUMENT_TYPE": "نوع وثيقة",
         "JOB_AD": "إعلان وظيفة",
+        "JOB_TYPE": "فئة الوظيفة",
         "FINANCIAL_RECORD": "سجل مالي",
         "ROLE": "دور",
         "NOTIFICATION": "إشعار",
@@ -5461,5 +5466,100 @@
         "createdAt": "تاريخ الإنشاء"
       }
     }
+  },
+  "tenants": {
+    "list": {
+      "title": "المستأجرون",
+      "subtitle": "إدارة المستأجرين على مستوى المنصة",
+      "addTenant": "إضافة مستأجر",
+      "searchPlaceholder": "بحث بالاسم أو المعرف أو النطاق…",
+      "allStatuses": "جميع الحالات",
+      "includeDeleted": "تضمين المحذوفين",
+      "loading": "جارٍ التحميل…",
+      "empty": "لا يوجد مستأجرون.",
+      "view": "عرض",
+      "edit": "تعديل",
+      "archive": "أرشفة",
+      "activate": "تنشيط",
+      "restore": "استعادة",
+      "delete": "حذف",
+      "cols": {
+        "name": "الاسم",
+        "slug": "المعرف",
+        "domain": "النطاق",
+        "status": "الحالة",
+        "created": "تاريخ الإنشاء",
+        "actions": "إجراءات"
+      }
+    },
+    "form": {
+      "titleCreate": "مستأجر جديد",
+      "titleEdit": "تعديل المستأجر",
+      "subtitle": "ملف المستأجر والإعدادات التشغيلية",
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ…",
+      "cancel": "إلغاء",
+      "slugHelp": "أحرف صغيرة، آمن للروابط.",
+      "slugImmutable": "يتطلب تغيير المعرف صلاحية SUPER.",
+      "sections": {
+        "general": "عام",
+        "branding": "العلامة التجارية",
+        "contact": "الاتصال والملاحظات"
+      }
+    },
+    "fields": {
+      "name": "الاسم",
+      "slug": "المعرف",
+      "customDomain": "النطاق المخصص",
+      "status": "الحالة",
+      "region": "المنطقة",
+      "logoUrl": "رابط الشعار",
+      "primaryColor": "اللون الرئيسي",
+      "timezone": "المنطقة الزمنية",
+      "locale": "اللغة",
+      "contactEmail": "البريد الإلكتروني",
+      "contactPhone": "الهاتف",
+      "address": "العنوان",
+      "notes": "ملاحظات",
+      "planId": "الخطة",
+      "onboardingStatus": "حالة الإعداد",
+      "createdAt": "تاريخ الإنشاء",
+      "updatedAt": "تاريخ التحديث"
+    },
+    "statuses": {
+      "active": "نشط",
+      "suspended": "موقوف",
+      "inactive": "غير نشط"
+    },
+    "tabs": {
+      "general": "عام",
+      "branding": "العلامة التجارية",
+      "access": "الوصول",
+      "stats": "الإحصاءات",
+      "flags": "ميزات"
+    },
+    "stats": {
+      "agencies": "الوكالات",
+      "users": "المستخدمون",
+      "employees": "الموظفون",
+      "applicants": "المتقدمون",
+      "documents": "المستندات",
+      "memberships": "العضويات",
+      "unavailable": "الإحصاءات غير متوفرة."
+    },
+    "flags": {
+      "empty": "لا توجد ميزات مُكوَّنة."
+    },
+    "deleted": "محذوف",
+    "confirmArchiveTitle": "أرشفة المستأجر؟",
+    "confirmArchiveDesc": "سيتم تعليق المستأجر.",
+    "confirmDeleteTitle": "حذف المستأجر؟",
+    "confirmDeleteDesc": "حذف ناعم، يمكن استعادته بواسطة SUPER.",
+    "toastCreated": "تم إنشاء المستأجر",
+    "toastUpdated": "تم تحديث المستأجر",
+    "toastArchived": "تمت الأرشفة",
+    "toastActivated": "تم التنشيط",
+    "toastRestored": "تمت الاستعادة",
+    "toastDeleted": "تم الحذف"
   }
 }

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { jobAdsApi, settingsApi } from '../../services/api';
+import { jobAdsApi, settingsApi, tenantsApi, getCurrentUser } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
 import { useValidationErrors } from '../../../i18n/useValidationErrors';
 import { FieldError } from '../../components/ui/field-error';
@@ -41,6 +41,7 @@ const EMPTY_FORM = {
   salaryMax:    '',
   currency:     'GBP',
   status:       'DRAFT',
+  tenantId:     '',
 };
 
 export function JobAdForm() {
@@ -91,6 +92,7 @@ export function JobAdForm() {
           salaryMax:    ad.salaryMax    != null ? String(ad.salaryMax)  : '',
           currency:     ad.currency     ?? 'GBP',
           status:       ad.status       ?? 'DRAFT',
+          tenantId:     ad.tenantId     ?? '',
         });
         setRequiredDocuments(Array.isArray(ad.requiredDocuments) ? ad.requiredDocuments : []);
       }).catch(() => {
@@ -99,6 +101,20 @@ export function JobAdForm() {
       }).finally(() => setLoading(false));
     }
   }, [id]);
+
+  // Phase 3.18 — load the tenants list once for SUPER PlatformAdmin
+  // viewers so the form can offer a Tenant select. Other viewers never
+  // hit the endpoint (the backend rejects it without SUPER anyway).
+  // @tenant-reviewed: phase318-tenant-public-jobs
+  const me = getCurrentUser();
+  const isSuper = me?.platformAdmin?.level === 'SUPER';
+  const [tenantOptions, setTenantOptions] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  useEffect(() => {
+    if (!isSuper) return;
+    tenantsApi.list({ limit: 200 })
+      .then((res) => setTenantOptions(res.data.map(t => ({ id: t.id, name: t.name, slug: t.slug }))))
+      .catch(() => setTenantOptions([]));
+  }, [isSuper]);
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -132,6 +148,10 @@ export function JobAdForm() {
         requiredDocuments: requiredDocuments,
         ...(form.salaryMin !== '' ? { salaryMin: Number(form.salaryMin) } : {}),
         ...(form.salaryMax !== '' ? { salaryMax: Number(form.salaryMax) } : {}),
+        // Phase 3.18 — SUPER PlatformAdmin only. Backend strips it
+        // silently for everyone else, but we drop it here too to keep
+        // the wire payload tidy.
+        ...(isSuper && form.tenantId ? { tenantId: form.tenantId } : {}),
       };
 
       if (isEdit && id) {
@@ -336,6 +356,33 @@ export function JobAdForm() {
               </SelectContent>
             </Select>
           </div>
+          {/* Phase 3.18 — Tenant assignment, SUPER PlatformAdmin only. */}
+          {isSuper && (
+            <div>
+              <Label>{t('jobAds.form.tenant', { defaultValue: 'Tenant' })}</Label>
+              <Select
+                value={form.tenantId || '__none__'}
+                onValueChange={v => setForm(p => ({ ...p, tenantId: v === '__none__' ? '' : v }))}
+              >
+                <SelectTrigger className="w-72">
+                  <SelectValue placeholder={t('jobAds.form.tenantPlaceholder', { defaultValue: 'Select tenant' })} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">
+                    {t('jobAds.form.tenantNone', { defaultValue: 'No tenant (global)' })}
+                  </SelectItem>
+                  {tenantOptions.map((tn) => (
+                    <SelectItem key={tn.id} value={tn.id}>
+                      {tn.name} <span className="text-xs text-muted-foreground">/{tn.slug}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('jobAds.form.tenantHelp', { defaultValue: 'Moves this Job Ad to a different tenant. SUPER PlatformAdmin only.' })}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

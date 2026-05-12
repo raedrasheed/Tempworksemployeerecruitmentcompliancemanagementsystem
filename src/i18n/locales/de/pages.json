@@ -621,7 +621,8 @@
         "tier": "Stufe",
         "applied": "Beworben am",
         "status": "Status",
-        "actions": "Aktionen"
+        "actions": "Aktionen",
+        "source": "Quelle"
       },
       "promoteDialog": {
         "title_one": "{{count}} Lead zum Kandidaten befördern",
@@ -646,7 +647,8 @@
         "agency": "Agentur",
         "tier": "Stufe",
         "applied": "Beworben am",
-        "status": "Status"
+        "status": "Status",
+        "source": "Quelle"
       },
       "total": "Gesamt",
       "leads": "Leads",
@@ -726,7 +728,8 @@
         "agency": "Agentur",
         "applied": "Beworben am",
         "status": "Status",
-        "actions": "Aktionen"
+        "actions": "Aktionen",
+        "source": "Quelle"
       },
       "workflowDialog": {
         "title_one": "{{count}} Kandidaten mit Workflow verbinden",
@@ -4181,6 +4184,7 @@
       "footerPage": "Seite {{page}} von {{totalPages}}",
       "cols": {
         "title": "Titel",
+        "tenant": "Mandant",
         "category": "Kategorie",
         "city": "Stadt",
         "country": "Land",
@@ -4293,6 +4297,7 @@
         "DOCUMENT": "Dokument",
         "DOCUMENT_TYPE": "Dokumenttyp",
         "JOB_AD": "Stellenanzeige",
+        "JOB_TYPE": "Tätigkeitskategorie",
         "FINANCIAL_RECORD": "Finanzdatensatz",
         "ROLE": "Rolle",
         "NOTIFICATION": "Benachrichtigung",
@@ -5377,5 +5382,100 @@
         "createdAt": "Erstellt"
       }
     }
+  },
+  "tenants": {
+    "list": {
+      "title": "Mandanten",
+      "subtitle": "Plattformweite Mandantenverwaltung",
+      "addTenant": "Mandant hinzufügen",
+      "searchPlaceholder": "Suche nach Name, Slug oder Domain…",
+      "allStatuses": "Alle Status",
+      "includeDeleted": "Gelöschte einschließen",
+      "loading": "Lädt…",
+      "empty": "Keine Mandanten gefunden.",
+      "view": "Ansehen",
+      "edit": "Bearbeiten",
+      "archive": "Archivieren",
+      "activate": "Aktivieren",
+      "restore": "Wiederherstellen",
+      "delete": "Löschen",
+      "cols": {
+        "name": "Name",
+        "slug": "Slug",
+        "domain": "Domain",
+        "status": "Status",
+        "created": "Erstellt",
+        "actions": "Aktionen"
+      }
+    },
+    "form": {
+      "titleCreate": "Neuer Mandant",
+      "titleEdit": "Mandant bearbeiten",
+      "subtitle": "Profil und Betriebseinstellungen",
+      "save": "Speichern",
+      "saving": "Speichert…",
+      "cancel": "Abbrechen",
+      "slugHelp": "Kleinbuchstaben, URL-sicher.",
+      "slugImmutable": "Slug-Änderung erfordert SUPER-Berechtigung.",
+      "sections": {
+        "general": "Allgemein",
+        "branding": "Branding",
+        "contact": "Kontakt & Notizen"
+      }
+    },
+    "fields": {
+      "name": "Name",
+      "slug": "Slug",
+      "customDomain": "Eigene Domain",
+      "status": "Status",
+      "region": "Region",
+      "logoUrl": "Logo-URL",
+      "primaryColor": "Hauptfarbe",
+      "timezone": "Zeitzone",
+      "locale": "Sprache",
+      "contactEmail": "Kontakt-E-Mail",
+      "contactPhone": "Telefon",
+      "address": "Adresse",
+      "notes": "Notizen",
+      "planId": "Plan",
+      "onboardingStatus": "Onboarding",
+      "createdAt": "Erstellt am",
+      "updatedAt": "Aktualisiert am"
+    },
+    "statuses": {
+      "active": "Aktiv",
+      "suspended": "Gesperrt",
+      "inactive": "Inaktiv"
+    },
+    "tabs": {
+      "general": "Allgemein",
+      "branding": "Branding",
+      "access": "Zugriff",
+      "stats": "Statistik",
+      "flags": "Feature-Flags"
+    },
+    "stats": {
+      "agencies": "Agenturen",
+      "users": "Benutzer",
+      "employees": "Mitarbeiter",
+      "applicants": "Bewerber",
+      "documents": "Dokumente",
+      "memberships": "Mitgliedschaften",
+      "unavailable": "Statistik nicht verfügbar."
+    },
+    "flags": {
+      "empty": "Keine Feature-Flags konfiguriert."
+    },
+    "deleted": "Gelöscht",
+    "confirmArchiveTitle": "Mandant archivieren?",
+    "confirmArchiveDesc": "Der Mandant wird gesperrt.",
+    "confirmDeleteTitle": "Mandant löschen?",
+    "confirmDeleteDesc": "Soft-Löschen, kann von SUPER wiederhergestellt werden.",
+    "toastCreated": "Mandant erstellt",
+    "toastUpdated": "Mandant aktualisiert",
+    "toastArchived": "Mandant archiviert",
+    "toastActivated": "Mandant aktiviert",
+    "toastRestored": "Mandant wiederhergestellt",
+    "toastDeleted": "Mandant gelöscht"
   }
 }

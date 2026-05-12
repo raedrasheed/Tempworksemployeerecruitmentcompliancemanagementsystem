@@ -1,18 +1,73 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import * as ExcelJS from 'exceljs';
 import { tServer, ServerLocale } from '../common/i18n/server-translate';
 
+/**
+ * Phase 2.33 — Employees reads-first TenantPrisma pilot.
+ *
+ * READ paths route through `pilot.client()` and spread
+ * `scope.tenantWhere()` when the pilot scope is active. Production
+ * default (flag off) is byte-identical to pre-2.33.
+ *
+ * WRITE / mutation / storage paths (`create`, `update`, `remove`,
+ * `updateStatus`, `uploadPhoto`, `grant/update/revokeAgencyAccess`)
+ * stay on `legacyPrisma` and are tagged `phase234-pilot-scope`,
+ * `phase234-pilot-scope-precheck`, `phase234-storage-guard`, or
+ * `phase234-agency-gate` (Phase 2.34) — except the intentionally
+ * global identifier sequence and email-uniqueness sites which keep
+ * `phase233-global`.
+ *
+ * `Employee.email`, `Employee.employeeNumber` stay globally unique
+ * (Phase 3 product). Identifier raw SQL stays global.
+ */
 @Injectable()
 export class EmployeesService {
   constructor(
-    private prisma: PrismaService,
+    private legacyPrisma: PrismaService,
     private storage: StorageService,
+    private pilot: PilotPrismaAccessor,
   ) {}
+
+  /** Pilot-aware Prisma surface used by READ paths only. Mutation
+   *  paths use `legacyPrisma` directly. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'employees');
+  }
+
+  /**
+   * Phase 2.34 — parent gate. Loads the employee through the pilot
+   * client with `tenantWhere()`. Cross-tenant ids raise 404.
+   * Legacy mode reduces to plain by-id lookup (`tenantWhere()` ⇒ {}).
+   */
+  private async findEmployeeOrFail(id: string) {
+    const t = this.scope().tenantWhere();
+    const e = await this.prisma.employee.findFirst({ where: { id, deletedAt: null, ...t } }); // @tenant-reviewed: phase234-pilot-scope (parent gate)
+    if (!e) throw new NotFoundException('Employee not found');
+    return e;
+  }
+
+  /**
+   * Phase 2.34 — agency tenant gate. Loads the agency through the
+   * pilot client with `tenantWhere()`. Cross-tenant agency ids
+   * raise 404 BEFORE any agency-access mutation.
+   */
+  private async findAgencyOrFail(id: string) {
+    const t = this.scope().tenantWhere();
+    const a = await this.prisma.agency.findFirst({ where: { id, deletedAt: null, ...t } }); // @tenant-reviewed: phase234-agency-gate
+    if (!a) throw new NotFoundException('Agency not found');
+    return a;
+  }
 
   /**
    * External tenant = user attached to any agency that is not the
@@ -31,15 +86,16 @@ export class EmployeesService {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality, driversOnly } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, ...this.scope().tenantWhere() }; // @tenant-reviewed: phase233-pilot-scope
 
     // External tenants — every role inside a non-system agency — can
     // only see employees granted via EmployeeAgencyAccess with
     // canView=true. Employee.agencyId (origin) is intentionally
     // ignored. Tempworks-root users (isSystem=true) and System Admin
-    // keep the global view.
+    // keep the global view. The pilot tenant predicate above is
+    // additive: `tenantId AND id IN (granted)`.
     if (this.isExternalActor(actor)) {
-      const grants = await this.prisma.employeeAgencyAccess.findMany({
+      const grants = await this.prisma.employeeAgencyAccess.findMany({ // @tenant-reviewed: phase233-pilot-scope-precheck (relation by employeeId; gated parents are tenant-scoped)
         where: { agencyId: actor!.agencyId!, canView: true },
         select: { employeeId: true },
       });
@@ -72,7 +128,7 @@ export class EmployeesService {
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.employee.findMany({
+      this.prisma.employee.findMany({ // @tenant-reviewed: phase233-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { [sortBy]: sortOrder },
         include: {
@@ -80,7 +136,7 @@ export class EmployeesService {
           jobType:  { select: { id: true, name: true } },
         },
       }),
-      this.prisma.employee.count({ where }),
+      this.prisma.employee.count({ where }), // @tenant-reviewed: phase233-pilot-scope
     ]);
 
     return PaginatedResponse.create(data, total, page, limit);
@@ -91,8 +147,9 @@ export class EmployeesService {
     actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
     opts?: { require?: 'view' | 'edit' },
   ) {
-    const employee = await this.prisma.employee.findFirst({
-      where: { id, deletedAt: null },
+    const t = this.scope().tenantWhere();
+    const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase233-pilot-scope
+      where: { id, deletedAt: null, ...t },
       // Cast to any because the `createdBy` relation was added to the
       // Prisma schema in the same change that introduced it; a running
       // tsc --watch won't see the regenerated client until the process
@@ -107,7 +164,7 @@ export class EmployeesService {
     if (!employee) throw new NotFoundException('Employee not found');
 
     if (this.isExternalActor(actor)) {
-      const grant = await this.prisma.employeeAgencyAccess.findUnique({
+      const grant = await this.prisma.employeeAgencyAccess.findUnique({ // @tenant-reviewed: phase233-pilot-scope-precheck (parent gated above)
         where: { employeeId_agencyId: { employeeId: id, agencyId: actor!.agencyId! } },
       });
       if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
@@ -126,9 +183,12 @@ export class EmployeesService {
   // ── Per-employee agency access grants (admin-only) ──────────────────────────
 
   async listAgencyAccess(employeeId: string) {
-    const employee = await this.prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } });
+    const t = this.scope().tenantWhere();
+    const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase233-pilot-scope (parent gate)
+      where: { id: employeeId, deletedAt: null, ...t },
+    });
     if (!employee) throw new NotFoundException('Employee not found');
-    return this.prisma.employeeAgencyAccess.findMany({
+    return this.prisma.employeeAgencyAccess.findMany({ // @tenant-reviewed: phase233-pilot-scope-precheck
       where: { employeeId },
       include: { agency: { select: { id: true, name: true } } },
       orderBy: { grantedAt: 'desc' },
@@ -141,22 +201,24 @@ export class EmployeesService {
     dto: { notes?: string; canView?: boolean; canEdit?: boolean } = {},
     actorId?: string,
   ) {
-    const employee = await this.prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } });
-    if (!employee) throw new NotFoundException('Employee not found');
-    const agency = await this.prisma.agency.findFirst({ where: { id: agencyId, deletedAt: null } });
-    if (!agency) throw new NotFoundException('Agency not found');
+    // Phase 2.34 — both target sides are tenant-gated in pilot mode.
+    // In legacy mode the gates collapse to plain by-id lookups
+    // (`tenantWhere()` → `{}`) — byte-equivalent to pre-2.34 behaviour
+    // since the prior code already required `deletedAt: null` on both.
+    await this.findEmployeeOrFail(employeeId);
+    await this.findAgencyOrFail(agencyId);
     const canView = dto.canView ?? true;
     const canEdit = dto.canEdit ?? true;
     // If the caller sets both flags to false we delete the row instead
     // of persisting a useless "no access" grant — keeps the table tidy
     // and makes revoke from the UI symmetric with delete.
     if (!canView && !canEdit) {
-      await this.prisma.employeeAgencyAccess.deleteMany({
+      await this.legacyPrisma.employeeAgencyAccess.deleteMany({ // @tenant-reviewed: phase234-agency-gate (gates above)
         where: { employeeId, agencyId },
       });
       return { employeeId, agencyId, canView: false, canEdit: false, deleted: true };
     }
-    const grant = await this.prisma.employeeAgencyAccess.upsert({
+    const grant = await this.legacyPrisma.employeeAgencyAccess.upsert({ // @tenant-reviewed: phase234-agency-gate (gates above)
       where:  { employeeId_agencyId: { employeeId, agencyId } },
       create: { employeeId, agencyId, notes: dto.notes, grantedById: actorId, canView, canEdit },
       update: { notes: dto.notes, grantedById: actorId, grantedAt: new Date(), canView, canEdit },
@@ -170,19 +232,23 @@ export class EmployeesService {
     dto: { canView?: boolean; canEdit?: boolean; notes?: string },
     actorId?: string,
   ) {
-    const existing = await this.prisma.employeeAgencyAccess.findUnique({
+    // Phase 2.34 — gate both sides BEFORE the access-row lookup so a
+    // foreign-tenant employee or agency cannot drive any update.
+    await this.findEmployeeOrFail(employeeId);
+    await this.findAgencyOrFail(agencyId);
+    const existing = await this.legacyPrisma.employeeAgencyAccess.findUnique({ // @tenant-reviewed: phase234-agency-gate (gates above)
       where: { employeeId_agencyId: { employeeId, agencyId } },
     });
     if (!existing) throw new NotFoundException('No grant for that employee/agency pair');
     const canView = dto.canView ?? existing.canView;
     const canEdit = dto.canEdit ?? existing.canEdit;
     if (!canView && !canEdit) {
-      await this.prisma.employeeAgencyAccess.delete({
+      await this.legacyPrisma.employeeAgencyAccess.delete({ // @tenant-reviewed: phase234-agency-gate
         where: { employeeId_agencyId: { employeeId, agencyId } },
       });
       return { employeeId, agencyId, canView: false, canEdit: false, deleted: true };
     }
-    return this.prisma.employeeAgencyAccess.update({
+    return this.legacyPrisma.employeeAgencyAccess.update({ // @tenant-reviewed: phase234-agency-gate
       where: { employeeId_agencyId: { employeeId, agencyId } },
       data: {
         canView, canEdit,
@@ -193,8 +259,11 @@ export class EmployeesService {
   }
 
   async revokeAgencyAccess(employeeId: string, agencyId: string) {
+    // Phase 2.34 — gate both sides BEFORE delete.
+    await this.findEmployeeOrFail(employeeId);
+    await this.findAgencyOrFail(agencyId);
     try {
-      await this.prisma.employeeAgencyAccess.delete({
+      await this.legacyPrisma.employeeAgencyAccess.delete({ // @tenant-reviewed: phase234-agency-gate
         where: { employeeId_agencyId: { employeeId, agencyId } },
       });
     } catch {
@@ -204,15 +273,16 @@ export class EmployeesService {
   }
 
   async create(dto: CreateEmployeeDto, actorId?: string) {
-    const existing = await this.prisma.employee.findFirst({ where: { email: dto.email, deletedAt: null } });
+    const existing = await this.legacyPrisma.employee.findFirst({ where: { email: dto.email, deletedAt: null } }); // @tenant-reviewed: phase233-global (Employee.email globally unique — Phase 3)
     if (existing) throw new ConflictException('Employee with this email already exists');
 
     // Get all workflow stages to initialize
-    const stages = await this.prisma.stageTemplate.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
+    const stages = await this.legacyPrisma.stageTemplate.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } }); // @tenant-reviewed: phase233-global (StageTemplate is a global catalog)
 
     const employeeNumber = await this.generateEmployeeNumber();
     const { agencyId, ...rest } = dto;
-    const employee = await this.prisma.employee.create({
+    const tdata = this.scope().tenantData();
+    const employee = await this.legacyPrisma.employee.create({ // @tenant-reviewed: phase234-pilot-scope (writes tenantId via scope.tenantData)
       data: {
         ...rest,
         employeeNumber,
@@ -230,6 +300,7 @@ export class EmployeesService {
             status: 'PENDING',
           })),
         },
+        ...tdata,
       } as any,
       include: { agency: { select: { id: true, name: true } } },
     });
@@ -243,7 +314,8 @@ export class EmployeesService {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const prefix = `E${yyyy}${mm}`;
 
-    const result: any[] = await this.prisma.$queryRaw`
+    // @tenant-reviewed: phase233-global (Employee.employeeNumber globally unique — Phase 3 product)
+    const result: any[] = await this.legacyPrisma.$queryRaw`
       SELECT COALESCE(MAX(
         CAST(SUBSTRING("employeeNumber" FROM 8) AS INTEGER)
       ), 0) + 1 AS next_serial
@@ -266,12 +338,17 @@ export class EmployeesService {
     await this.findOne(id, actor, { require: 'edit' });
     const data: any = { ...dto };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
-    return this.prisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } });
+    return this.legacyPrisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } }); // @tenant-reviewed: phase234-pilot-scope-precheck
   }
 
   async uploadPhoto(id: string, file: Express.Multer.File) {
-    const employee = await this.prisma.employee.findUnique({
-      where: { id },
+    // Phase 2.34 — storage guard. Resolve through the pilot-aware
+    // tenant gate BEFORE writing bytes to storage. Cross-tenant ids
+    // raise 404 BEFORE `storage.uploadFile` is called. Legacy mode
+    // collapses `tenantWhere()` to {} ⇒ tenant-agnostic by-id lookup.
+    const t = this.scope().tenantWhere();
+    const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase234-storage-guard
+      where: { id, deletedAt: null, ...t },
       select: { firstName: true, lastName: true, photoUrl: true },
     });
     if (!employee) throw new NotFoundException('Employee not found');
@@ -283,7 +360,7 @@ export class EmployeesService {
       inline: true,
     });
 
-    const updated = await this.prisma.employee.update({
+    const updated = await this.legacyPrisma.employee.update({ // @tenant-reviewed: phase234-pilot-scope-precheck (storage guard above is tenant-scoped)
       where: { id },
       data: { photoUrl: upload.url },
       include: { agency: { select: { id: true, name: true } } },
@@ -305,7 +382,7 @@ export class EmployeesService {
    */
   async getFinancialProfile(id: string) {
     await this.findOne(id);
-    const profile = await (this.prisma as any).applicantFinancialProfile.findUnique({
+    const profile = await (this.prisma as any).applicantFinancialProfile.findUnique({ // @tenant-reviewed: phase233-pilot-scope-precheck (parent gated; employeeId is unique)
       where: { employeeId: id },
     });
     return profile ?? null;
@@ -313,18 +390,18 @@ export class EmployeesService {
 
   async remove(id: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     await this.findOne(id, actor, { require: 'edit' });
-    await this.prisma.employee.update({ where: { id }, data: { deletedAt: new Date() } });
+    await this.legacyPrisma.employee.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase234-pilot-scope-precheck
     return { message: 'Employee deleted successfully' };
   }
 
   async updateStatus(id: string, status: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     await this.findOne(id, actor, { require: 'edit' });
-    return this.prisma.employee.update({ where: { id }, data: { status: status as any } });
+    return this.legacyPrisma.employee.update({ where: { id }, data: { status: status as any } }); // @tenant-reviewed: phase234-pilot-scope-precheck
   }
 
   async getDocuments(id: string) {
     await this.findOne(id);
-    return this.prisma.document.findMany({
+    return this.prisma.document.findMany({ // @tenant-reviewed: phase233-pilot-scope-precheck (parent gated; entityId-keyed)
       where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null },
       include: { documentType: true, uploadedBy: { select: { firstName: true, lastName: true } }, verifiedBy: { select: { firstName: true, lastName: true } } },
       orderBy: { createdAt: 'desc' },
@@ -333,7 +410,7 @@ export class EmployeesService {
 
   async getWorkflow(id: string) {
     await this.findOne(id);
-    return this.prisma.employeeStage.findMany({
+    return this.prisma.employeeStage.findMany({ // @tenant-reviewed: phase233-pilot-scope-precheck
       where: { employeeId: id },
       include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } },
       orderBy: { stage: { order: 'asc' } },
@@ -343,15 +420,15 @@ export class EmployeesService {
   async getCompliance(id: string) {
     await this.findOne(id);
     const [docs, alerts] = await Promise.all([
-      this.prisma.document.findMany({ where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null }, include: { documentType: true } }),
-      this.prisma.complianceAlert.findMany({ where: { entityType: 'EMPLOYEE', entityId: id }, orderBy: { severity: 'desc' } }),
+      this.prisma.document.findMany({ where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null }, include: { documentType: true } }), // @tenant-reviewed: phase233-pilot-scope-precheck
+      this.prisma.complianceAlert.findMany({ where: { entityType: 'EMPLOYEE', entityId: id }, orderBy: { severity: 'desc' } }),               // @tenant-reviewed: phase233-pilot-scope-precheck
     ]);
     return { documents: docs, alerts };
   }
 
   async getCertifications(id: string) {
     await this.findOne(id);
-    return this.prisma.document.findMany({
+    return this.prisma.document.findMany({ // @tenant-reviewed: phase233-pilot-scope-precheck
       where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null, documentType: { category: 'certification' } },
       include: { documentType: true },
       orderBy: { createdAt: 'desc' },
@@ -360,7 +437,7 @@ export class EmployeesService {
 
   async getTraining(id: string) {
     await this.findOne(id);
-    const stages = await this.prisma.employeeStage.findMany({
+    const stages = await this.prisma.employeeStage.findMany({ // @tenant-reviewed: phase233-pilot-scope-precheck
       where: { employeeId: id, stage: { category: 'TRAINING' } },
       include: { stage: true },
     });
@@ -369,12 +446,12 @@ export class EmployeesService {
 
   async getPerformance(id: string) {
     const employee = await this.findOne(id);
-    const completedStages = await this.prisma.employeeStage.count({
+    const completedStages = await this.prisma.employeeStage.count({ // @tenant-reviewed: phase233-pilot-scope-precheck
       where: { employeeId: id, status: 'COMPLETED' },
     });
-    const totalStages = await this.prisma.employeeStage.count({ where: { employeeId: id } });
-    const validDocs = await this.prisma.document.count({ where: { entityType: 'EMPLOYEE', entityId: id, status: 'VERIFIED', deletedAt: null } });
-    const totalDocs = await this.prisma.document.count({ where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null } });
+    const totalStages = await this.prisma.employeeStage.count({ where: { employeeId: id } }); // @tenant-reviewed: phase233-pilot-scope-precheck
+    const validDocs = await this.prisma.document.count({ where: { entityType: 'EMPLOYEE', entityId: id, status: 'VERIFIED', deletedAt: null } }); // @tenant-reviewed: phase233-pilot-scope-precheck
+    const totalDocs = await this.prisma.document.count({ where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null } });                       // @tenant-reviewed: phase233-pilot-scope-precheck
 
     return {
       employee: { id: employee.id, firstName: employee.firstName, lastName: employee.lastName },
@@ -402,16 +479,16 @@ export class EmployeesService {
     let items: any[];
 
     if (ids && ids.length > 0) {
-      const where: any = { id: { in: ids }, deletedAt: null };
+      const where: any = { id: { in: ids }, deletedAt: null, ...this.scope().tenantWhere() }; // @tenant-reviewed: phase233-pilot-scope
       if (this.isExternalActor(actor)) {
-        const grants = await this.prisma.employeeAgencyAccess.findMany({
+        const grants = await this.prisma.employeeAgencyAccess.findMany({ // @tenant-reviewed: phase233-pilot-scope-precheck
           where: { agencyId: actor!.agencyId!, canView: true },
           select: { employeeId: true },
         });
         const allowedIds = new Set(grants.map(g => g.employeeId));
         where.id = { in: ids.filter(i => allowedIds.has(i)) };
       }
-      items = await this.prisma.employee.findMany({
+      items = await this.prisma.employee.findMany({ // @tenant-reviewed: phase233-pilot-scope
         where,
         include: {
           agency:  { select: { id: true, name: true } },

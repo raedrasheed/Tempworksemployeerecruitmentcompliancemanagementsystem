@@ -1,9 +1,12 @@
 import {
-  Injectable, NotFoundException, ForbiddenException, BadRequestException,
+  Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../logs/audit-log.service';
 import { ENTITY_POLICIES } from './recycle-bin.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { isTenantScopedEntity } from './tenant-scope-map';
 
 export interface HardDeleteResult {
   success: boolean;
@@ -16,15 +19,44 @@ export interface HardDeleteResult {
 @Injectable()
 export class HardDeleteService {
   constructor(
-    private prisma: PrismaService,
+    private legacyPrisma: PrismaService,
     private auditLog: AuditLogService,
+    private pilot: PilotPrismaAccessor,
   ) {}
+
+  /** Pilot-aware client used for the ownership pre-check only. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  /** Tenant-ownership pre-check. Same contract as RestoreService. */
+  private async assertTenantOwnership(entityType: string, id: string): Promise<void> {
+    const scope = getPilotScope(this.pilot, 'recycle-bin');
+    if (!scope.active || !isTenantScopedEntity(entityType)) return;
+    const t = scope.tenantWhere();
+    const map: Record<string, string> = {
+      APPLICANT: 'applicant', EMPLOYEE: 'employee', AGENCY: 'agency',
+      DOCUMENT: 'document', FINANCIAL_RECORD: 'financialRecord',
+      JOB_AD: 'jobAd', NOTIFICATION: 'notification',
+      VEHICLE: 'vehicle', VEHICLE_DOCUMENT: 'vehicleDocument',
+      MAINTENANCE_RECORD: 'maintenanceRecord',
+    };
+    const model = map[entityType] ?? entityType.toLowerCase();
+    const probe = await (this.prisma as any)[model].findFirst({
+      where: { id, ...t },
+      select: { id: true },
+    });
+    if (!probe) throw new NotFoundException(`Record not found in current tenant`);
+  }
 
   async execute(entityType: string, id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
     const policy = ENTITY_POLICIES[entityType];
     if (!policy?.canHardDelete) {
       throw new ForbiddenException(`Hard delete is not permitted for entity type: ${entityType}`);
     }
+
+    // Phase 2.11 — refuse hard-delete on a foreign-tenant record.
+    await this.assertTenantOwnership(entityType, id);
 
     switch (entityType) {
       case 'APPLICANT':   return this.hardDeleteApplicant(id, actorId, reason);
@@ -34,6 +66,7 @@ export class HardDeleteService {
       case 'DOCUMENT':    return this.hardDeleteDocument(id, actorId, reason);
       case 'DOCUMENT_TYPE': return this.hardDeleteDocumentType(id, actorId, reason);
       case 'JOB_AD':      return this.hardDeleteJobAd(id, actorId, reason);
+      case 'JOB_TYPE':    return this.hardDeleteJobType(id, actorId, reason);
       case 'FINANCIAL_RECORD': return this.hardDeleteFinancialRecord(id, actorId, reason);
       case 'ROLE':        return this.hardDeleteRole(id, actorId, reason);
       case 'NOTIFICATION': return this.hardDeleteNotification(id, actorId, reason);
@@ -51,13 +84,13 @@ export class HardDeleteService {
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   private async hardDeleteApplicant(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.applicant.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.applicant.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Applicant ${id} not found`);
 
     const deleted: Record<string, number> = {};
     const warnings: string[] = [];
 
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       // Delete compliance alerts first (FK to documents)
       deleted.complianceAlerts = (await tx.complianceAlert.deleteMany({ where: { entityId: id } })).count;
 
@@ -90,13 +123,13 @@ export class HardDeleteService {
   }
 
   private async hardDeleteEmployee(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.employee.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.employee.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Employee ${id} not found`);
 
     const deleted: Record<string, number> = {};
     const warnings: string[] = [];
 
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       // Compliance alerts for this entity
       deleted.complianceAlerts = (await tx.complianceAlert.deleteMany({ where: { entityId: id } })).count;
 
@@ -133,7 +166,7 @@ export class HardDeleteService {
   }
 
   private async hardDeleteUser(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.user.findUnique({ where: { id }, include: { role: { select: { name: true } } } });
+    const record = await this.legacyPrisma.user.findUnique({ where: { id }, include: { role: { select: { name: true } } } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`User ${id} not found`);
 
     // Cannot delete self
@@ -143,7 +176,7 @@ export class HardDeleteService {
 
     // Cannot delete last System Admin
     if (record.role?.name === 'System Admin') {
-      const adminCount = await this.prisma.user.count({
+      const adminCount = await this.legacyPrisma.user.count({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
         where: { role: { name: 'System Admin' }, deletedAt: null },
       });
       if (adminCount <= 1) {
@@ -152,7 +185,7 @@ export class HardDeleteService {
     }
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       // Notifications cascade from user but we delete explicitly for count
       deleted.notifications = (await tx.notification.deleteMany({ where: { userId: id } })).count;
       // Null out audit log user references (preserve audit history, just orphan the FK)
@@ -168,18 +201,18 @@ export class HardDeleteService {
   }
 
   private async hardDeleteAgency(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.agency.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.agency.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Agency ${id} not found`);
 
-    const activeEmployees = await this.prisma.employee.count({ where: { agencyId: id, deletedAt: null } });
-    const activeUsers = await this.prisma.user.count({ where: { agencyId: id, deletedAt: null } });
+    const activeEmployees = await this.legacyPrisma.employee.count({ where: { agencyId: id, deletedAt: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
+    const activeUsers = await this.legacyPrisma.user.count({ where: { agencyId: id, deletedAt: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (activeEmployees > 0 || activeUsers > 0) {
       throw new BadRequestException(
         `Cannot hard-delete agency: ${activeEmployees} active employee(s) and ${activeUsers} active user(s) still reference it. Reassign or delete them first.`,
       );
     }
 
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       // Null out soft-deleted employee agency references
       await tx.employee.updateMany({ where: { agencyId: id }, data: { agencyId: null } });
       // Null out applicant agency references
@@ -192,11 +225,11 @@ export class HardDeleteService {
   }
 
   private async hardDeleteDocument(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.document.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.document.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Document ${id} not found`);
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       // Null out renewedFromId references on other documents
       await tx.document.updateMany({ where: { renewedFromId: id }, data: { renewedFromId: null } });
       deleted.complianceAlerts = (await tx.complianceAlert.deleteMany({ where: { documentId: id } })).count;
@@ -208,10 +241,10 @@ export class HardDeleteService {
   }
 
   private async hardDeleteDocumentType(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.documentType.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.documentType.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`DocumentType ${id} not found`);
 
-    const activeDocs = await this.prisma.document.count({ where: { documentTypeId: id, deletedAt: null } });
+    const activeDocs = await this.legacyPrisma.document.count({ where: { documentTypeId: id, deletedAt: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (activeDocs > 0) {
       throw new BadRequestException(
         `Cannot hard-delete document type: ${activeDocs} active document(s) reference it. Soft-delete or reassign them first.`,
@@ -219,7 +252,7 @@ export class HardDeleteService {
     }
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       // Delete soft-deleted documents of this type
       const docs = await tx.document.findMany({ where: { documentTypeId: id }, select: { id: true } });
       if (docs.length) {
@@ -235,11 +268,11 @@ export class HardDeleteService {
   }
 
   private async hardDeleteJobAd(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.jobAd.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.jobAd.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`JobAd ${id} not found`);
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       // Unlink applicants (set jobAdId to null) — don't delete the applicants
       const unlinked = await tx.applicant.updateMany({ where: { jobAdId: id }, data: { jobAdId: null } });
       deleted.unlinkedApplicants = unlinked.count;
@@ -253,12 +286,39 @@ export class HardDeleteService {
     };
   }
 
+  private async hardDeleteJobType(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
+    const record = await (this.legacyPrisma as any).jobType.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`JobType ${id} not found`);
+    if (!record.deletedAt) {
+      throw new ConflictException('JobType must be soft-deleted (moved to the recycle bin) before hard-deleting.');
+    }
+
+    // Unlink referencing applicants/employees (the FK is nullable) so
+    // the row can be deleted without losing history. Anything left
+    // referencing the type stays pointing to NULL.
+    const deleted: Record<string, number> = {};
+    await this.legacyPrisma.$transaction(async (tx) => {
+      const unlinkedApplicants = await tx.applicant.updateMany({ where: { jobTypeId: id }, data: { jobTypeId: null } });
+      const unlinkedEmployees = await tx.employee.updateMany({ where: { jobTypeId: id }, data: { jobTypeId: null } });
+      deleted.unlinkedApplicants = unlinkedApplicants.count;
+      deleted.unlinkedEmployees = unlinkedEmployees.count;
+      await tx.jobType.delete({ where: { id } });
+      deleted.jobType = 1;
+    });
+
+    await this.logHardDelete('JOB_TYPE', id, actorId, deleted, reason).catch(() => {});
+    const warnings: string[] = [];
+    if (deleted.unlinkedApplicants) warnings.push(`${deleted.unlinkedApplicants} applicant(s) were unlinked.`);
+    if (deleted.unlinkedEmployees)  warnings.push(`${deleted.unlinkedEmployees} employee(s) were unlinked.`);
+    return { success: true, entityType: 'JOB_TYPE', id, deleted, warnings };
+  }
+
   private async hardDeleteFinancialRecord(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.financialRecord.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.financialRecord.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`FinancialRecord ${id} not found`);
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       deleted.attachments = (await tx.financialRecordAttachment.deleteMany({ where: { financialRecordId: id } })).count;
       deleted.financialRecord = (await tx.financialRecord.delete({ where: { id } })).id ? 1 : 0;
     });
@@ -268,14 +328,14 @@ export class HardDeleteService {
   }
 
   private async hardDeleteRole(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.role.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.role.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Role ${id} not found`);
 
     if (record.isSystem) {
       throw new ForbiddenException('System roles cannot be hard-deleted');
     }
 
-    const assignedUsers = await this.prisma.user.count({ where: { roleId: id, deletedAt: null } });
+    const assignedUsers = await this.legacyPrisma.user.count({ where: { roleId: id, deletedAt: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (assignedUsers > 0) {
       throw new BadRequestException(
         `Cannot hard-delete role: ${assignedUsers} active user(s) are assigned this role. Reassign them first.`,
@@ -283,7 +343,7 @@ export class HardDeleteService {
     }
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       deleted.rolePermissions = (await tx.rolePermission.deleteMany({ where: { roleId: id } })).count;
       deleted.docTypePermissions = (await tx.documentTypePermission.deleteMany({ where: { roleId: id } })).count;
       deleted.role = (await tx.role.delete({ where: { id } })).id ? 1 : 0;
@@ -294,20 +354,20 @@ export class HardDeleteService {
   }
 
   private async hardDeleteNotification(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.notification.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.notification.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Notification ${id} not found`);
 
-    await this.prisma.notification.delete({ where: { id } });
+    await this.legacyPrisma.notification.delete({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     await this.logHardDelete('NOTIFICATION', id, actorId, { notification: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'NOTIFICATION', id, deleted: { notification: 1 }, warnings: [] };
   }
 
   private async hardDeleteReport(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.report.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.report.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Report ${id} not found`);
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       deleted.filters = (await tx.reportFilter.deleteMany({ where: { reportId: id } })).count;
       deleted.columns = (await tx.reportColumn.deleteMany({ where: { reportId: id } })).count;
       deleted.sorting = (await tx.reportSorting.deleteMany({ where: { reportId: id } })).count;
@@ -319,11 +379,11 @@ export class HardDeleteService {
   }
 
   private async hardDeleteVehicle(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.prisma.vehicle.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.vehicle.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Vehicle ${id} not found`);
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async (tx: any) => {
+    await this.legacyPrisma.$transaction(async (tx: any) => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       deleted.spareParts = (await tx.maintenanceRecordSparePart.deleteMany({ where: { maintenanceRecord: { vehicleId: id } } })).count;
       deleted.maintenanceRecords = (await tx.maintenanceRecord.deleteMany({ where: { vehicleId: id } })).count;
       deleted.vehicleDocuments = (await tx.vehicleDocument.deleteMany({ where: { vehicleId: id } })).count;
@@ -349,7 +409,7 @@ export class HardDeleteService {
     if (!record) throw new NotFoundException(`Maintenance record ${id} not found`);
 
     const deleted: Record<string, number> = {};
-    await this.prisma.$transaction(async (tx: any) => {
+    await this.legacyPrisma.$transaction(async (tx: any) => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       deleted.spareParts = (await tx.maintenanceRecordSparePart.deleteMany({ where: { maintenanceRecordId: id } })).count;
       deleted.maintenanceRecord = (await tx.maintenanceRecord.delete({ where: { id } })).id ? 1 : 0;
     });

@@ -108,7 +108,7 @@ export function JobTypes() {
   async function loadJobTypes() {
     setLoading(true);
     try {
-      const data = await settingsApi.getJobTypes();
+      const data = await settingsApi.getJobTypes(true);
       setJobTypes(data);
     } catch (err: any) {
       toast.error(apiError(err, tc('toast.loadFailed')));
@@ -196,8 +196,9 @@ export function JobTypes() {
     setDeleting(true);
     try {
       await settingsApi.deleteJobType(deleteTarget.id);
+      // Soft-deleted: row leaves this page and shows up in Deleted Records.
       setJobTypes((prev) => prev.filter((jt) => jt.id !== deleteTarget.id));
-      toast.success(tc('toast.deactivatedSuccessfullyNamed', { name: deleteTarget.name }));
+      toast.success(tc('toast.deletedSuccessfullyNamed', { name: deleteTarget.name, defaultValue: `${deleteTarget.name} deleted` }));
       setDeleteTarget(null);
     } catch (err: any) {
       toast.error(apiError(err, tc('toast.deleteFailed')));
@@ -486,10 +487,11 @@ export function JobTypes() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Job Category</AlertDialogTitle>
+            <AlertDialogTitle>Delete Job Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate <strong>{deleteTarget?.name}</strong>? It will no longer appear in
-              job category selectors. Existing applicants and applications will not be affected.
+              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? The category will be
+              permanently removed if no applicants or employees reference it; otherwise it is deactivated
+              and hidden from selectors so historical records stay intact.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -499,7 +501,7 @@ export function JobTypes() {
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleting ? 'Deactivating...' : 'Deactivate'}
+              {deleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

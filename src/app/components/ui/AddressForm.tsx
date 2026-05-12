@@ -27,7 +27,13 @@ interface Props {
 
 export function AddressForm({ label, value, onChange, required = false, disabled = false }: Props) {
   const { t } = useTranslation('ui');
-  const set = (field: keyof AddressData) => (v: string) => onChange({ ...value, [field]: v });
+  // Defensive: callers occasionally pass `undefined` (e.g. an applicant
+  // edit page hydrated from a record whose abroadAddress / currentAddress
+  // was never filled in). Fall back to an empty shape so reading the
+  // first input doesn't blow up the whole route with "Cannot read
+  // properties of undefined (reading 'line1')".
+  const safe: AddressData = value ?? { ...EMPTY_ADDRESS };
+  const set = (field: keyof AddressData) => (v: string) => onChange({ ...safe, [field]: v });
   const star = required ? ' *' : '';
 
   return (
@@ -38,7 +44,7 @@ export function AddressForm({ label, value, onChange, required = false, disabled
           <Label className="text-xs">{t('address.line1')}{star}</Label>
           <Input
             placeholder={t('address.line1Placeholder')}
-            value={value.line1}
+            value={safe.line1 ?? ''}
             onChange={e => set('line1')(e.target.value)}
             disabled={disabled}
           />
@@ -47,20 +53,20 @@ export function AddressForm({ label, value, onChange, required = false, disabled
           <Label className="text-xs">{t('address.line2')}</Label>
           <Input
             placeholder={t('address.line2Placeholder')}
-            value={value.line2}
+            value={safe.line2 ?? ''}
             onChange={e => set('line2')(e.target.value)}
             disabled={disabled}
           />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">{t('address.country')}{star}</Label>
-          <CountrySelect value={value.country} onChange={set('country')} required={required} disabled={disabled} />
+          <CountrySelect value={safe.country ?? ''} onChange={set('country')} required={required} disabled={disabled} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">{t('address.city')}{star}</Label>
           <Input
             placeholder={t('address.cityPlaceholder')}
-            value={value.city}
+            value={safe.city ?? ''}
             onChange={e => set('city')(e.target.value)}
             disabled={disabled}
           />
@@ -69,7 +75,7 @@ export function AddressForm({ label, value, onChange, required = false, disabled
           <Label className="text-xs">{t('address.zip')}{star}</Label>
           <Input
             placeholder={t('address.zip')}
-            value={value.zip}
+            value={safe.zip ?? ''}
             onChange={e => set('zip')(e.target.value)}
             disabled={disabled}
           />

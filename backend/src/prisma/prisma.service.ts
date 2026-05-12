@@ -57,6 +57,87 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       throw err;
     }
     await this.dropPolymorphicFkConstraints();
+    await this.healAdditiveDrift();
+  }
+
+  /**
+   * Self-healing migration step.
+   *
+   * Idempotent additive ALTER/CREATE INDEX statements that bring a
+   * partially-migrated dev DB up to the columns the Prisma client
+   * thinks exist. Every operation uses `IF NOT EXISTS` so this is
+   * safe to run on a fully migrated DB too. Failures are logged but
+   * never throw — the regular query paths surface the real error.
+   *
+   * Add new entries here in lockstep with new additive migrations so
+   * local environments don't have to chase `prisma migrate deploy`
+   * every time the schema bumps.
+   */
+  private async healAdditiveDrift(): Promise<void> {
+    // Every table on this list must carry a nullable `tenantId TEXT`
+    // column plus a btree index. Listed centrally so adding a new
+    // tenant-scoped model is a one-line edit.
+    const tenantIdTables = [
+      // Phase 1 baseline (idempotent — usually already present).
+      'agencies', 'applicants', 'employees',
+      // Phase 2.3 entity-keyed denorm + later additions.
+      'documents', 'audit_logs', 'notifications', 'financial_records',
+      'financial_record_attachments', 'financial_record_deductions',
+      'vehicles', 'vehicle_documents', 'maintenance_records',
+      'visas', 'work_permits',
+      'compliance_alerts',
+      'attendance_records', 'attendance_locked_periods',
+      'employee_work_history', 'employee_work_history_attachments',
+      // Phase 2.9 — job ads.
+      'job_ads',
+      // Phase 2.63 — workflows + assignments.
+      'workflows', 'workflow_stages',
+      'candidate_workflow_assignments', 'employee_workflow_assignments',
+      // Phase 3.10 — platform audit log.
+      'platform_audit_logs',
+      // SaaS bookkeeping.
+      'saas_phase1_seq_snapshot',
+      // Phase 3.19 — Workshop tenant scope.
+      'workshops',
+    ];
+
+    const steps: Array<{ label: string; sql: string }> = [
+      ...tenantIdTables.flatMap((tbl) => [
+        { label: `${tbl}.tenantId`,     sql: `ALTER TABLE "${tbl}" ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
+        { label: `${tbl}.tenantId idx`, sql: `CREATE INDEX IF NOT EXISTS "${tbl}_tenantId_idx" ON "${tbl}"("tenantId");` },
+      ]),
+
+      // Phase 2.9 — job-ads composite index used by the slug lookups.
+      { label: 'job_ads.tenantId slug idx', sql: `CREATE INDEX IF NOT EXISTS "job_ads_tenantId_slug_idx" ON "job_ads"("tenantId","slug");` },
+
+      // IntervalMode column on maintenance_types — present in schema
+      // since the maintenance types phase; some dev DBs predate the
+      // migration.
+      { label: 'IntervalMode enum',         sql: `DO $$ BEGIN CREATE TYPE "IntervalMode" AS ENUM ('DAYS', 'KM', 'BOTH'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;` },
+      { label: 'maintenance_types.intervalMode', sql: `ALTER TABLE "maintenance_types" ADD COLUMN IF NOT EXISTS "intervalMode" "IntervalMode" DEFAULT 'KM';` },
+
+      // Phase 3.16 — JobType soft-delete columns.
+      { label: 'job_types.deletedAt',       sql: `ALTER TABLE "job_types"     ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);` },
+      { label: 'job_types.deletedBy',       sql: `ALTER TABLE "job_types"     ADD COLUMN IF NOT EXISTS "deletedBy" TEXT;` },
+      { label: 'job_types.deletionReason',  sql: `ALTER TABLE "job_types"     ADD COLUMN IF NOT EXISTS "deletionReason" TEXT;` },
+      { label: 'job_types.deletedAt idx',   sql: `CREATE INDEX IF NOT EXISTS "job_types_deletedAt_idx" ON "job_types"("deletedAt");` },
+    ];
+
+    let healed = 0;
+    for (const step of steps) {
+      try {
+        await this.$executeRawUnsafe(step.sql);
+        healed++;
+      } catch (err: any) {
+        // Most steps will be no-ops on a fully migrated DB. Only log
+        // when the error is something other than "table doesn't exist".
+        const msg = String(err?.message ?? err);
+        if (!/relation .* does not exist|does not exist/i.test(msg)) {
+          this.logger.warn(`drift-heal ${step.label}: ${msg}`);
+        }
+      }
+    }
+    this.logger.log(`drift-heal: ${healed}/${steps.length} statements applied (idempotent)`);
   }
 
   private async dropPolymorphicFkConstraints() {

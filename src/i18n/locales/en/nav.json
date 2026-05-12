@@ -21,6 +21,9 @@
   "systemLogs": "System Logs",
   "deletedRecords": "Deleted Records",
   "settings": "Settings",
+  "tenants": "Tenants",
+  "tenantMembers": "Tenant Members",
+  "platformAdministration": "Platform Administration",
   "sidebar": {
     "platformLabel": "Recruitment Platform"
   },

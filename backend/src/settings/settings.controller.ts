@@ -41,7 +41,8 @@ export class SettingsController {
   @Roles('System Admin')
   @ApiOperation({ summary: 'Batch update settings' })
   batchUpdate(@Body() dto: BatchUpdateSettingsDto, @CurrentUser() user: any) {
-    return this.settingsService.batchUpdate(dto, user.id);
+    // Phase 3.17 — branding.* keys are routed to the active tenant.
+    return this.settingsService.batchUpdate(dto, user.id, user?.tenantId);
   }
 
   // Public form settings (no auth required)
@@ -74,9 +75,12 @@ export class SettingsController {
   // Job Types
   @Public()
   @Get('job-types')
-  @ApiOperation({ summary: 'Get all active job types' })
-  async findJobTypes(@Req() req: Request) {
-    const rows = await this.settingsService.findJobTypes();
+  @ApiOperation({ summary: 'Get job types (active only by default; pass ?includeInactive=true for the settings page)' })
+  @ApiQuery({ name: 'includeInactive', required: false })
+  async findJobTypes(@Req() req: Request, @Query('includeInactive') includeInactive?: string) {
+    const rows = await this.settingsService.findJobTypes({
+      includeInactive: includeInactive === 'true' || includeInactive === '1',
+    });
     const locale = this.i18n.resolve(req);
     return rows.map((r: any) => ({
       ...r,
@@ -274,8 +278,32 @@ export class SettingsController {
   // Branding
   @Public()
   @Get('branding')
-  @ApiOperation({ summary: 'Get company branding settings (public)' })
-  getBranding() { return this.settingsService.getBranding(); }
+  @ApiOperation({ summary: 'Get company branding settings (public; overlays the active tenant\'s branding)' })
+  @ApiQuery({ name: 'tenant', required: false, description: 'Tenant slug or customDomain — overrides whatever the JWT carries' })
+  getBranding(@Req() req: Request, @Query('tenant') tenantHint?: string) {
+    // Phase 3.17 — tenant-aware branding. Pulls the active tenantId from
+    // the bearer JWT if present (best-effort decode, no signature
+    // verification — this is a public endpoint). Falls back to the
+    // optional ?tenant=<slug-or-domain> query hint, then to the global
+    // system defaults.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    let tenantIdFromJwt: string | null = null;
+    const auth = (req.headers['authorization'] as string | undefined) ?? '';
+    const m = /^Bearer\s+(.+)$/i.exec(auth);
+    if (m) {
+      try {
+        const parts = m[1].split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+          tenantIdFromJwt = typeof payload?.tenantId === 'string' ? payload.tenantId : null;
+        }
+      } catch { tenantIdFromJwt = null; }
+    }
+    return this.settingsService.getBranding({
+      tenantId: tenantIdFromJwt ?? undefined,
+      tenantHint: tenantHint ?? undefined,
+    });
+  }
 
   @Post('branding/logo')
   @Roles('System Admin')
@@ -288,7 +316,11 @@ export class SettingsController {
   })))
   uploadLogo(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
     if (!file) throw new BadRequestException('No logo file provided');
-    return this.settingsService.uploadLogo(file, user.id);
+    // Phase 3.17 — pass the active tenant so the upload lands on the
+    // tenant's branding (the per-tenant overlay in /settings/branding)
+    // instead of the global system setting that every tenant shares.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    return this.settingsService.uploadLogo(file, user.id, user?.tenantId);
   }
 
   // System Information

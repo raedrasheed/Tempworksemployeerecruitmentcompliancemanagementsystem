@@ -115,33 +115,64 @@ export class SettingsService {
     return grouped;
   }
 
-  async batchUpdate(dto: BatchUpdateSettingsDto, userId: string) {
-    const results = [];
+  async batchUpdate(dto: BatchUpdateSettingsDto, userId: string, activeTenantId?: string) {
+    // Phase 3.17 — branding.* keys are tenant-scoped when there is an
+    // active tenant on the JWT: they land on Tenant.branding so each
+    // tenant gets its own logo, name, colour, tagline, etc. without
+    // overwriting the others. Non-branding keys still go to the
+    // shared system_settings table (legacy behaviour).
+    // @tenant-reviewed: phase317-multi-tenant-login
+    const tenantBrandingPatch: Record<string, string> = {};
+    let tenantDisplayName: string | undefined;
+
+    const results: any[] = [];
     for (const [key, value] of Object.entries(dto.settings ?? {})) {
+      const isBranding = key.startsWith('branding.');
+      if (activeTenantId && isBranding) {
+        const field = key.replace(/^branding\./, '');
+        if (field === 'companyName') tenantDisplayName = value;
+        else tenantBrandingPatch[field] = value;
+        continue;
+      }
       const updated = await this.prisma.systemSetting.upsert({
         where: { key },
         update: { value, updatedById: userId },
         create: {
           key, value, updatedById: userId, description: key,
           category: key.split('.')[0] || 'general',
-          isPublic: key.startsWith('branding.'),
+          isPublic: isBranding,
         },
       });
       results.push(updated);
     }
+
+    if (activeTenantId && (Object.keys(tenantBrandingPatch).length || tenantDisplayName !== undefined)) {
+      const tenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: activeTenantId }, select: { branding: true },
+      }).catch(() => null);
+      const merged = { ...(tenant?.branding ?? {}), ...tenantBrandingPatch };
+      await (this.prisma as any).tenant.update({
+        where: { id: activeTenantId },
+        data: {
+          branding: merged as any,
+          ...(tenantDisplayName !== undefined ? { name: tenantDisplayName } : {}),
+        },
+      });
+    }
+
     await this.auditLog.log({
       userId,
       action: 'UPDATE',
-      entity: 'Settings',
-      entityId: 'system',
+      entity: activeTenantId ? 'Tenant' : 'Settings',
+      entityId: activeTenantId ?? 'system',
       changes: dto.settings as any,
     });
     return results;
   }
 
   // ─── Branding ────────────────────────────────────────────────────────────────
-  async getBranding(): Promise<Record<string, string>> {
-    // Query by key prefix — batchUpdate may store with a different category
+  async getBranding(opts?: { tenantId?: string; tenantHint?: string }): Promise<Record<string, string>> {
+    // System defaults from system_settings (legacy single-tenant path).
     const settings = await this.prisma.systemSetting.findMany({
       where: { key: { startsWith: 'branding.' } },
     });
@@ -149,36 +180,111 @@ export class SettingsService {
     for (const s of settings) {
       result[s.key.replace('branding.', '')] = s.value;
     }
+
+    // Phase 3.17 — overlay the active tenant's branding so each tenant
+    // can show its own logo, primary color, and display name. The
+    // Tenant model stores these on the existing `branding Json?` column
+    // (see Phase 3.15). Falls back silently when no tenant is resolved
+    // so single-tenant deployments keep the old behaviour.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    let tenant: any = null;
+    try {
+      if (opts?.tenantId) {
+        tenant = await (this.prisma as any).tenant.findUnique({
+          where: { id: opts.tenantId },
+          select: { id: true, name: true, slug: true, branding: true },
+        });
+      } else if (opts?.tenantHint) {
+        const hint = opts.tenantHint.trim().toLowerCase();
+        tenant = await (this.prisma as any).tenant.findFirst({
+          where: { OR: [{ slug: hint }, { customDomain: hint }] },
+          select: { id: true, name: true, slug: true, branding: true },
+        });
+      }
+    } catch { tenant = null; }
+
+    if (tenant) {
+      const b: any = tenant.branding ?? {};
+      // companyName: the tenant's display name takes precedence.
+      result.companyName = tenant.name || result.companyName;
+      // Logo + primary colour come straight from Tenant.branding when set.
+      if (typeof b.logoUrl === 'string' && b.logoUrl)        result.logoUrl      = b.logoUrl;
+      if (typeof b.primaryColor === 'string' && b.primaryColor) result.primaryColor = b.primaryColor;
+      // Optional copy fields — only override when the tenant has set them.
+      for (const k of ['tagline', 'heroBadge', 'heroHeadline', 'heroDescription',
+                       'address', 'phone1', 'phone2',
+                       'emailInfo', 'emailRecruitment', 'emailSupport',
+                       'linkedIn', 'facebook', 'footerTagline', 'vatInfo']) {
+        if (typeof b[k] === 'string' && b[k]) result[k] = b[k];
+      }
+      result.tenantId   = tenant.id;
+      result.tenantSlug = tenant.slug;
+    }
+
     return result;
   }
 
-  async uploadLogo(file: Express.Multer.File, userId: string) {
-    const previous = await this.prisma.systemSetting.findUnique({ where: { key: 'branding.logoUrl' } });
-
+  async uploadLogo(file: Express.Multer.File, userId: string, activeTenantId?: string) {
+    // Push the file to the storage backend first so we have a stable URL
+    // to write into either the tenant branding blob or the system setting.
     const upload = await this.storage.uploadFile(file.buffer, {
-      keyPrefix: 'settings/branding',
+      keyPrefix: activeTenantId ? `tenants/${activeTenantId}/branding` : 'settings/branding',
       contentType: file.mimetype,
       originalName: file.originalname,
       inline: true,
     });
 
-    await this.prisma.systemSetting.upsert({
-      where: { key: 'branding.logoUrl' },
-      update: { value: upload.url, updatedById: userId },
-      create: { key: 'branding.logoUrl', value: upload.url, category: 'branding', description: 'Company logo URL', isPublic: true, updatedById: userId },
-    });
-
-    if (previous?.value && previous.value !== upload.url) {
-      await this.storage.deleteFileByUrlOrKey(previous.value);
+    // Phase 3.17 — when a tenant context is present, the new logo
+    // belongs to that tenant's branding blob so the overlay in
+    // getBranding picks it up immediately. The legacy system setting
+    // is left untouched so single-tenant deployments keep their
+    // existing logo as a fallback.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    let previousUrl: string | null = null;
+    if (activeTenantId) {
+      const tenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: activeTenantId }, select: { branding: true },
+      }).catch(() => null);
+      const branding = { ...(tenant?.branding ?? {}) };
+      previousUrl = typeof branding.logoUrl === 'string' ? branding.logoUrl : null;
+      branding.logoUrl = upload.url;
+      await (this.prisma as any).tenant.update({
+        where: { id: activeTenantId },
+        data: { branding: branding as any },
+      });
+    } else {
+      const previous = await this.prisma.systemSetting.findUnique({ where: { key: 'branding.logoUrl' } });
+      previousUrl = previous?.value ?? null;
+      await this.prisma.systemSetting.upsert({
+        where: { key: 'branding.logoUrl' },
+        update: { value: upload.url, updatedById: userId },
+        create: { key: 'branding.logoUrl', value: upload.url, category: 'branding', description: 'Company logo URL', isPublic: true, updatedById: userId },
+      });
     }
 
-    await this.auditLog.log({ userId, action: 'UPDATE', entity: 'Settings', entityId: 'branding.logoUrl', changes: { logoUrl: upload.url } });
-    return { logoUrl: upload.url };
+    if (previousUrl && previousUrl !== upload.url) {
+      await this.storage.deleteFileByUrlOrKey(previousUrl);
+    }
+
+    await this.auditLog.log({
+      userId, action: 'UPDATE', entity: activeTenantId ? 'Tenant' : 'Settings',
+      entityId: activeTenantId ?? 'branding.logoUrl',
+      changes: { logoUrl: upload.url, tenantId: activeTenantId ?? null },
+    });
+    return { logoUrl: upload.url, tenantId: activeTenantId ?? null };
   }
 
   // ─── Job Types ──────────────────────────────────────────────────────────────
-  async findJobTypes() {
+  async findJobTypes(opts?: { includeInactive?: boolean }) {
+    // Phase 3.16 — `deletedAt` rows are out of scope here (they live in
+    // the Recycle Bin). Ensure the soft-delete columns exist before
+    // querying so dev DBs that have drifted from the migration history
+    // are self-healed on the very first list call.
+    await this.ensureJobTypeSoftDeleteColumns();
+    const where: any = { deletedAt: null };
+    if (!opts?.includeInactive) where.isActive = true;
     return this.prisma.jobType.findMany({
+      where,
       orderBy: { name: 'asc' },
       include: { _count: { select: { applicants: true } } },
     });
@@ -210,18 +316,78 @@ export class SettingsService {
     return updated;
   }
 
+  /**
+   * Phase 3.16 — make sure the job_types soft-delete columns exist
+   * before any read/write touches them. Idempotent and additive;
+   * matches the saas_phase316_jobtype_soft_delete migration so dev DBs
+   * that have drifted from the migration history are auto-healed on
+   * the first job-type list or delete call. Memoised per process so
+   * we don't issue redundant ALTERs.
+   */
+  private jobTypeSoftDeleteReady: Promise<void> | null = null;
+  private ensureJobTypeSoftDeleteColumns(): Promise<void> {
+    if (this.jobTypeSoftDeleteReady) return this.jobTypeSoftDeleteReady;
+    this.jobTypeSoftDeleteReady = (async () => {
+      try {
+        await this.prisma.$executeRawUnsafe(`
+          ALTER TABLE "job_types"
+            ADD COLUMN IF NOT EXISTS "deletedAt"      TIMESTAMP(3),
+            ADD COLUMN IF NOT EXISTS "deletedBy"      TEXT,
+            ADD COLUMN IF NOT EXISTS "deletionReason" TEXT;
+        `);
+        await this.prisma.$executeRawUnsafe(
+          `CREATE INDEX IF NOT EXISTS "job_types_deletedAt_idx" ON "job_types"("deletedAt");`,
+        );
+      } catch {
+        // best-effort: if the ALTER fails the subsequent typed query
+        // will surface the real error. Reset the promise so a retry
+        // is possible on the next call.
+        this.jobTypeSoftDeleteReady = null;
+      }
+    })();
+    return this.jobTypeSoftDeleteReady;
+  }
+
   async deleteJobType(id: string, actorId?: string) {
     const jt = await this.prisma.jobType.findUnique({ where: { id } });
     if (!jt) throw new NotFoundException('Job type not found');
-    await this.prisma.jobType.update({ where: { id }, data: { isActive: false } });
+    if ((jt as any).deletedAt) {
+      return { deleted: true, message: 'Job type is already deleted' };
+    }
+    await this.ensureJobTypeSoftDeleteColumns();
+
+    // Phase 3.16 — soft-delete via deletedAt. The row drops out of the
+    // settings list and surfaces in the Recycle Bin for restore or
+    // hard delete. isActive is left untouched so a Restore that does
+    // not also flip isActive returns the row to whatever active/
+    // deactivated state it was in before deletion.
+    const [applicantCount, employeeCount] = await Promise.all([
+      this.prisma.applicant.count({ where: { jobTypeId: id } }),
+      this.prisma.employee.count({ where: { jobTypeId: id } }),
+    ]);
+
+    // Update via raw SQL so the path works even on a runtime whose
+    // Prisma client still predates the new columns (the schema in this
+    // commit knows about them, but a stale `node_modules/@prisma/client`
+    // build will reject the typed update).
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE "job_types" SET "deletedAt" = NOW(), "deletedBy" = $1 WHERE "id" = $2`,
+      actorId ?? null, id,
+    );
+
     await this.auditLog.log({
       userId: actorId,
       action: 'DELETE',
       entity: 'JobType',
       entityId: id,
-      changes: { name: jt.name },
+      changes: { name: jt.name, mode: 'soft', applicantCount, employeeCount },
     });
-    return { message: 'Job type deactivated' };
+    return {
+      deleted: true,
+      applicantCount,
+      employeeCount,
+      message: 'Job type moved to Deleted Records',
+    };
   }
 
   // ─── Finance Transaction Types ───────────────────────────────────────────────

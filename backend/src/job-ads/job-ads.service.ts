@@ -1,14 +1,51 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { CreateJobAdDto } from './dto/create-job-ad.dto';
 import { UpdateJobAdDto } from './dto/update-job-ad.dto';
 import { FilterJobAdsDto } from './dto/filter-job-ads.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { JOB_AD_STATUSES, CONTRACT_TYPES, JOB_CATEGORIES, COMMON_CURRENCIES } from './constants';
 
+/**
+ * Phase 2.9 — third tenant-scoped TenantPrisma pilot.
+ *
+ * Reads/writes route through `PilotPrismaAccessor.client()` and apply
+ * a tenant filter when `getPilotScope(this.pilot, 'job-ads')` reports
+ * `active=true` (pilot flag on, env staging-classified, ALS has a
+ * tenant, allow-list includes `job-ads`). Otherwise — including every
+ * production request — the spreads are no-ops and behaviour is
+ * byte-identical to before this PR.
+ *
+ * Public endpoints (`findPublished`, `findBySlug`) typically run
+ * without a tenant in ALS. The pilot scope is naturally inactive
+ * there, so public URLs continue to surface every PUBLISHED ad
+ * regardless of tenant — preserving public-link semantics. A future
+ * Phase 3 may add a tenant-from-host resolver that attaches a tenant
+ * to public traffic; the service contract does NOT change today.
+ *
+ * Slug uniqueness: the schema's global `slug @unique` constraint is
+ * preserved (Phase 2.9 only added a nullable `tenantId` and two
+ * tenant-leading indexes). The service's `uniqueSlug` lookup stays
+ * global so the suffix-loop never hands out a slug that would later
+ * collide on insert. Phase 3 will swap to a composite `(tenantId, slug)`
+ * unique once every existing public URL is reconciled.
+ */
 @Injectable()
 export class JobAdsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private legacyPrisma: PrismaService,
+    private pilot: PilotPrismaAccessor,
+  ) {}
+
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'job-ads');
+  }
 
   // ── Slug generation ──────────────────────────────────────────────────────────
 
@@ -22,11 +59,53 @@ export class JobAdsService {
       .slice(0, 100);
   }
 
+  /**
+   * Phase 3.18 — dashboard scoping helper. PlatformAdmin SUPER and
+   * platform admins generally bypass the tenant filter (they manage
+   * every tenant); all other callers see only their own tenant. The
+   * tenantId comes from the JWT (Phase 3.17) and falls back to the
+   * caller's agency.tenantId for legacy tokens (set on req.user in
+   * jwt.strategy.ts).
+   *
+   * Returns either `{}` (no filter, super admin) or `{ tenantId: <id> }`.
+   * @tenant-reviewed: phase318-tenant-public-jobs
+   */
+  private callerTenantWhere(caller: any): Record<string, any> {
+    if (!caller) return {};
+    if (caller.agencyIsSystem) return {}; // PlatformAdmin sees everything
+    const t = caller.tenantId;
+    if (!t) return {}; // no scope info → behave like legacy until login-v2
+    return { tenantId: t };
+  }
+
+  /**
+   * Phase 3.18 — check whether the caller is a SUPER PlatformAdmin.
+   * Used to gate the tenantId reassignment on create + update. Falls
+   * back to the JWT-side hint (caller.agencyIsSystem) when the
+   * platform_admins lookup fails so legacy admins are not locked out.
+   * @tenant-reviewed: phase318-tenant-public-jobs
+   */
+  private async isCallerSuperPlatformAdmin(caller: any): Promise<boolean> {
+    if (!caller?.id) return false;
+    try {
+      const row = await (this.prisma as any).platformAdmin.findUnique({
+        where: { userId: caller.id }, select: { level: true },
+      });
+      if (row?.level === 'SUPER') return true;
+    } catch { /* table missing on fresh envs */ }
+    return false;
+  }
+
+  /** Slug uniqueness probe — INTENTIONALLY tenant-agnostic. The DB's
+   *  `slug @unique` constraint is global until Phase 3 swaps it to a
+   *  composite `(tenantId, slug)`. Tenant-filtering this lookup would
+   *  mean the suffix-loop hands out a slug that the unique index then
+   *  rejects on insert. Keeping it global keeps inserts predictable. */
   private async uniqueSlug(base: string, excludeId?: string): Promise<string> {
     let slug = base;
     let attempt = 0;
     while (true) {
-      const existing = await this.prisma.jobAd.findFirst({
+      const existing = await this.legacyPrisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope (slug uniqueness is GLOBAL until Phase 3 composite)
         where: {
           slug,
           deletedAt: null,
@@ -41,14 +120,15 @@ export class JobAdsService {
 
   // ── Dashboard: list (paginated + filtered) ───────────────────────────────────
 
-  async findAll(filter: FilterJobAdsDto) {
+  async findAll(filter: FilterJobAdsDto, caller?: any) {
+    const scope = this.scope();
     const {
       page = 1, limit = 20, search, status, category, country, contractType,
       sortBy = 'createdAt', sortOrder = 'desc',
     } = filter as any;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, ...scope.tenantWhere(), ...this.callerTenantWhere(caller) };
     if (status)       where.status       = status;
     if (category)     where.category     = category;
     if (country)      where.country      = country;
@@ -67,7 +147,7 @@ export class JobAdsService {
     const orderField = validSort.includes(sortBy) ? sortBy : 'createdAt';
 
     const [items, total] = await Promise.all([
-      this.prisma.jobAd.findMany({
+      this.prisma.jobAd.findMany({ // @tenant-reviewed: phase29-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { [orderField]: sortOrder },
         include: {
@@ -75,22 +155,73 @@ export class JobAdsService {
           _count: { select: { applicants: true } },
         },
       }),
-      this.prisma.jobAd.count({ where }),
+      this.prisma.jobAd.count({ where }), // @tenant-reviewed: phase29-pilot-scope
     ]);
 
-    return PaginatedResponse.create(items, total, Number(page), Number(limit));
+    // Phase 3.18 — when the caller is a PlatformAdmin (sees every
+    // tenant's ads), attach a `tenant: { id, name, slug }` object to
+    // each row so the dashboard list can render a tenant column.
+    // Other callers are already scoped to a single tenant; surfacing
+    // the same name is harmless but unnecessary.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    let enriched = items as any[];
+    if (caller?.agencyIsSystem) {
+      const ids = Array.from(new Set(items.map((r: any) => r.tenantId).filter(Boolean)));
+      if (ids.length) {
+        const tenants = await this.prisma.tenant.findMany({
+          where: { id: { in: ids as string[] } },
+          select: { id: true, name: true, slug: true },
+        }).catch(() => []);
+        const byId = new Map<string, any>(tenants.map((t: any): [string, any] => [t.id, t]));
+        enriched = items.map((r: any) => ({
+          ...r,
+          tenant: r.tenantId ? byId.get(r.tenantId) ?? null : null,
+        }));
+      }
+    }
+
+    return PaginatedResponse.create(enriched, total, Number(page), Number(limit));
   }
 
   // ── Public listing (only PUBLISHED, no auth required) ────────────────────────
-
-  async findPublished(filter: FilterJobAdsDto) {
+  //
+  // This endpoint is reached without auth and (typically) without a
+  // tenant in ALS, so `scope.tenantWhere()` returns `{}` and the
+  // listing behaves byte-identically to legacy: every PUBLISHED ad
+  // across all tenants is visible. If a future Phase 3 host-based
+  // resolver attaches a tenant to public traffic, the same code path
+  // will automatically narrow the listing to that tenant — no code
+  // change required.
+  async findPublished(filter: FilterJobAdsDto, tenantHint?: string) {
+    const scope = this.scope();
     const {
       page = 1, limit = 20, search, category, country, contractType,
       sortBy = 'publishedAt', sortOrder = 'desc',
     } = filter as any;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null, status: 'PUBLISHED' };
+    // Phase 3.18 — public tenant scoping.
+    //  - WITH hint:      resolve slug/customDomain → only that tenant's ads.
+    //  - WITHOUT hint:   the legacy global /jobs URL aggregates ads from
+    //                    every tenant (and any tenant-less / global ads).
+    //                    Each row carries `tenant: { id, name, slug }` so
+    //                    the public listing card can label the owner.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    let publicTenantWhere: any;
+    if (tenantHint) {
+      const hint = tenantHint.trim().toLowerCase();
+      const tenant = await this.prisma.tenant.findFirst({
+        where: { OR: [{ slug: hint }, { customDomain: hint }] },
+        select: { id: true },
+      }).catch(() => null);
+      publicTenantWhere = tenant
+        ? { tenantId: tenant.id }
+        : { tenantId: '__no_such_tenant__' }; // unresolved → empty result
+    } else {
+      publicTenantWhere = {}; // global aggregator
+    }
+
+    const where: any = { deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere(), ...publicTenantWhere };
     if (category)     where.category     = category;
     if (country)      where.country      = country;
     if (contractType) where.contractType = contractType;
@@ -108,7 +239,7 @@ export class JobAdsService {
     const orderField = validSort.includes(sortBy) ? sortBy : 'publishedAt';
 
     const [items, total] = await Promise.all([
-      this.prisma.jobAd.findMany({
+      this.prisma.jobAd.findMany({ // @tenant-reviewed: phase29-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { [orderField]: sortOrder },
         select: {
@@ -116,13 +247,31 @@ export class JobAdsService {
           city: true, country: true, contractType: true,
           salaryMin: true, salaryMax: true, currency: true,
           publishedAt: true,
-          // Exclude description for listing (save bandwidth; use detail endpoint for full text)
+          requiredDocuments: true,
+          tenantId: true,
         },
       }),
-      this.prisma.jobAd.count({ where }),
+      this.prisma.jobAd.count({ where }), // @tenant-reviewed: phase29-pilot-scope
     ]);
 
-    return PaginatedResponse.create(items, total, Number(page), Number(limit));
+    // Phase 3.18 — batch-load the owning tenants so each listing card
+    // can display "from <Tenant>" on the global aggregator at /jobs.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    const tenantIds = Array.from(new Set(items.map((r: any) => r.tenantId).filter(Boolean)));
+    const tenants = tenantIds.length
+      ? await this.prisma.tenant.findMany({
+          where: { id: { in: tenantIds as string[] } },
+          select: { id: true, name: true, slug: true },
+        }).catch(() => [])
+      : [];
+    const tenantById = new Map<string, any>(tenants.map((t: any): [string, any] => [t.id, t]));
+
+    const mapped = items.map((ad: any) => ({
+      ...ad,
+      requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments),
+      tenant: ad.tenantId ? tenantById.get(ad.tenantId) ?? null : null,
+    }));
+    return PaginatedResponse.create(mapped, total, Number(page), Number(limit));
   }
 
   // ── Helper: parse requiredDocuments JSON string to string[] ──────────────────
@@ -133,38 +282,93 @@ export class JobAdsService {
   }
 
   // ── Public detail by slug ─────────────────────────────────────────────────────
-
-  async findBySlug(slug: string) {
-    const ad = await this.prisma.jobAd.findFirst({
-      where: { slug, deletedAt: null, status: 'PUBLISHED' },
+  //
+  // Same public-traffic semantics as `findPublished`. With no tenant in
+  // ALS, the slug lookup is global — preserving today's public URLs.
+  async findBySlug(slug: string, tenantHint?: string) {
+    const scope = this.scope();
+    // Phase 3.18 — slug lookup: scope to the named tenant when a hint
+    // is provided; otherwise allow the slug to resolve against any
+    // tenant (the global /jobs/:slug page should still work for ads
+    // owned by a tenant, since the public list links to them).
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    let publicTenantWhere: any;
+    if (tenantHint) {
+      const hint = tenantHint.trim().toLowerCase();
+      const tenant = await this.prisma.tenant.findFirst({
+        where: { OR: [{ slug: hint }, { customDomain: hint }] },
+        select: { id: true },
+      }).catch(() => null);
+      publicTenantWhere = tenant
+        ? { tenantId: tenant.id }
+        : { tenantId: '__no_such_tenant__' };
+    } else {
+      publicTenantWhere = {};
+    }
+    const ad = await this.prisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope
+      where: { slug, deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere(), ...publicTenantWhere },
     });
     if (!ad) throw new NotFoundException(`Job ad '${slug}' not found`);
-    return { ...ad, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
+    // Phase 3.18 — attach the owning tenant so the public detail page
+    // can show which tenant the ad belongs to.
+    let owningTenant: any = null;
+    if ((ad as any).tenantId) {
+      owningTenant = await this.prisma.tenant.findUnique({
+        where: { id: (ad as any).tenantId },
+        select: { id: true, name: true, slug: true },
+      }).catch(() => null);
+    }
+    return { ...ad, tenant: owningTenant, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
   }
 
   // ── Dashboard detail by ID ────────────────────────────────────────────────────
 
-  async findOne(id: string) {
-    const ad = await this.prisma.jobAd.findFirst({
-      where: { id, deletedAt: null },
+  async findOne(id: string, caller?: any) {
+    const scope = this.scope();
+    const ad = await this.prisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope
+      where: { id, deletedAt: null, ...scope.tenantWhere(), ...this.callerTenantWhere(caller) },
       include: {
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         _count: { select: { applicants: true } },
       },
     });
     if (!ad) throw new NotFoundException(`Job ad ${id} not found`);
-    return { ...ad, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
+    // Phase 3.18 — attach the owning tenant for PlatformAdmin viewers so
+    // the detail page can show which tenant a Job Ad belongs to.
+    let tenant: any = null;
+    if (caller?.agencyIsSystem && (ad as any).tenantId) {
+      tenant = await this.prisma.tenant.findUnique({
+        where: { id: (ad as any).tenantId },
+        select: { id: true, name: true, slug: true },
+      }).catch(() => null);
+    }
+    return { ...ad, tenant, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
   }
 
   // ── Create ────────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateJobAdDto, userId?: string) {
+  async create(dto: CreateJobAdDto, userId?: string, caller?: any) {
+    const scope = this.scope();
     const baseSlug = dto.slug ? dto.slug.toLowerCase().replace(/\s+/g, '-') : this.toSlug(dto.title);
     const slug = await this.uniqueSlug(baseSlug);
 
     const publishedAt = dto.status === 'PUBLISHED' ? new Date() : null;
 
-    return this.prisma.jobAd.create({
+    // Phase 3.18 — stamp the caller's active tenant on the new ad so
+    // findAll's tenant filter actually finds it. A SUPER PlatformAdmin
+    // may explicitly target a different tenant via dto.tenantId; that
+    // takes precedence over the caller-implicit value. Non-SUPER
+    // callers cannot move ads between tenants.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    const isSuper = await this.isCallerSuperPlatformAdmin(caller);
+    const explicitTenantId =
+      isSuper && typeof (dto as any).tenantId === 'string' && (dto as any).tenantId.trim()
+        ? (dto as any).tenantId.trim()
+        : undefined;
+    const callerTenantId =
+      explicitTenantId ?? (caller && !caller.agencyIsSystem ? caller.tenantId : undefined);
+
+    return this.prisma.jobAd.create({ // @tenant-reviewed: phase29-pilot-scope
       data: {
         title:             dto.title,
         slug,
@@ -180,14 +384,18 @@ export class JobAdsService {
         publishedAt,
         createdById:       userId ?? null,
         requiredDocuments: dto.requiredDocuments ? JSON.stringify(dto.requiredDocuments) : null,
+        ...scope.tenantData(),
+        ...(callerTenantId ? { tenantId: callerTenantId } : {}),
       },
     });
   }
 
   // ── Update ────────────────────────────────────────────────────────────────────
 
-  async update(id: string, dto: UpdateJobAdDto, userId?: string) {
-    const existing = await this.findOne(id);
+  async update(id: string, dto: UpdateJobAdDto, userId?: string, caller?: any) {
+    // findOne is tenant-scoped, so cross-tenant id presents as 404
+    // before any update SQL runs.
+    const existing = await this.findOne(id, caller);
 
     // Regenerate slug if title changed and no explicit slug provided
     let slug = existing.slug;
@@ -203,7 +411,26 @@ export class JobAdsService {
       publishedAt = new Date();
     }
 
-    return this.prisma.jobAd.update({
+    // Phase 3.18 — SUPER PlatformAdmin may reassign tenantId. Validate
+    // the target tenant exists before writing; reject non-SUPER attempts
+    // silently by dropping the field from the payload.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    let nextTenantId: string | undefined;
+    if ((dto as any).tenantId !== undefined) {
+      const isSuper = await this.isCallerSuperPlatformAdmin(caller);
+      if (isSuper) {
+        const incoming = String((dto as any).tenantId ?? '').trim();
+        if (incoming) {
+          const t = await this.prisma.tenant.findUnique({
+            where: { id: incoming }, select: { id: true },
+          }).catch(() => null);
+          if (!t) throw new NotFoundException(`Tenant ${incoming} not found`);
+          nextTenantId = incoming;
+        }
+      }
+    }
+
+    return this.prisma.jobAd.update({ // @tenant-reviewed: phase29-pilot-scope
       where: { id },
       data: {
         ...(dto.title        !== undefined ? { title:        dto.title }        : {}),
@@ -217,6 +444,7 @@ export class JobAdsService {
         ...(dto.currency          !== undefined ? { currency:          dto.currency }                                           : {}),
         ...(dto.status            !== undefined ? { status:            dto.status }                                             : {}),
         ...(dto.requiredDocuments !== undefined ? { requiredDocuments: dto.requiredDocuments ? JSON.stringify(dto.requiredDocuments) : null } : {}),
+        ...(nextTenantId          !== undefined ? { tenantId:          nextTenantId } : {}),
         slug,
         publishedAt,
       },
@@ -225,9 +453,10 @@ export class JobAdsService {
 
   // ── Soft-delete ───────────────────────────────────────────────────────────────
 
-  async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.jobAd.update({
+  async remove(id: string, caller?: any) {
+    // findOne is tenant-scoped, so cross-tenant id presents as 404.
+    await this.findOne(id, caller);
+    return this.prisma.jobAd.update({ // @tenant-reviewed: phase29-pilot-scope
       where: { id },
       data: { deletedAt: new Date() },
     });

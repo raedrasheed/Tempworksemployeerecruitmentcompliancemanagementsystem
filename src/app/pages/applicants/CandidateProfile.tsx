@@ -67,6 +67,17 @@ export function CandidateProfile() {
   const [changingStage, setChangingStage] = useState(false);
   const [candidateAssignment, setCandidateAssignment] = useState<any>(null);
   const [allWorkflows, setAllWorkflows] = useState<any[]>([]);
+  // Active overview tab — controlled so the Quick Nav buttons can
+  // switch to Overview before scrolling to the right section.
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  const scrollToSection = (id: string) => {
+    setActiveTab('overview');
+    // Wait one frame for the Overview content to mount, then scroll.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
   const [showAssignWorkflow, setShowAssignWorkflow] = useState(false);
   const [assignWorkflowId, setAssignWorkflowId] = useState('');
   const [assigningWorkflow, setAssigningWorkflow] = useState(false);
@@ -644,7 +655,7 @@ export function CandidateProfile() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {applicantData.approvalStatus === 'PENDING_APPROVAL' && (
                     <Badge className="bg-amber-100 text-amber-900 border border-amber-300">{t('pages:applicants.profile.candidateApproval.pendingBadge')}</Badge>
                   )}
@@ -654,6 +665,19 @@ export function CandidateProfile() {
                   <Badge className={statusBadgeClass(applicantData.status)}>
                     {enumLabel('applicantStatus', applicantData.status)}
                   </Badge>
+                  {applicantData.applicationSource && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        applicantData.applicationSource.kind === 'JOB_AD'   ? 'bg-blue-50 text-blue-800 border-blue-300'   :
+                        applicantData.applicationSource.kind === 'PUBLIC'   ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                        'bg-slate-50 text-slate-800 border-slate-300'
+                      }
+                      title={applicantData.applicationSource.label}
+                    >
+                      {applicantData.applicationSource.label}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -762,12 +786,12 @@ export function CandidateProfile() {
       {/* Quick Nav */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: t('pages:applicants.profile.quickNav.travel'), icon: FileText },
-          { label: t('pages:applicants.profile.quickNav.driving'), icon: Award },
-          { label: t('pages:applicants.profile.quickNav.education'), icon: GraduationCap },
-          { label: t('pages:applicants.profile.quickNav.workExperience'), icon: Briefcase },
-        ].map(({ label, icon: Icon }) => (
-          <Button key={label} variant="outline" className="justify-between">
+          { label: t('pages:applicants.profile.quickNav.travel'),         icon: FileText,         target: 'section-travel' },
+          { label: t('pages:applicants.profile.quickNav.driving'),        icon: Award,            target: 'section-driving' },
+          { label: t('pages:applicants.profile.quickNav.education'),      icon: GraduationCap,    target: 'section-education' },
+          { label: t('pages:applicants.profile.quickNav.workExperience'), icon: Briefcase,        target: 'section-work-experience' },
+        ].map(({ label, icon: Icon, target }) => (
+          <Button key={label} variant="outline" className="justify-between" onClick={() => scrollToSection(target)}>
             <div className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{label}</span></div>
             <ChevronRight className="w-4 h-4 rtl:rotate-180" />
           </Button>
@@ -775,7 +799,7 @@ export function CandidateProfile() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6" dir={dir}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir={dir}>
         <TabsList>
           <TabsTrigger value="overview">{t('pages:applicants.profile.tabs.overview')}</TabsTrigger>
           <TabsTrigger value="application">{t('pages:applicants.profile.tabs.application')}</TabsTrigger>
@@ -932,7 +956,7 @@ export function CandidateProfile() {
           {/* Candidate-specific details */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Travel & Residence Documents */}
-            <Card>
+            <Card id="section-travel" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5" />{t('pages:applicants.profile.travelDocs.title')}
@@ -983,7 +1007,7 @@ export function CandidateProfile() {
                 experience together instead of splitting them across two
                 separate cards. Spans the full grid row so the two
                 subsections sit side-by-side. */}
-            <Card className="lg:col-span-2">
+            <Card id="section-driving" className="lg:col-span-2 scroll-mt-24">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Award className="w-5 h-5" />{t('pages:applicants.profile.driving.title')}
@@ -1078,7 +1102,7 @@ export function CandidateProfile() {
             {/* Education — full array from applicationData rendered as
                 a list. Hidden when the candidate didn't supply any. */}
             {Array.isArray(applicantData.applicationData?.education) && applicantData.applicationData.education.length > 0 && (
-              <Card className="lg:col-span-2">
+              <Card id="section-education" className="lg:col-span-2 scroll-mt-24">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <GraduationCap className="w-5 h-5" />{t('pages:applicants.profile.education.title')}
@@ -1108,7 +1132,7 @@ export function CandidateProfile() {
             {/* Work Experience — full array with references collapsed
                 into a sub-block per entry. */}
             {Array.isArray(applicantData.applicationData?.workHistory) && applicantData.applicationData.workHistory.length > 0 && (
-              <Card className="lg:col-span-2">
+              <Card id="section-work-experience" className="lg:col-span-2 scroll-mt-24">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="w-5 h-5" />{t('pages:applicants.profile.workHistory.title')}

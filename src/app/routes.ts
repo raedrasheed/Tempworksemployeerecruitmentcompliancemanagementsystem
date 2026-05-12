@@ -47,6 +47,11 @@ import { NotificationSettings } from './pages/notifications/NotificationSettings
 import { UsersList } from './pages/users/UsersList';
 import { AddUser } from './pages/users/AddUser';
 import { EditUser } from './pages/users/EditUser';
+import { TenantsList } from './pages/tenants/TenantsList';
+import { TenantCreate } from './pages/tenants/TenantCreate';
+import { TenantEdit } from './pages/tenants/TenantEdit';
+import { TenantDetails } from './pages/tenants/TenantDetails';
+import { MyTenantMembers } from './pages/tenants/MyTenantMembers';
 import { RolesList } from './pages/roles/RolesList';
 import { CreateRole } from './pages/roles/CreateRole';
 import { PermissionsMatrix } from './pages/roles/PermissionsMatrix';
@@ -129,6 +134,10 @@ export const router = createBrowserRouter([
   { path: '/application-success', Component: ApplicationSuccess },
   { path: '/jobs', Component: JobListings },
   { path: '/jobs/:slug', Component: JobDetail },
+  // Phase 3.18 — tenant-scoped public job board so each tenant gets
+  // its own "Current Job Openings" URL.
+  { path: '/t/:tenantSlug/jobs', Component: JobListings },
+  { path: '/t/:tenantSlug/jobs/:slug', Component: JobDetail },
   { path: '/data-processing-agreement', Component: DataProcessingAgreement },
   
   // Protected routes (with MainLayout)
@@ -208,6 +217,15 @@ export const router = createBrowserRouter([
       { path: 'users', Component: UsersList },
       { path: 'users/add', Component: AddUser },
       { path: 'users/:id/edit', Component: EditUser },
+
+      // Phase 3.15 — Tenant Management (Platform Administration)
+      { path: 'tenants', Component: TenantsList },
+      { path: 'tenants/new', Component: TenantCreate },
+      { path: 'tenants/:id', Component: TenantDetails },
+      { path: 'tenants/:id/edit', Component: TenantEdit },
+
+      // Phase 3.17 — "My Tenant Members" for System Admins.
+      { path: 'tenant-members', Component: MyTenantMembers },
       
       // Roles & Permissions routes
       { path: 'roles', Component: RolesList },

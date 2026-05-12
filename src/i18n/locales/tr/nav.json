@@ -21,6 +21,9 @@
   "systemLogs": "Sistem Günlükleri",
   "deletedRecords": "Silinen Kayıtlar",
   "settings": "Ayarlar",
+  "tenants": "Kiracılar",
+  "tenantMembers": "Kiracı Üyeleri",
+  "platformAdministration": "Platform Yönetimi",
   "sidebar": {
     "platformLabel": "İşe Alım Platformu"
   },

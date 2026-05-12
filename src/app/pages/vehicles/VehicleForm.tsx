@@ -12,7 +12,7 @@ import { Checkbox } from '../../components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../../components/ui/select';
-import { vehiclesApi, settingsApi } from '../../services/api';
+import { vehiclesApi, settingsApi, tenantsApi, getCurrentUser } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
 import { useValidationErrors } from '../../../i18n/useValidationErrors';
 import { FieldError } from '../../components/ui/field-error';
@@ -39,6 +39,7 @@ type FormData = {
   make: string;
   model: string;
   status: string;
+  tenantId: string;
   year: string;
   color: string;
   vin: string;
@@ -102,7 +103,7 @@ type FormData = {
 };
 
 const EMPTY: FormData = {
-  registrationNumber: '', licensePlate: '', type: '', make: '', model: '', status: 'ACTIVE',
+  registrationNumber: '', licensePlate: '', type: '', make: '', model: '', status: 'ACTIVE', tenantId: '',
   year: '', color: '', vin: '', fuelType: '', fuelCapacity: '', currentMileage: '',
   motExpiryDate: '', taxExpiryDate: '', registrationExpiryDate: '', insuranceExpiryDate: '', notes: '',
   purchaseOrder: '', purchaseDate: '', purchaseCost: '', purchaseContract: '', vendorName: '', vendorAddress: '',
@@ -126,6 +127,17 @@ export function VehicleForm() {
   const [lookups, setLookups] = useState<VehicleLookups | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
+
+  // Phase 3.19 — SUPER PlatformAdmin tenant reassignment.
+  const me = getCurrentUser();
+  const isSuper = me?.platformAdmin?.level === 'SUPER';
+  const [tenantOptions, setTenantOptions] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  useEffect(() => {
+    if (!isSuper) return;
+    tenantsApi.list({ limit: 200 })
+      .then((res) => setTenantOptions(res.data.map((t) => ({ id: t.id, name: t.name, slug: t.slug }))))
+      .catch(() => setTenantOptions([]));
+  }, [isSuper]);
   const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   useEffect(() => {
@@ -144,6 +156,7 @@ export function VehicleForm() {
         make: v.make ?? '',
         model: v.model ?? '',
         status: v.status ?? 'ACTIVE',
+        tenantId: (v as any).tenantId ?? '',
         year: v.year ? String(v.year) : '',
         color: v.color ?? '',
         vin: v.vin ?? '',
@@ -222,6 +235,10 @@ export function VehicleForm() {
         make: form.make.trim(),
         model: form.model.trim(),
         status: form.status || undefined,
+        // Phase 3.19 — only send tenantId when the SUPER PlatformAdmin
+        // explicitly picked one. The backend re-checks SUPER and
+        // ignores the field for anyone else.
+        ...(isSuper && form.tenantId ? { tenantId: form.tenantId } : {}),
         year: form.year ? parseInt(form.year) : undefined,
         color: form.color || undefined,
         vin: form.vin || undefined,
@@ -347,6 +364,27 @@ export function VehicleForm() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Phase 3.19 — SUPER PlatformAdmin only: move this vehicle
+                to a different tenant. Hidden for everyone else; the
+                backend re-checks SUPER and ignores the field. */}
+            {isSuper && (
+              <div className="space-y-1">
+                <Label>{t('pages:vehicles.form.fields.tenant', { defaultValue: 'Tenant' })}</Label>
+                <Select
+                  value={form.tenantId || '__none__'}
+                  onValueChange={(v) => set('tenantId', v === '__none__' ? '' : v)}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select tenant" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No tenant (global)</SelectItem>
+                    {tenantOptions.map((tn) => (
+                      <SelectItem key={tn.id} value={tn.id}>{tn.name} <span className="text-xs text-muted-foreground">/{tn.slug}</span></SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">SUPER PlatformAdmin only.</p>
+              </div>
+            )}
             <div className="space-y-1">
               <Label>{t('pages:vehicles.form.fields.make')} *</Label>
               <Input value={form.make} onChange={(e) => set('make', e.target.value)} placeholder={t('pages:vehicles.form.fields.makePh')}

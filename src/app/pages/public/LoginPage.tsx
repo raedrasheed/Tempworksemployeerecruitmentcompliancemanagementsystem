@@ -6,7 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Briefcase, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi, resolveAssetUrl } from '../../services/api';
+import { authApi, resolveAssetUrl, getLastCompany } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 import { apiError } from '../../../i18n/apiError';
@@ -15,6 +15,10 @@ export function LoginPage() {
   const navigate = useNavigate();
   const branding = useBranding();
   const { t } = useTranslation(['auth', 'common']);
+  // Phase 3.14 — Company is the tenant slug or custom domain. Prefilled
+  // from localStorage on mount; never persists credentials.
+  // @tenant-reviewed: phase314-frontend-tenant-login
+  const [company, setCompany] = useState(getLastCompany());
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,8 +32,15 @@ export function LoginPage() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
 
-  const proceedAfterLogin = (result: any) => {
+  const proceedAfterLogin = async (result: any) => {
     toast.success(t('login.welcomeBack'));
+    // Phase 3.17 — tenant changed (we just signed in). Drop any cached
+    // /settings/branding response so the dashboard renders the right
+    // tenant's logo + name on the first paint after login.
+    try {
+      const mod = await import('../../hooks/useBranding');
+      mod.invalidateBrandingCache?.();
+    } catch { /* missing in minimal build */ }
     if (result?.passwordExpired) {
       navigate('/change-password', {
         state: { message: t('login.passwordExpiredMessage') },
@@ -45,7 +56,8 @@ export function LoginPage() {
     setError('');
 
     try {
-      const result = await authApi.login(email, password);
+      // Phase 3.14 — pass `company` to route through tenant-aware /auth/login-v2.
+      const result = await authApi.login(email, password, company);
       if ('twoFactorRequired' in result && result.twoFactorRequired) {
         setTwoFactor({ challengeId: result.challengeId, emailHint: result.emailHint });
         setOtp('');
@@ -54,9 +66,13 @@ export function LoginPage() {
       }
       proceedAfterLogin(result);
     } catch (err: any) {
-      const message = apiError(err, t('login.loginFailed'));
+      // Phase 3.14 — generic auth failure only. Never expose whether the
+      // company, email, or password was wrong.
+      // @tenant-reviewed: phase314-frontend-tenant-login
+      const message = t('login.loginFailed');
       setError(message);
       toast.error(message);
+      void apiError; void err;
     } finally {
       setLoading(false);
     }
@@ -207,6 +223,24 @@ export function LoginPage() {
             </form>
           ) : (
           <form onSubmit={handleLogin} className="space-y-4">
+
+            {/* Phase 3.14 — Company / Workspace / Tenant slug.
+                Required. Normalized lowercase before send.
+                @tenant-reviewed: phase314-frontend-tenant-login */}
+            <div className="space-y-2">
+              <label htmlFor="company" className="text-sm font-medium">{t('login.companyLabel', 'Company')}</label>
+              <Input
+                id="company"
+                type="text"
+                placeholder={t('login.companyPlaceholder', 'your-company')}
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                required
+                autoComplete="organization"
+                inputMode="text"
+                spellCheck={false}
+              />
+            </div>
 
             {/* Email Field */}
             <div className="space-y-2">

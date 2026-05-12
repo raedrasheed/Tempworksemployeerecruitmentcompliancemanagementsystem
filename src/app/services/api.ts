@@ -73,6 +73,48 @@ export interface AuthUser {
   agencyIsSystem?: boolean;
   permissions?: string[];
   photoUrl?: string;
+  /** Phase 3.15 — PlatformAdmin level driving Platform Administration nav. */
+  platformAdmin?: { level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER' };
+  /** Phase 3.17 — every ACTIVE tenant membership for this user. The topbar
+   *  renders a switcher when this list has more than one entry. */
+  memberships?: Array<{
+    membershipId: string;
+    tenantId: string;
+    slug: string;
+    name: string;
+    status: string;
+    joinedAt: string | null;
+  }>;
+  /** Phase 3.17 — the user's primary tenantId (from agency.tenantId).
+   *  Used by the "Tenant Members" page so a System Admin who has not
+   *  yet logged in via /auth/login-v2 still has a target tenant. */
+  primaryTenantId?: string | null;
+  /** Phase 3.17 — the tenant the current JWT is bound to. */
+  activeTenantId?: string | null;
+}
+
+export interface TenantRecord {
+  id: string;
+  name: string;
+  slug: string;
+  customDomain: string | null;
+  status: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+  region: string;
+  planId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  timezone: string | null;
+  locale: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  address: string | null;
+  notes: string | null;
+  featureFlags: Record<string, boolean>;
+  onboardingStatus: string | null;
+  archivedAt: string | null;
+  deletedAt: string | null;
 }
 
 export interface PaginationMeta {
@@ -240,12 +282,34 @@ export type LoginResult =
   | { twoFactorRequired: true; challengeId: string; expiresAt: string; emailHint?: string }
   | { accessToken: string; refreshToken: string; user: AuthUser; passwordExpired?: boolean };
 
+// Phase 3.14 — last successful tenant slug, persisted to prefill the
+// Company field on next visit. Never includes credentials.
+const LAST_COMPANY_KEY = 'auth.lastCompany';
+export function getLastCompany(): string {
+  try { return localStorage.getItem(LAST_COMPANY_KEY) ?? ''; } catch { return ''; }
+}
+function rememberCompany(company: string): void {
+  try {
+    const c = company.trim().toLowerCase();
+    if (c) localStorage.setItem(LAST_COMPANY_KEY, c);
+  } catch { /* storage may be disabled */ }
+}
+
 export const authApi = {
-  login: async (email: string, password: string, agencyId?: string): Promise<LoginResult> => {
-    const data = await apiFetch<any>(
-      '/auth/login',
-      { method: 'POST', body: JSON.stringify({ email, password, ...(agencyId && { agencyId }) }) },
-    );
+  // Phase 3.14 — tenant-aware login. Routes through /auth/login-v2 and
+  // sends a normalized `company` (slug or customDomain). Falls through
+  // to the legacy /auth/login when company is empty so the change is
+  // backwards-compatible for callers that have not yet been updated.
+  // @tenant-reviewed: phase314-frontend-tenant-login
+  login: async (email: string, password: string, company?: string): Promise<LoginResult> => {
+    const normalizedEmail   = email.trim().toLowerCase();
+    const normalizedCompany = (company ?? '').trim().toLowerCase();
+    const path = normalizedCompany ? '/auth/login-v2' : '/auth/login';
+    const body = normalizedCompany
+      ? { company: normalizedCompany, email: normalizedEmail, password }
+      : { email: normalizedEmail, password };
+    const data = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) });
+    if (normalizedCompany && !data?.twoFactorRequired) rememberCompany(normalizedCompany);
     // 2FA-enabled account: server did not issue tokens yet.
     if (data?.twoFactorRequired) {
       return data as LoginResult;
@@ -953,6 +1017,14 @@ export const usersApi = {
   unlockUser: (id: string) =>
     apiFetch<any>(`/users/${id}/unlock`, { method: 'POST' }),
 
+  // Phase 3.14 admin bootstrap — set or clear PlatformAdmin level for any user.
+  // @tenant-reviewed: phase311-platform-admin-grant-revoke
+  setPlatformAdminLevel: (id: string, level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER', reason?: string) =>
+    apiFetch<{ action: string; targetUserId: string; level: string }>(
+      `/users/${id}/platform-admin-level`,
+      { method: 'PUT', body: JSON.stringify({ level, reason: reason ?? 'admin-ui' }) },
+    ),
+
   setPermissionOverride: (id: string, permission: string, granted: boolean) =>
     apiFetch<any>(`/users/${id}/permissions`, { method: 'POST', body: JSON.stringify({ permission, granted }) }),
 
@@ -1008,7 +1080,8 @@ export const settingsApi = {
     apiFetch<any>('/settings', { method: 'PATCH', body: JSON.stringify({ settings: data }) }),
 
   // Job Types
-  getJobTypes: () => apiFetch<any[]>('/settings/job-types'),
+  getJobTypes: (includeInactive = false) =>
+    apiFetch<any[]>(`/settings/job-types${includeInactive ? '?includeInactive=true' : ''}`),
   createJobType: (data: any) =>
     apiFetch<any>('/settings/job-types', { method: 'POST', body: JSON.stringify(data) }),
   updateJobType: (id: string, data: any) =>
@@ -1326,23 +1399,33 @@ export const jobAdsApi = {
 // ─── Public Job Ads API (no auth required) ────────────────────────────────────
 
 export const publicJobAdsApi = {
-  // List published listings
-  list: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
-    ).toString() : '';
-    return fetch(`${API_URL}/public/jobs${qs}`).then(async res => {
+  // List published listings. Pass a tenant slug/customDomain to scope.
+  list: (params?: Record<string, any> & { tenant?: string }) => {
+    const { tenant, ...rest } = params ?? {};
+    const qs = Object.keys(rest).length
+      ? '?' + new URLSearchParams(
+          Object.fromEntries(Object.entries(rest).filter(([, v]) => v != null && v !== '')),
+        ).toString()
+      : '';
+    const base = tenant
+      ? `${API_URL}/public/tenants/${encodeURIComponent(tenant)}/jobs`
+      : `${API_URL}/public/jobs`;
+    return fetch(`${base}${qs}`).then(async res => {
       if (!res.ok) throw new Error('Failed to load job listings');
       return res.json() as Promise<PaginatedResponse<any>>;
     });
   },
 
-  // Single by slug
-  getBySlug: (slug: string) =>
-    fetch(`${API_URL}/public/jobs/${slug}`).then(async res => {
+  // Single by slug. `tenant` is optional but recommended on tenant pages.
+  getBySlug: (slug: string, tenant?: string) => {
+    const base = tenant
+      ? `${API_URL}/public/tenants/${encodeURIComponent(tenant)}/jobs/${slug}`
+      : `${API_URL}/public/jobs/${slug}`;
+    return fetch(base).then(async res => {
       if (!res.ok) throw new Error('Job listing not found');
       return res.json() as Promise<any>;
-    }),
+    });
+  },
 };
 
 // ─── Recycle Bin API ──────────────────────────────────────────────────────────
@@ -1917,4 +2000,59 @@ export const backupApi = {
 
   /** Delete a backup */
   delete: (id: string) => apiFetch<any>(`/backup/${id}`, { method: 'DELETE' }),
+};
+
+
+// ── Phase 3.15 — Tenant Management API ──────────────────────────────────────
+export const tenantsApi = {
+  list: (params: {
+    page?: number; limit?: number; search?: string; status?: string; includeDeleted?: boolean;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page   != null) qs.set('page',   String(params.page));
+    if (params.limit  != null) qs.set('limit',  String(params.limit));
+    if (params.search)         qs.set('search', params.search);
+    if (params.status)         qs.set('status', params.status);
+    if (params.includeDeleted) qs.set('includeDeleted', 'true');
+    return apiFetch<{ data: TenantRecord[]; meta: PaginationMeta }>(`/tenants?${qs.toString()}`);
+  },
+  get:     (id: string) => apiFetch<TenantRecord>(`/tenants/${id}`),
+  stats:   (id: string) => apiFetch<Record<string, any>>(`/tenants/${id}/stats`),
+  create:  (data: Partial<TenantRecord>) =>
+    apiFetch<TenantRecord>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
+  update:  (id: string, data: Partial<TenantRecord>) =>
+    apiFetch<TenantRecord>(`/tenants/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  archive: (id: string) => apiFetch<TenantRecord>(`/tenants/${id}/archive`,  { method: 'POST' }),
+  activate:(id: string) => apiFetch<TenantRecord>(`/tenants/${id}/activate`, { method: 'POST' }),
+  restore: (id: string) => apiFetch<TenantRecord>(`/tenants/${id}/restore`,  { method: 'POST' }),
+  remove:  (id: string, force = false) =>
+    apiFetch<TenantRecord>(`/tenants/${id}${force ? '?force=true' : ''}`, { method: 'DELETE' }),
+
+  // Phase 3.17 — tenant membership management.
+  listMemberships:  (id: string) =>
+    apiFetch<Array<{
+      id: string; status: string; userId: string;
+      joinedAt: string | null; invitedAt: string | null;
+      user: { id: string; email: string; firstName: string; lastName: string; status: string } | null;
+      platformAdminLevel: 'SUPPORT' | 'OPERATOR' | 'SUPER' | null;
+    }>>(`/tenants/${id}/memberships`),
+  grantMembership:  (id: string, userId: string) =>
+    apiFetch<{ id: string; status: string }>(
+      `/tenants/${id}/memberships`,
+      { method: 'POST', body: JSON.stringify({ userId }) },
+    ),
+  revokeMembership: (id: string, userId: string) =>
+    apiFetch<{ id: string; status: string }>(
+      `/tenants/${id}/memberships/${userId}`,
+      { method: 'DELETE' },
+    ),
+};
+
+// Phase 3.17 — switch the active tenant for the current session.
+export const authTenantApi = {
+  switch: (tenantId: string) =>
+    apiFetch<{ accessToken: string; refreshToken: string; tenantId: string; membershipId: string }>(
+      '/auth/switch-tenant',
+      { method: 'POST', body: JSON.stringify({ tenantId }) },
+    ),
 };

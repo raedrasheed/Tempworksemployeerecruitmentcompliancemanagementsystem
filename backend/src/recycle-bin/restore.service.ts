@@ -4,6 +4,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../logs/audit-log.service';
 import { ENTITY_POLICIES } from './recycle-bin.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { isTenantScopedEntity } from './tenant-scope-map';
 
 export interface RestoreResult {
   success: boolean;
@@ -17,9 +20,42 @@ export interface RestoreResult {
 @Injectable()
 export class RestoreService {
   constructor(
-    private prisma: PrismaService,
+    private legacyPrisma: PrismaService,
     private auditLog: AuditLogService,
+    private pilot: PilotPrismaAccessor,
   ) {}
+
+  /** Pilot-aware client used for the initial ownership probe. The
+   *  subsequent transaction always uses `legacyPrisma.$transaction` so
+   *  legacy code paths inside the transaction body run unchanged.
+   *  Cross-tenant id is filtered out at the probe step, before any
+   *  mutation. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  /** Tenant ownership pre-check. Returns true iff the pilot is inactive
+   *  OR the entity is global OR the record exists for the active tenant. */
+  private async assertTenantOwnership(entityType: string, id: string): Promise<void> {
+    const scope = getPilotScope(this.pilot, 'recycle-bin');
+    if (!scope.active || !isTenantScopedEntity(entityType)) return;
+    const t = scope.tenantWhere();
+    const probe = await (this.prisma as any)[this.modelOf(entityType)].findFirst({
+      where: { id, ...t },
+      select: { id: true },
+    });
+    if (!probe) throw new NotFoundException(`Record not found in current tenant`);
+  }
+
+  private modelOf(entityType: string): string {
+    return ({
+      APPLICANT: 'applicant', EMPLOYEE: 'employee', AGENCY: 'agency',
+      DOCUMENT: 'document', FINANCIAL_RECORD: 'financialRecord',
+      JOB_AD: 'jobAd', NOTIFICATION: 'notification',
+      VEHICLE: 'vehicle', VEHICLE_DOCUMENT: 'vehicleDocument',
+      MAINTENANCE_RECORD: 'maintenanceRecord',
+    } as Record<string, string>)[entityType] ?? entityType.toLowerCase();
+  }
 
   // ── Main restore entry point ────────────────────────────────────────────────
 
@@ -35,6 +71,12 @@ export class RestoreService {
       throw new BadRequestException(`Restore-with-related is not permitted for entity type: ${entityType}`);
     }
 
+    // Phase 2.11 — tenant-ownership pre-check. No-op when the pilot is
+    // off OR the entity is global. When the pilot is active and the
+    // entity belongs to another tenant, raises NotFoundException
+    // before any per-entity branch runs.
+    await this.assertTenantOwnership(entityType, id);
+
     switch (entityType) {
       case 'APPLICANT':   return this.restoreApplicant(id, actorId, withRelated, reason);
       case 'EMPLOYEE':    return this.restoreEmployee(id, actorId, withRelated, reason);
@@ -43,6 +85,7 @@ export class RestoreService {
       case 'DOCUMENT':    return this.restoreDocument(id, actorId, reason);
       case 'DOCUMENT_TYPE': return this.restoreDocumentType(id, actorId, reason);
       case 'JOB_AD':      return this.restoreJobAd(id, actorId, reason);
+      case 'JOB_TYPE':    return this.restoreJobType(id, actorId, reason);
       case 'FINANCIAL_RECORD': return this.restoreFinancialRecord(id, actorId, withRelated, reason);
       case 'ROLE':        return this.restoreRole(id, actorId, reason);
       case 'REPORT':      return this.restoreReport(id, actorId, reason);
@@ -60,12 +103,12 @@ export class RestoreService {
   // ── Restore handlers ────────────────────────────────────────────────────────
 
   private async restoreApplicant(id: string, actorId: string, withRelated: boolean, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.applicant.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.applicant.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Applicant ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('Applicant is not deleted');
 
     // Check unique email conflict
-    const emailConflict = await this.prisma.applicant.findFirst({
+    const emailConflict = await this.legacyPrisma.applicant.findFirst({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       where: { email: record.email, deletedAt: null, id: { not: id } },
     });
     if (emailConflict) {
@@ -76,7 +119,7 @@ export class RestoreService {
     const skipped: Record<string, string> = {};
     const warnings: string[] = [];
 
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       await tx.applicant.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
       restored.applicant = 1;
 
@@ -112,11 +155,11 @@ export class RestoreService {
   }
 
   private async restoreEmployee(id: string, actorId: string, withRelated: boolean, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.employee.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.employee.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Employee ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('Employee is not deleted');
 
-    const emailConflict = await this.prisma.employee.findFirst({
+    const emailConflict = await this.legacyPrisma.employee.findFirst({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       where: { email: record.email, deletedAt: null, id: { not: id } },
     });
     if (emailConflict) {
@@ -127,7 +170,7 @@ export class RestoreService {
     const skipped: Record<string, string> = {};
     const warnings: string[] = [];
 
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       await tx.employee.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
       restored.employee = 1;
 
@@ -153,11 +196,11 @@ export class RestoreService {
   }
 
   private async restoreUser(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.user.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.user.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`User ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('User is not deleted');
 
-    const emailConflict = await this.prisma.user.findFirst({
+    const emailConflict = await this.legacyPrisma.user.findFirst({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       where: { email: record.email, deletedAt: null, id: { not: id } },
     });
     if (emailConflict) {
@@ -165,34 +208,34 @@ export class RestoreService {
     }
 
     // Check that the role still exists (not deleted)
-    const role = await this.prisma.role.findUnique({ where: { id: record.roleId } });
+    const role = await this.legacyPrisma.role.findUnique({ where: { id: record.roleId } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!role || role.deletedAt) {
       throw new ConflictException(`Cannot restore: user's role no longer exists. Assign a valid role first.`);
     }
 
     // Check that the agency still exists
-    const agency = await this.prisma.agency.findUnique({ where: { id: record.agencyId } });
+    const agency = await this.legacyPrisma.agency.findUnique({ where: { id: record.agencyId } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!agency || agency.deletedAt) {
       throw new ConflictException(`Cannot restore: user's agency no longer exists. Reassign agency first.`);
     }
 
-    await this.prisma.user.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
+    await this.legacyPrisma.user.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     await this.logRestore('USER', id, actorId, { user: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'USER', id, restored: { user: 1 }, skipped: {}, warnings: [] };
   }
 
   private async restoreAgency(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.agency.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.agency.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Agency ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('Agency is not deleted');
 
-    await this.prisma.agency.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
+    await this.legacyPrisma.agency.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     await this.logRestore('AGENCY', id, actorId, { agency: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'AGENCY', id, restored: { agency: 1 }, skipped: {}, warnings: [] };
   }
 
   private async restoreDocument(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.document.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.document.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Document ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('Document is not deleted');
 
@@ -203,36 +246,36 @@ export class RestoreService {
       warnings.push(`Parent entity (${record.entityType} ${record.entityId}) is soft-deleted or no longer exists.`);
     }
 
-    await this.prisma.document.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
+    await this.legacyPrisma.document.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     await this.logRestore('DOCUMENT', id, actorId, { document: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'DOCUMENT', id, restored: { document: 1 }, skipped: {}, warnings };
   }
 
   private async restoreDocumentType(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.documentType.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.documentType.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`DocumentType ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('DocumentType is not deleted');
 
     // Check name uniqueness
-    const nameConflict = await this.prisma.documentType.findFirst({
+    const nameConflict = await this.legacyPrisma.documentType.findFirst({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       where: { name: record.name, deletedAt: null, id: { not: id } },
     });
     if (nameConflict) {
       throw new ConflictException(`Cannot restore: a document type named "${record.name}" already exists`);
     }
 
-    await this.prisma.documentType.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
+    await this.legacyPrisma.documentType.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     await this.logRestore('DOCUMENT_TYPE', id, actorId, { documentType: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'DOCUMENT_TYPE', id, restored: { documentType: 1 }, skipped: {}, warnings: [] };
   }
 
   private async restoreJobAd(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.jobAd.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.jobAd.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`JobAd ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('JobAd is not deleted');
 
     // Check slug uniqueness
-    const slugConflict = await this.prisma.jobAd.findFirst({
+    const slugConflict = await this.legacyPrisma.jobAd.findFirst({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       where: { slug: record.slug, deletedAt: null, id: { not: id } },
     });
     const warnings: string[] = [];
@@ -240,7 +283,7 @@ export class RestoreService {
       warnings.push(`Slug "${record.slug}" is already taken. The job ad will be restored but may need slug update.`);
     }
 
-    await this.prisma.jobAd.update({
+    await this.legacyPrisma.jobAd.update({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       where: { id },
       data: { deletedAt: null, deletedBy: null, deletionReason: null, status: 'DRAFT' },
     });
@@ -248,14 +291,35 @@ export class RestoreService {
     return { success: true, entityType: 'JOB_AD', id, restored: { jobAd: 1 }, skipped: {}, warnings };
   }
 
+  private async restoreJobType(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
+    const record = await (this.legacyPrisma as any).jobType.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`JobType ${id} not found`);
+    if (!record.deletedAt) throw new ConflictException('JobType is not deleted');
+
+    // JobType.name is @unique so a conflict with a live row is a hard fail.
+    const nameConflict = await this.legacyPrisma.jobType.findFirst({
+      where: { name: record.name, deletedAt: null, id: { not: id } },
+    });
+    if (nameConflict) {
+      throw new ConflictException(`Cannot restore: a job type named "${record.name}" already exists`);
+    }
+
+    await this.legacyPrisma.jobType.update({
+      where: { id },
+      data: { deletedAt: null, deletedBy: null, deletionReason: null },
+    });
+    await this.logRestore('JOB_TYPE', id, actorId, { jobType: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'JOB_TYPE', id, restored: { jobType: 1 }, skipped: {}, warnings: [] };
+  }
+
   private async restoreFinancialRecord(id: string, actorId: string, withRelated: boolean, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.financialRecord.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.financialRecord.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`FinancialRecord ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('FinancialRecord is not deleted');
 
     const restored: Record<string, number> = {};
 
-    await this.prisma.$transaction(async tx => {
+    await this.legacyPrisma.$transaction(async tx => { // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       await tx.financialRecord.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
       restored.financialRecord = 1;
 
@@ -273,28 +337,28 @@ export class RestoreService {
   }
 
   private async restoreRole(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.role.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.role.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Role ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('Role is not deleted');
 
-    const nameConflict = await this.prisma.role.findFirst({
+    const nameConflict = await this.legacyPrisma.role.findFirst({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       where: { name: record.name, deletedAt: null, id: { not: id } },
     });
     if (nameConflict) {
       throw new ConflictException(`Cannot restore: a role named "${record.name}" already exists`);
     }
 
-    await this.prisma.role.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
+    await this.legacyPrisma.role.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     await this.logRestore('ROLE', id, actorId, { role: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'ROLE', id, restored: { role: 1 }, skipped: {}, warnings: [] };
   }
 
   private async restoreReport(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.report.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.report.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Report ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('Report is not deleted');
 
-    const nameConflict = await this.prisma.report.findFirst({
+    const nameConflict = await this.legacyPrisma.report.findFirst({ // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       where: { name: record.name, deletedAt: null, id: { not: id } },
     });
     const warnings: string[] = [];
@@ -302,18 +366,18 @@ export class RestoreService {
       warnings.push(`Report name "${record.name}" is already in use. Rename after restoring.`);
     }
 
-    await this.prisma.report.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
+    await this.legacyPrisma.report.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     await this.logRestore('REPORT', id, actorId, { report: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'REPORT', id, restored: { report: 1 }, skipped: {}, warnings };
   }
 
   private async restoreVehicle(id: string, actorId: string, withRelated: boolean, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.vehicle.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.vehicle.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Vehicle ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('Vehicle is not deleted');
 
     const restored: Record<string, number> = {};
-    await this.prisma.vehicle.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
+    await this.legacyPrisma.vehicle.update({ where: { id }, data: { deletedAt: null, deletedBy: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     restored.vehicle = 1;
 
     if (withRelated) {
@@ -374,11 +438,11 @@ export class RestoreService {
   }
 
   private async restoreNotification(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.prisma.notification.findUnique({ where: { id } });
+    const record = await this.legacyPrisma.notification.findUnique({ where: { id } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     if (!record) throw new NotFoundException(`Notification ${id} not found`);
     if (!record.deletedAt) throw new ConflictException('Notification is not deleted');
 
-    await this.prisma.notification.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
+    await this.legacyPrisma.notification.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
     await this.logRestore('NOTIFICATION', id, actorId, { notification: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'NOTIFICATION', id, restored: { notification: 1 }, skipped: {}, warnings: [] };
   }
@@ -387,11 +451,11 @@ export class RestoreService {
 
   private async checkParentEntityExists(entityType: string, entityId: string): Promise<boolean> {
     if (entityType === 'APPLICANT') {
-      const a = await this.prisma.applicant.findUnique({ where: { id: entityId }, select: { deletedAt: true } });
+      const a = await this.legacyPrisma.applicant.findUnique({ where: { id: entityId }, select: { deletedAt: true } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       return !!a && !a.deletedAt;
     }
     if (entityType === 'EMPLOYEE') {
-      const e = await this.prisma.employee.findUnique({ where: { id: entityId }, select: { deletedAt: true } });
+      const e = await this.legacyPrisma.employee.findUnique({ where: { id: entityId }, select: { deletedAt: true } }); // @tenant-reviewed: phase211-pilot-scope (ownership pre-checked)
       return !!e && !e.deletedAt;
     }
     return true; // unknown type: allow

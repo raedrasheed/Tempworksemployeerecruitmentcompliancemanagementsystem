@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
+import { applicantsApi, settingsApi, agenciesApi, documentsApi } from '../../services/api';
 import { apiError, fieldErrors as resolveFieldErrors, isValidationError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
@@ -118,12 +118,60 @@ export function EditCandidate() {
     }
   };
 
+  /**
+   * Mirror of EditApplicant.uploadAttachedDocumentsIfNeeded — persists
+   * any newly attached Document Uploads on Save. Items whose Document
+   * Type cannot be resolved against the settings catalogue are skipped
+   * with a toast so the rest of the save still completes.
+   */
+  const uploadAttachedDocumentsIfNeeded = async () => {
+    if (!id) return;
+    const pending = uploadedFiles.filter((f: any) => f && f.file);
+    if (pending.length === 0) return;
+    let docTypes: any[] = [];
+    try { docTypes = await settingsApi.getDocumentTypes(); } catch { docTypes = []; }
+    const skipped: string[] = [];
+    let uploaded = 0;
+    for (const item of pending) {
+      const wantedName: string = (item.type || '').trim();
+      const docType = docTypes.find((d: any) =>
+        d.name?.toLowerCase() === wantedName.toLowerCase()
+        || d.name?.toLowerCase().includes(wantedName.toLowerCase())
+      );
+      if (!docType?.id) { skipped.push(item.file.name); continue; }
+      const fd = new FormData();
+      fd.append('file', item.file);
+      fd.append('name', wantedName || item.file.name);
+      fd.append('documentTypeId', docType.id);
+      fd.append('entityType', 'APPLICANT');
+      fd.append('entityId', id);
+      try {
+        await documentsApi.upload(fd);
+        uploaded++;
+      } catch {
+        skipped.push(item.file.name);
+      }
+    }
+    if (uploaded > 0) {
+      setUploadedFiles((prev: any[]) =>
+        prev.map((f) => (f.file ? { ...f, file: null, savedName: f.file.name } : f)),
+      );
+      toast.success(t('applicants.toast.documentsUploaded', { count: uploaded, defaultValue: `${uploaded} document(s) uploaded` }));
+    }
+    if (skipped.length) {
+      toast.warning(t('applicants.toast.documentsSkipped', {
+        defaultValue: `${skipped.length} document(s) skipped — pick a Document Type for each upload.`,
+      }));
+    }
+  };
+
   const handleSave = async () => {
     if (!id) return;
     setSubmitting(true);
     try {
       await applicantsApi.update(id, buildPayload());
       await uploadPhotoIfNeeded();
+      await uploadAttachedDocumentsIfNeeded();
       toast.success(tc('toast.savedSuccessfully'));
     } catch (err: any) {
       if (!err?.message?.includes('photo upload failed')) {
@@ -141,6 +189,7 @@ export function EditCandidate() {
     try {
       await applicantsApi.update(id, buildPayload());
       await uploadPhotoIfNeeded();
+      await uploadAttachedDocumentsIfNeeded();
       toast.success(tc('toast.savedSuccessfully'));
       navigate(`/dashboard/candidates/${id}`);
     } catch (err: any) {

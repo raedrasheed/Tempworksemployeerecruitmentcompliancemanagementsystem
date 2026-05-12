@@ -629,7 +629,8 @@
         "tier": "Уровень",
         "applied": "Дата подачи",
         "status": "Статус",
-        "actions": "Действия"
+        "actions": "Действия",
+        "source": "Источник"
       },
       "promoteDialog": {
         "title_one": "Перевести {{count}} лида в кандидаты",
@@ -654,7 +655,8 @@
         "agency": "Агентство",
         "tier": "Уровень",
         "applied": "Дата подачи",
-        "status": "Статус"
+        "status": "Статус",
+        "source": "Источник"
       },
       "total": "Всего",
       "leads": "Лиды",
@@ -742,7 +744,8 @@
         "agency": "Агентство",
         "applied": "Дата подачи",
         "status": "Статус",
-        "actions": "Действия"
+        "actions": "Действия",
+        "source": "Источник"
       },
       "workflowDialog": {
         "title_one": "Подключить {{count}} кандидата к workflow",
@@ -4225,6 +4228,7 @@
       "footerPage": "Страница {{page}} из {{totalPages}}",
       "cols": {
         "title": "Название",
+        "tenant": "Тенант",
         "category": "Категория",
         "city": "Город",
         "country": "Страна",
@@ -4341,6 +4345,7 @@
         "DOCUMENT": "Документ",
         "DOCUMENT_TYPE": "Тип документа",
         "JOB_AD": "Объявление",
+        "JOB_TYPE": "Категория вакансии",
         "FINANCIAL_RECORD": "Финансовая запись",
         "ROLE": "Роль",
         "NOTIFICATION": "Уведомление",
@@ -5427,5 +5432,100 @@
         "createdAt": "Создано"
       }
     }
+  },
+  "tenants": {
+    "list": {
+      "title": "Тенанты",
+      "subtitle": "Общеплатформенное управление тенантами",
+      "addTenant": "Добавить тенанта",
+      "searchPlaceholder": "Поиск по имени, slug или домену…",
+      "allStatuses": "Все статусы",
+      "includeDeleted": "Включая удалённые",
+      "loading": "Загрузка…",
+      "empty": "Тенанты не найдены.",
+      "view": "Просмотр",
+      "edit": "Изменить",
+      "archive": "Архивировать",
+      "activate": "Активировать",
+      "restore": "Восстановить",
+      "delete": "Удалить",
+      "cols": {
+        "name": "Название",
+        "slug": "Slug",
+        "domain": "Домен",
+        "status": "Статус",
+        "created": "Создан",
+        "actions": "Действия"
+      }
+    },
+    "form": {
+      "titleCreate": "Новый тенант",
+      "titleEdit": "Изменить тенанта",
+      "subtitle": "Профиль и параметры",
+      "save": "Сохранить",
+      "saving": "Сохранение…",
+      "cancel": "Отмена",
+      "slugHelp": "Нижний регистр, URL-совместимо.",
+      "slugImmutable": "Изменение slug требует SUPER.",
+      "sections": {
+        "general": "Общее",
+        "branding": "Брендинг",
+        "contact": "Контакты и заметки"
+      }
+    },
+    "fields": {
+      "name": "Название",
+      "slug": "Slug",
+      "customDomain": "Свой домен",
+      "status": "Статус",
+      "region": "Регион",
+      "logoUrl": "URL логотипа",
+      "primaryColor": "Основной цвет",
+      "timezone": "Часовой пояс",
+      "locale": "Язык",
+      "contactEmail": "Email",
+      "contactPhone": "Телефон",
+      "address": "Адрес",
+      "notes": "Заметки",
+      "planId": "План",
+      "onboardingStatus": "Онбординг",
+      "createdAt": "Создан",
+      "updatedAt": "Обновлён"
+    },
+    "statuses": {
+      "active": "Активен",
+      "suspended": "Приостановлен",
+      "inactive": "Неактивен"
+    },
+    "tabs": {
+      "general": "Общее",
+      "branding": "Брендинг",
+      "access": "Доступ",
+      "stats": "Статистика",
+      "flags": "Флаги"
+    },
+    "stats": {
+      "agencies": "Агентства",
+      "users": "Пользователи",
+      "employees": "Сотрудники",
+      "applicants": "Соискатели",
+      "documents": "Документы",
+      "memberships": "Членства",
+      "unavailable": "Статистика недоступна."
+    },
+    "flags": {
+      "empty": "Флаги не настроены."
+    },
+    "deleted": "Удалён",
+    "confirmArchiveTitle": "Архивировать тенанта?",
+    "confirmArchiveDesc": "Тенант будет приостановлен.",
+    "confirmDeleteTitle": "Удалить тенанта?",
+    "confirmDeleteDesc": "Мягкое удаление, SUPER может восстановить.",
+    "toastCreated": "Тенант создан",
+    "toastUpdated": "Тенант обновлён",
+    "toastArchived": "Тенант архивирован",
+    "toastActivated": "Тенант активирован",
+    "toastRestored": "Тенант восстановлен",
+    "toastDeleted": "Тенант удалён"
   }
 }

@@ -28,17 +28,42 @@ export class PublicJobAdsController {
 
   @Public()
   @Get()
-  @ApiOperation({ summary: 'List published job ads (public, no auth)' })
-  findPublished(@Query() filter: FilterJobAdsDto) {
-    return this.jobAdsService.findPublished(filter);
+  @ApiOperation({ summary: 'List published job ads (public, no auth). Pass ?tenant=<slug-or-domain> to scope to a single tenant.' })
+  findPublished(@Query() filter: FilterJobAdsDto, @Query('tenant') tenant?: string) {
+    return this.jobAdsService.findPublished(filter, tenant);
   }
 
   @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Get a single published job ad by slug (public, no auth)' })
   @ApiParam({ name: 'slug', description: 'URL-friendly slug' })
-  findBySlug(@Param('slug') slug: string) {
-    return this.jobAdsService.findBySlug(slug);
+  findBySlug(@Param('slug') slug: string, @Query('tenant') tenant?: string) {
+    return this.jobAdsService.findBySlug(slug, tenant);
+  }
+}
+
+// ── Tenant-scoped public endpoints ────────────────────────────────────────────
+// Mirrors /public/jobs but scopes by an explicit tenant slug or
+// customDomain in the URL so each tenant gets its own clean "Current
+// Job Openings" page (/t/:tenant/jobs).
+// @tenant-reviewed: phase318-tenant-public-jobs
+@ApiTags('Job Ads – Public (tenant-scoped)')
+@Controller('public/tenants/:tenant/jobs')
+export class PublicTenantJobAdsController {
+  constructor(private readonly jobAdsService: JobAdsService) {}
+
+  @Public()
+  @Get()
+  @ApiOperation({ summary: 'List published job ads for the named tenant' })
+  findPublished(@Param('tenant') tenant: string, @Query() filter: FilterJobAdsDto) {
+    return this.jobAdsService.findPublished(filter, tenant);
+  }
+
+  @Public()
+  @Get(':slug')
+  @ApiOperation({ summary: 'Get a single published job ad by slug, scoped to the named tenant' })
+  findBySlug(@Param('tenant') tenant: string, @Param('slug') slug: string) {
+    return this.jobAdsService.findBySlug(slug, tenant);
   }
 }
 
@@ -69,9 +94,9 @@ export class JobAdsController {
 
   @Get()
   @Roles(...JOB_ADS_READ_ROLES)
-  @ApiOperation({ summary: 'List job ads (paginated + filtered, dashboard)' })
-  findAll(@Query() filter: FilterJobAdsDto) {
-    return this.jobAdsService.findAll(filter);
+  @ApiOperation({ summary: 'List job ads (paginated + filtered, dashboard) — scoped to the caller\'s active tenant' })
+  findAll(@Query() filter: FilterJobAdsDto, @CurrentUser() user: any) {
+    return this.jobAdsService.findAll(filter, user);
   }
 
   // ── Single ─────────────────────────────────────────────────────────────────
@@ -80,8 +105,8 @@ export class JobAdsController {
   @Roles(...JOB_ADS_READ_ROLES)
   @ApiOperation({ summary: 'Get a single job ad by ID' })
   @ApiParam({ name: 'id', description: 'Job ad UUID' })
-  findOne(@Param('id') id: string) {
-    return this.jobAdsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.jobAdsService.findOne(id, user);
   }
 
   // ── Create ─────────────────────────────────────────────────────────────────
@@ -91,7 +116,7 @@ export class JobAdsController {
   @ApiOperation({ summary: 'Create a job ad' })
   @ApiResponse({ status: 201, description: 'Job ad created' })
   create(@Body() dto: CreateJobAdDto, @CurrentUser() user: any) {
-    return this.jobAdsService.create(dto, user?.id);
+    return this.jobAdsService.create(dto, user?.id, user);
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────
@@ -105,7 +130,7 @@ export class JobAdsController {
     @Body() dto: UpdateJobAdDto,
     @CurrentUser() user: any,
   ) {
-    return this.jobAdsService.update(id, dto, user?.id);
+    return this.jobAdsService.update(id, dto, user?.id, user);
   }
 
   // ── Soft-delete ────────────────────────────────────────────────────────────
@@ -115,7 +140,7 @@ export class JobAdsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a job ad' })
   @ApiParam({ name: 'id', description: 'Job ad UUID' })
-  remove(@Param('id') id: string) {
-    return this.jobAdsService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.jobAdsService.remove(id, user);
   }
 }

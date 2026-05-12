@@ -10,6 +10,8 @@ import {
   TextRun, HeadingLevel, WidthType,
 } from 'docx';
 import { PrismaService } from '../prisma/prisma.service';
+import { FeatureFlagsService } from '../saas/feature-flags/feature-flags.service';
+import { TENANT_SAFE_SOURCES } from '../saas/reports/runtime/report-sources';
 import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import {
   CreateReportDto, UpdateReportDto, RunReportDto, ExportFormat,
@@ -505,7 +507,34 @@ const SOURCE_DEFS: Record<string, SourceDef> = {
 
 @Injectable()
 export class ReportsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private flags: FeatureFlagsService,
+  ) {}
+
+  /**
+   * Phase 2.1 integration switch.
+   *
+   * - When `TENANT_SAFE_REPORTS_ENABLED=false` (production default),
+   *   this method returns false and the legacy executeReport runs.
+   * - When true, the report's source must be marked READY in the
+   *   tenant-safe registry; if it is, the safe runtime is invoked.
+   *   Sources marked DISABLED still go through the legacy path so
+   *   reports keep working during a partial migration.
+   *
+   * The actual delegation lives inside `executeReport()` so the
+   * legacy code path is untouched when the flag is OFF.
+   */
+  private isTenantSafeRoute(source: string): boolean {
+    if (!this.flags.tenantSafeReportsEnabled()) return false;
+    // One-shot bypass used by `executeReportTenantSafe` when context is
+    // missing AND TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS=false. Lets
+    // a single re-entry fall through to the legacy engine without
+    // ever returning to the safe path within the same call.
+    if ((this as any).__forceLegacyOnce) return false;
+    const m = TENANT_SAFE_SOURCES[source];
+    return !!m && m.status === 'READY';
+  }
 
   // ── Schema introspection ─────────────────────────────────────────────────
 
@@ -610,10 +639,113 @@ export class ReportsService {
     return this.executeReport(report, opts);
   }
 
+  /**
+   * Tenant-safe execution path (Phase 2.1).
+   *
+   * Implementation strategy: the dormant runtime under
+   * `src/saas/reports/runtime/` builds the WHERE / SELECT / FROM via
+   * `buildTenantSafeWhere` and the safe registry. This adapter mounts
+   * the same builder inline (no SaaS-module-DI coupling required),
+   * derives the active tenant from the `RequestContext` ALS frame,
+   * runs the SQL through `this.prisma.$queryRawUnsafe` ONLY because
+   * the SQL string is fully static (identifiers via the registry) and
+   * all values are positional parameters.
+   *
+   * Fails loud when:
+   *   - flag is ON but no tenant context is in scope
+   *   - source is not in the safe registry as READY
+   *   - the safe builder rejects the request
+   *
+   * The legacy code path is untouched.
+   */
+  private async executeReportTenantSafe(
+    report: any,
+    opts: RunReportDto,
+  ): Promise<{ columns: any[]; rows: any[]; total: number; page: number; limit: number }> {
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    // Local require keeps this off the legacy module-load path so
+    // disabling the flag literally executes zero new code.
+    const { TENANT_SAFE_SOURCES: SOURCES } = require('../saas/reports/runtime/report-sources');
+    const { composeReportSql } = require('../saas/reports/runtime/compose-sql');
+    const { TenantContext, UserContext } = require('../saas/context/als');
+    /* eslint-enable @typescript-eslint/no-require-imports */
+
+    const m = SOURCES[report.dataSource as string];
+    if (!m || m.status !== 'READY' || !m.def) {
+      throw new BadRequestException({
+        code: 'REPORT.TENANT_SAFE_SOURCE_DISABLED',
+        message: `Source "${report.dataSource}" is not enabled in tenant-safe mode.`,
+        detail: m?.reason,
+      });
+    }
+
+    const tenant = TenantContext.optional?.();
+    if (!tenant) {
+      // Phase 2.2: when TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS=true,
+      // we fail loud as before. When false, we fall back to the legacy
+      // engine for this single request — letting staging operators
+      // gradually flip flags without bricking traffic. The legacy
+      // engine is invoked transparently by re-entering executeReport.
+      if (this.flags.tenantContextRequiredForSafeReports()) {
+        throw new BadRequestException({
+          code: 'REPORT.TENANT_CONTEXT_REQUIRED',
+          message: 'Tenant-safe reports require an active TenantContext. ' +
+            'Set TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS=false to allow legacy fallback.',
+        });
+      }
+      // Soft fallback to legacy. Disable the safe route for this call.
+      const opts2 = opts;
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const self = this as any;
+      const prevFlag = self.__forceLegacyOnce;
+      self.__forceLegacyOnce = true;
+      try { return await this.executeReport(report, opts2); }
+      finally { self.__forceLegacyOnce = prevFlag; }
+    }
+    const user = UserContext.optional?.() ?? null;
+
+    const filters: any[] = (report.filters ?? []).map((f: any) => ({
+      field: f.columnName ?? f.field,
+      op: f.operator ?? f.op ?? '=',
+      value: f.value,
+      values: f.values,
+    }));
+    const cols: string[] = (report.columns ?? []).map((c: any) => c.columnName ?? c).filter(Boolean);
+
+    const composed = composeReportSql(
+      { def: m.def, filters, columns: cols, page: opts.page, limit: opts.limit },
+      { tenantId: tenant.id, agencyIds: user?.agencyIds, platformAdmin: !!user?.platformAdmin },
+    );
+
+    // The SQL was composed by the safe runtime under
+    // backend/src/saas/reports/runtime/. Identifiers come from the
+    // validated SourceDef; values are positional parameters; the
+    // tenant filter is the FIRST AND-term.
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(composed.sql, ...composed.params); // @tenant-reviewed: tenant-safe-report-runtime
+    const totalRows = await this.prisma.$queryRawUnsafe<{ n: number }[]>(composed.countSql, ...composed.params); // @tenant-reviewed: tenant-safe-report-runtime
+    const total = totalRows[0]?.n ?? 0;
+
+    return {
+      columns: composed.columns,
+      rows,
+      total,
+      page: composed.page,
+      limit: composed.limit,
+    };
+  }
+
   private async executeReport(
     report: any,
     opts: RunReportDto,
   ): Promise<{ columns: any[]; rows: any[]; total: number; page: number; limit: number }> {
+    // Phase 2.1: when the tenant-safe flag is on AND the source is
+    // mapped READY, route through the new runtime. Any failure here
+    // throws — we deliberately do NOT fall back silently to the
+    // legacy engine, because that would mask tenant-safety bugs.
+    if (this.isTenantSafeRoute(report.dataSource)) {
+      return this.executeReportTenantSafe(report, opts);
+    }
+
     const { page = 1, limit = 100 } = opts;
     const source = report.dataSource as string;
     const def = SOURCE_DEFS[source];

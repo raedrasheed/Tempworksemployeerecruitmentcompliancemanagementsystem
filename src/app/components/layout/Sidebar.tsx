@@ -199,7 +199,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               <h1 className="text-lg font-bold text-sidebar-foreground">
                 {branding.companyName}
               </h1>
-              <p className="text-xs text-muted-foreground">{t('sidebar.platformLabel')}</p>
+              <p className="text-xs text-muted-foreground">{branding.tagline || t('sidebar.platformLabel')}</p>
             </div>
           )}
         </div>

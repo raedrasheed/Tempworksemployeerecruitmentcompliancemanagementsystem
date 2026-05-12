@@ -38,7 +38,15 @@ export async function seedUsers(
       const existing = await prisma.user.findUnique({ where: { email: u.email }, select: { id: true } });
       const row = await prisma.user.upsert({
         where: { email: u.email },
-        update: { agencyId: primary.id, status: 'ACTIVE', roleId: roleByName.get(role)! },
+        // Always reset the password + clear any lockout state so a
+        // re-seed restores a known-good login regardless of what the
+        // row looked like before. status:ACTIVE bypasses any
+        // INACTIVE/SUSPENDED/PENDING that an earlier flow may have set.
+        update: {
+          agencyId: primary.id, status: 'ACTIVE', roleId: roleByName.get(role)!,
+          passwordHash, failedLoginAttempts: 0, lockedAt: null,
+          passwordExpiresAt: null, deletedAt: null, deletedBy: null,
+        },
         create: {
           id: u.id, email: u.email,
           firstName: faker.person.firstName(), lastName: faker.person.lastName(),
@@ -70,7 +78,10 @@ export async function seedUsers(
   const superExisting = await prisma.user.findUnique({ where: { email: superUser.email }, select: { id: true } });
   const superRow = await prisma.user.upsert({
     where: { email: superUser.email },
-    update: { status: 'ACTIVE' },
+    update: {
+      status: 'ACTIVE', passwordHash, failedLoginAttempts: 0, lockedAt: null,
+      passwordExpiresAt: null, deletedAt: null, deletedBy: null,
+    },
     create: {
       id: superUser.id, email: superUser.email,
       firstName: 'Super', lastName: 'Admin',

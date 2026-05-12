@@ -44,7 +44,7 @@ export function WhatsAppButton({ phone, defaultCountryCode, message, label, size
 
   const base = (
     <>
-      <WhatsAppIcon className={size === 'icon' ? 'w-6 h-6' : 'w-5 h-5 me-1.5'} />
+      <WhatsAppIcon className={size === 'icon' ? 'w-7 h-7' : 'w-5 h-5 me-1.5'} />
       {label ? <span>{label}</span> : null}
     </>
   );
@@ -54,8 +54,8 @@ export function WhatsAppButton({ phone, defaultCountryCode, message, label, size
       <Button
         type="button"
         variant="ghost"
-        size={size === 'icon' ? 'sm' : 'sm'}
-        className={`text-muted-foreground ${className ?? ''}`}
+        size={size === 'icon' ? 'icon' : 'sm'}
+        className={`text-muted-foreground ${size === 'icon' ? 'h-10 w-10' : ''} ${className ?? ''}`}
         title={title}
         aria-label={title}
         disabled
@@ -72,8 +72,8 @@ export function WhatsAppButton({ phone, defaultCountryCode, message, label, size
       type="button"
       asChild
       variant="ghost"
-      size={size === 'icon' ? 'sm' : 'sm'}
-      className={`text-[#25D366] hover:text-[#1ebc59] hover:bg-[#25D366]/10 ${className ?? ''}`}
+      size={size === 'icon' ? 'icon' : 'sm'}
+      className={`text-[#25D366] hover:text-[#1ebc59] hover:bg-[#25D366]/10 ${size === 'icon' ? 'h-10 w-10' : ''} ${className ?? ''}`}
       title={title}
     >
       <a

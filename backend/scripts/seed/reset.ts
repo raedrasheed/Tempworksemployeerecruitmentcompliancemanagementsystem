@@ -27,6 +27,7 @@ export async function resetSeededRows(): Promise<void> {
   await (prisma as any).tenantMembership.deleteMany({ where: { userId: { in: userIds } } }).catch(() => undefined);
   await (prisma as any).platformAdmin.deleteMany({ where: { userId: { in: userIds } } }).catch(() => undefined);
 
+  await prisma.vehicle.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => undefined);
   await prisma.employee.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => undefined);
   await prisma.applicant.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => undefined);
   await prisma.jobAd.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => undefined);

@@ -90,14 +90,40 @@ export class VehiclesService {
     return getPilotScope(this.pilot, 'vehicles');
   }
 
+  /**
+   * Phase 3.19 — caller-driven tenant filter for the Fleet pages.
+   * PlatformAdmin bypasses; everyone else sees only their own tenant's
+   * vehicles / workshops / maintenance records. Returns `{}` when no
+   * tenant context (legacy single-tenant DBs).
+   * @tenant-reviewed: phase319-fleet-tenant-scope
+   */
+  private callerTenantWhere(caller: any): Record<string, any> {
+    if (!caller) return {};
+    if (caller.agencyIsSystem) return {};
+    const t = caller.tenantId;
+    if (!t) return {};
+    return { tenantId: t };
+  }
+
+  /** SUPER PlatformAdmin check — used to gate cross-tenant reassignment. */
+  private async isCallerSuperPlatformAdmin(caller: any): Promise<boolean> {
+    if (!caller?.id) return false;
+    try {
+      const row = await (this.prisma as any).platformAdmin.findUnique({
+        where: { userId: caller.id }, select: { level: true },
+      });
+      return row?.level === 'SUPER';
+    } catch { return false; }
+  }
+
   // ── Vehicles ────────────────────────────────────────────────────────────────
 
-  async listVehicles(dto: FilterVehiclesDto) {
+  async listVehicles(dto: FilterVehiclesDto, caller?: any) {
     const { page = 1, limit = 20, search, type, status, agencyId, expiringInDays } = dto;
     const skip = (page - 1) * limit;
 
     const t = this.scope().tenantWhere();
-    const where: any = { deletedAt: null, ...t };
+    const where: any = { deletedAt: null, ...t, ...this.callerTenantWhere(caller) };
 
     if (search) {
       where.OR = [
@@ -130,10 +156,10 @@ export class VehiclesService {
     return { data: vehicles, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async getVehicle(id: string) {
+  async getVehicle(id: string, caller?: any) {
     const t = this.scope().tenantWhere();
-    const vehicle = await this.prisma.vehicle.findFirst({ // @tenant-reviewed: phase223-pilot-scope
-      where: { id, deletedAt: null, ...t },
+    const vehicle = await this.prisma.vehicle.findFirst({ // @tenant-reviewed: phase319-fleet-tenant-scope
+      where: { id, deletedAt: null, ...t, ...this.callerTenantWhere(caller) },
       include: {
         agency: { select: { id: true, name: true } },
         driverAssignments: {
@@ -206,33 +232,59 @@ export class VehiclesService {
     return data;
   }
 
-  async createVehicle(dto: CreateVehicleDto, userId: string) {
+  async createVehicle(dto: CreateVehicleDto, userId: string, caller?: any) {
     const data: any = this.normaliseVehicleDates(dto, true);
     data.createdById = userId;
     data.updatedById = userId;
     const tdata = this.scope().tenantData();
-    return this.legacyPrisma.vehicle.create({ data: { ...data, ...tdata }, include: VEHICLE_INCLUDE }); // @tenant-reviewed: phase224-pilot-scope (writes tenantId via scope.tenantData)
+    // Phase 3.19 — stamp the caller's active tenant on the new vehicle.
+    // A SUPER PlatformAdmin may target a different tenant via dto.tenantId.
+    // @tenant-reviewed: phase319-fleet-tenant-scope
+    const isSuper = await this.isCallerSuperPlatformAdmin(caller);
+    const explicit = isSuper && typeof (dto as any).tenantId === 'string' && (dto as any).tenantId.trim()
+      ? (dto as any).tenantId.trim()
+      : undefined;
+    const callerTenantId = explicit ?? (caller && !caller.agencyIsSystem ? caller.tenantId : undefined);
+    if (callerTenantId) data.tenantId = callerTenantId;
+    delete (data as any).tenantIdRequest;
+    return this.legacyPrisma.vehicle.create({ data: { ...data, ...tdata }, include: VEHICLE_INCLUDE });
   }
 
-  async updateVehicle(id: string, dto: UpdateVehicleDto, userId: string) {
-    await this.findVehicleOrFail(id);
+  async updateVehicle(id: string, dto: UpdateVehicleDto, userId: string, caller?: any) {
+    await this.findVehicleOrFail(id, caller);
     const data: any = this.normaliseVehicleDates(dto, false);
     data.updatedById = userId;
-    return this.legacyPrisma.vehicle.update({ where: { id }, data, include: VEHICLE_INCLUDE }); // @tenant-reviewed: phase224-pilot-scope-precheck (findVehicleOrFail above is tenant-scoped)
+    // SUPER PlatformAdmin may move the vehicle to a different tenant.
+    if ((dto as any).tenantId !== undefined) {
+      const isSuper = await this.isCallerSuperPlatformAdmin(caller);
+      if (isSuper) {
+        const v = String((dto as any).tenantId ?? '').trim();
+        if (v) {
+          const t = await this.prisma.tenant.findUnique({ where: { id: v }, select: { id: true } }).catch(() => null);
+          if (!t) throw new NotFoundException(`Tenant ${v} not found`);
+          data.tenantId = v;
+        }
+      } else {
+        delete data.tenantId;
+      }
+    }
+    return this.legacyPrisma.vehicle.update({ where: { id }, data, include: VEHICLE_INCLUDE });
   }
 
-  async deleteVehicle(id: string, userId: string) {
-    await this.findVehicleOrFail(id);
-    await this.legacyPrisma.vehicle.update({ // @tenant-reviewed: phase224-pilot-scope-precheck (findVehicleOrFail above is tenant-scoped)
+  async deleteVehicle(id: string, userId: string, caller?: any) {
+    await this.findVehicleOrFail(id, caller);
+    await this.legacyPrisma.vehicle.update({
       where: { id },
       data: { deletedAt: new Date(), deletedBy: userId },
     });
     return { message: 'Vehicle deleted successfully' };
   }
 
-  private async findVehicleOrFail(id: string) {
+  private async findVehicleOrFail(id: string, caller?: any) {
     const t = this.scope().tenantWhere();
-    const v = await this.prisma.vehicle.findFirst({ where: { id, deletedAt: null, ...t } }); // @tenant-reviewed: phase223-pilot-scope (mutation pre-check; cross-tenant ids raise 404 before any legacyPrisma write)
+    const v = await this.prisma.vehicle.findFirst({
+      where: { id, deletedAt: null, ...t, ...this.callerTenantWhere(caller) },
+    });
     if (!v) throw new NotFoundException('Vehicle not found');
     return v;
   }
@@ -418,36 +470,58 @@ export class VehiclesService {
     updatedAt: true,
   } as const;
 
-  async listWorkshops() {
-    return this.prisma.workshop.findMany({ // @tenant-reviewed: phase223-global
-      where: { deletedAt: null } as any,
+  async listWorkshops(caller?: any) {
+    // Phase 3.19 — tenant scoping. Tenantless rows (legacy global
+    // workshops) are surfaced to every tenant via OR { tenantId: null }
+    // so existing data keeps working until an operator reassigns them.
+    // @tenant-reviewed: phase319-fleet-tenant-scope
+    const filter = this.callerTenantWhere(caller);
+    const where: any = { deletedAt: null };
+    if (filter.tenantId) where.OR = [{ tenantId: filter.tenantId }, { tenantId: null }];
+    return this.prisma.workshop.findMany({
+      where: where as any,
       orderBy: { name: 'asc' },
       select: VehiclesService.WORKSHOP_SELECT,
     });
   }
 
-  async getWorkshop(id: string) {
-    const w = await this.prisma.workshop.findUnique({ // @tenant-reviewed: phase223-global
+  async getWorkshop(id: string, caller?: any) {
+    const w = await this.prisma.workshop.findUnique({
       where: { id },
       select: VehiclesService.WORKSHOP_SELECT,
     });
     if (!w) throw new NotFoundException('Workshop not found');
+    // Tenant-scope check: a non-PlatformAdmin caller can only read a
+    // workshop that's either tenantless or in their own tenant.
+    const t = caller?.tenantId;
+    const wt = (w as any).tenantId ?? null;
+    if (!caller?.agencyIsSystem && t && wt && wt !== t) {
+      throw new NotFoundException('Workshop not found');
+    }
     return w;
   }
 
-  async createWorkshop(dto: CreateWorkshopDto) {
-    // Strip out fields that may not exist before enhance_workshop_fields migration
+  async createWorkshop(dto: CreateWorkshopDto, caller?: any) {
     const { name, contactName, phone, email, address, city, country, notes } = dto as any;
-    return this.legacyPrisma.workshop.create({ // @tenant-reviewed: phase223-excluded-mutation
-      data: { name, contactName, phone, email, address, city, country, notes },
+    const isSuper = await this.isCallerSuperPlatformAdmin(caller);
+    const explicit = isSuper && typeof (dto as any).tenantId === 'string' && (dto as any).tenantId.trim()
+      ? (dto as any).tenantId.trim()
+      : undefined;
+    const tenantId = explicit ?? (caller && !caller.agencyIsSystem ? caller.tenantId : undefined) ?? null;
+    return this.legacyPrisma.workshop.create({
+      data: ({ name, contactName, phone, email, address, city, country, notes, tenantId } as any),
       select: VehiclesService.WORKSHOP_SELECT,
     });
   }
 
-  async updateWorkshop(id: string, dto: UpdateWorkshopDto) {
-    const w = await this.prisma.workshop.findUnique({ where: { id } }); // @tenant-reviewed: phase223-global
+  async updateWorkshop(id: string, dto: UpdateWorkshopDto, caller?: any) {
+    const w = await this.prisma.workshop.findUnique({ where: { id } });
     if (!w) throw new NotFoundException('Workshop not found');
-    // Strip out fields that may not exist before enhance_workshop_fields migration
+    const t = caller?.tenantId;
+    const wt = (w as any).tenantId ?? null;
+    if (!caller?.agencyIsSystem && t && wt && wt !== t) {
+      throw new NotFoundException('Workshop not found');
+    }
     const { name, contactName, phone, email, address, city, country, notes, isActive } = dto as any;
     const data: any = {};
     if (name !== undefined)        data.name = name;
@@ -459,18 +533,37 @@ export class VehiclesService {
     if (country !== undefined)     data.country = country;
     if (notes !== undefined)       data.notes = notes;
     if (isActive !== undefined)    data.isActive = isActive;
-    return this.legacyPrisma.workshop.update({ // @tenant-reviewed: phase223-excluded-mutation
+    // SUPER PlatformAdmin only — move the workshop to a different tenant.
+    if ((dto as any).tenantId !== undefined) {
+      const isSuper = await this.isCallerSuperPlatformAdmin(caller);
+      if (isSuper) {
+        const v = String((dto as any).tenantId ?? '').trim();
+        if (v) {
+          const target = await this.prisma.tenant.findUnique({ where: { id: v }, select: { id: true } }).catch(() => null);
+          if (!target) throw new NotFoundException(`Tenant ${v} not found`);
+          data.tenantId = v;
+        } else {
+          data.tenantId = null;
+        }
+      }
+    }
+    return this.legacyPrisma.workshop.update({
       where: { id },
       data,
       select: VehiclesService.WORKSHOP_SELECT,
     });
   }
 
-  async deleteWorkshop(id: string, userId?: string) {
-    const w = await this.prisma.workshop.findUnique({ where: { id } }); // @tenant-reviewed: phase223-global
+  async deleteWorkshop(id: string, userId?: string, caller?: any) {
+    const w = await this.prisma.workshop.findUnique({ where: { id } });
     if (!w) throw new NotFoundException('Workshop not found');
     if ((w as any).deletedAt) throw new NotFoundException('Workshop not found');
-    await (this.legacyPrisma.workshop as any).update({ // @tenant-reviewed: phase223-excluded-mutation
+    const t = caller?.tenantId;
+    const wt = (w as any).tenantId ?? null;
+    if (!caller?.agencyIsSystem && t && wt && wt !== t) {
+      throw new NotFoundException('Workshop not found');
+    }
+    await (this.legacyPrisma.workshop as any).update({
       where: { id },
       data: { deletedAt: new Date(), deletedBy: userId ?? null },
     });
@@ -479,11 +572,11 @@ export class VehiclesService {
 
   // ── Maintenance Records ──────────────────────────────────────────────────────
 
-  async listMaintenanceRecords(dto: FilterMaintenanceDto) {
+  async listMaintenanceRecords(dto: FilterMaintenanceDto, caller?: any) {
     const { page = 1, limit = 20, vehicleId, workshopId, status, dateFrom, dateTo } = dto;
     const skip = (page - 1) * limit;
     const t = this.scope().tenantWhere();
-    const where: any = { deletedAt: null, ...t } as any;
+    const where: any = { deletedAt: null, ...t, ...this.callerTenantWhere(caller) } as any;
 
     if (vehicleId) where.vehicleId = vehicleId;
     if (workshopId) where.workshopId = workshopId;
@@ -569,8 +662,10 @@ export class VehiclesService {
     return record;
   }
 
-  async createMaintenanceRecord(dto: CreateMaintenanceRecordDto, userId: string) {
-    await this.findVehicleOrFail(dto.vehicleId);
+  async createMaintenanceRecord(dto: CreateMaintenanceRecordDto, userId: string, caller?: any) {
+    // findVehicleOrFail enforces tenant scoping on the parent vehicle —
+    // a cross-tenant vehicleId raises 404 before the record is written.
+    await this.findVehicleOrFail(dto.vehicleId, caller);
     // Strip out new fields (driver, drop-off, pick-up, approval, workDescription)
     // - they require the enhance_maintenance_records migration to be applied first.
     const {
@@ -649,13 +744,11 @@ export class VehiclesService {
     return record;
   }
 
-  async updateMaintenanceRecord(id: string, dto: UpdateMaintenanceRecordDto, userId: string) {
-    // Phase 2.24 — tenant-scoped pre-check. In pilot mode a
-    // cross-tenant id raises NotFoundException BEFORE any update.
-    // Legacy mode (`tenantWhere()` returns `{}`) reduces to plain
-    // by-id lookup — same as pre-2.24.
+  async updateMaintenanceRecord(id: string, dto: UpdateMaintenanceRecordDto, userId: string, caller?: any) {
     const t = this.scope().tenantWhere();
-    const existing = await this.prisma.maintenanceRecord.findFirst({ where: { id, ...t } }); // @tenant-reviewed: phase224-pilot-scope (mutation pre-check; cross-tenant ids raise 404)
+    const existing = await this.prisma.maintenanceRecord.findFirst({
+      where: { id, ...t, ...this.callerTenantWhere(caller) },
+    });
     if (!existing) throw new NotFoundException('Maintenance record not found');
 
     // Strip out new fields - they require the enhance_maintenance_records migration first.
@@ -726,10 +819,11 @@ export class VehiclesService {
     });
   }
 
-  async deleteMaintenanceRecord(id: string, userId?: string) {
-    // Phase 2.24 — tenant-scoped pre-check (mirrors updateMaintenanceRecord).
+  async deleteMaintenanceRecord(id: string, userId?: string, caller?: any) {
     const t = this.scope().tenantWhere();
-    const existing = await this.prisma.maintenanceRecord.findFirst({ where: { id, ...t } }); // @tenant-reviewed: phase224-pilot-scope (mutation pre-check)
+    const existing = await this.prisma.maintenanceRecord.findFirst({
+      where: { id, ...t, ...this.callerTenantWhere(caller) },
+    });
     if (!existing) throw new NotFoundException('Maintenance record not found');
     if ((existing as any).deletedAt) throw new NotFoundException('Maintenance record not found');
     await (this.legacyPrisma.maintenanceRecord as any).update({ // @tenant-reviewed: phase224-pilot-scope-precheck

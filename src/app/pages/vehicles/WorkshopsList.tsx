@@ -20,7 +20,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
-import { vehiclesApi } from '../../services/api';
+import { vehiclesApi, tenantsApi, getCurrentUser } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
 import { useValidationErrors } from '../../../i18n/useValidationErrors';
 import { FieldError } from '../../components/ui/field-error';
@@ -30,10 +30,11 @@ import { usePermissions } from '../../hooks/usePermissions';
 type Workshop = {
   id: string; name: string; contactName?: string; phone?: string; email?: string;
   address?: string; city?: string; country?: string; notes?: string; isActive: boolean;
+  tenantId?: string | null;
 };
 
-type WForm = Omit<Workshop, 'id' | 'isActive'>;
-const EMPTY_FORM: WForm = { name: '', contactName: '', phone: '', email: '', address: '', city: '', country: '', notes: '' };
+type WForm = Omit<Workshop, 'id' | 'isActive'> & { tenantId?: string };
+const EMPTY_FORM: WForm = { name: '', contactName: '', phone: '', email: '', address: '', city: '', country: '', notes: '', tenantId: '' };
 
 type SortField = 'name' | 'contact' | 'phone' | 'email' | 'city' | 'country';
 type SortOrder = 'asc' | 'desc';
@@ -93,6 +94,17 @@ export function WorkshopsList() {
   const [editing, setEditing]     = useState<Workshop | null>(null);
   const [form, setForm]           = useState<WForm>(EMPTY_FORM);
   const [saving, setSaving]       = useState(false);
+
+  // Phase 3.19 — SUPER PlatformAdmin tenant reassignment for workshops.
+  const me = getCurrentUser();
+  const isSuper = me?.platformAdmin?.level === 'SUPER';
+  const [tenantOptions, setTenantOptions] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  useEffect(() => {
+    if (!isSuper) return;
+    tenantsApi.list({ limit: 200 })
+      .then((res) => setTenantOptions(res.data.map((t) => ({ id: t.id, name: t.name, slug: t.slug }))))
+      .catch(() => setTenantOptions([]));
+  }, [isSuper]);
 
   // filters
   const [search, setSearch]           = useState('');
@@ -205,7 +217,7 @@ export function WorkshopsList() {
   const openNew = () => { setEditing(null); setForm(EMPTY_FORM); setDialog(true); };
   const openEdit = (w: Workshop) => {
     setEditing(w);
-    setForm({ name: w.name, contactName: w.contactName ?? '', phone: w.phone ?? '', email: w.email ?? '', address: w.address ?? '', city: w.city ?? '', country: w.country ?? '', notes: w.notes ?? '' });
+    setForm({ name: w.name, contactName: w.contactName ?? '', phone: w.phone ?? '', email: w.email ?? '', address: w.address ?? '', city: w.city ?? '', country: w.country ?? '', notes: w.notes ?? '', tenantId: w.tenantId ?? '' });
     setDialog(true);
   };
 
@@ -214,11 +226,16 @@ export function WorkshopsList() {
     clearFieldErrors();
     setSaving(true);
     try {
+      // Strip tenantId from the wire payload when the viewer isn't
+      // SUPER — the backend already enforces this; this just keeps the
+      // outgoing request tidy.
+      const payload: any = { ...form };
+      if (!isSuper) delete payload.tenantId;
       if (editing) {
-        await vehiclesApi.updateWorkshop(editing.id, form);
+        await vehiclesApi.updateWorkshop(editing.id, payload);
         toast.success(tc('toast.savedSuccessfully'));
       } else {
-        await vehiclesApi.createWorkshop(form);
+        await vehiclesApi.createWorkshop(payload);
         toast.success(tc('toast.savedSuccessfully'));
       }
       setDialog(false);
@@ -427,6 +444,27 @@ export function WorkshopsList() {
                 <Label>{t('vehicles.workshops.form.notes')}</Label>
                 <Input value={form.notes} onChange={(e) => setField('notes', e.target.value)} placeholder={t('vehicles.workshops.form.notesPh')} />
               </div>
+              {/* Phase 3.19 — SUPER PlatformAdmin only: assign workshop
+                  to a specific tenant. "No tenant (global)" keeps the
+                  legacy shared-catalogue behaviour. */}
+              {isSuper && (
+                <div className="col-span-2 space-y-1">
+                  <Label>Tenant</Label>
+                  <Select
+                    value={form.tenantId || '__none__'}
+                    onValueChange={(v) => setField('tenantId', v === '__none__' ? '' : v)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select tenant" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No tenant (global)</SelectItem>
+                      {tenantOptions.map((tn) => (
+                        <SelectItem key={tn.id} value={tn.id}>{tn.name} <span className="text-xs text-muted-foreground">/{tn.slug}</span></SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">SUPER PlatformAdmin only.</p>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>

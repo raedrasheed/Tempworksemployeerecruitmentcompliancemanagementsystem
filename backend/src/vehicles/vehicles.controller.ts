@@ -52,8 +52,8 @@ export class VehiclesController {
   @Get()
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List all vehicles with filters' })
-  list(@Query() dto: FilterVehiclesDto) {
-    return this.vehiclesService.listVehicles(dto);
+  list(@Query() dto: FilterVehiclesDto, @Request() req: any) {
+    return this.vehiclesService.listVehicles(dto, req.user);
   }
 
   @Get('stats')
@@ -114,8 +114,8 @@ export class VehiclesController {
   @Get('maintenance/records')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List maintenance records with filters' })
-  listMaintenance(@Query() dto: FilterMaintenanceDto) {
-    return this.vehiclesService.listMaintenanceRecords(dto);
+  listMaintenance(@Query() dto: FilterMaintenanceDto, @Request() req: any) {
+    return this.vehiclesService.listMaintenanceRecords(dto, req.user);
   }
 
   @Get('maintenance/records/export/excel')
@@ -167,14 +167,14 @@ export class VehiclesController {
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create a maintenance record' })
   createMaintenance(@Body() dto: CreateMaintenanceRecordDto, @Request() req: any) {
-    return this.vehiclesService.createMaintenanceRecord(dto, req.user?.id);
+    return this.vehiclesService.createMaintenanceRecord(dto, req.user?.id, req.user);
   }
 
   @Patch('maintenance/records/:id')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update a maintenance record' })
   updateMaintenance(@Param('id') id: string, @Body() dto: UpdateMaintenanceRecordDto, @Request() req: any) {
-    return this.vehiclesService.updateMaintenanceRecord(id, dto, req.user?.id);
+    return this.vehiclesService.updateMaintenanceRecord(id, dto, req.user?.id, req.user);
   }
 
   @Delete('maintenance/records/:id')
@@ -182,7 +182,7 @@ export class VehiclesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a maintenance record' })
   deleteMaintenance(@Param('id') id: string, @Request() req: any) {
-    return this.vehiclesService.deleteMaintenanceRecord(id, req.user?.id);
+    return this.vehiclesService.deleteMaintenanceRecord(id, req.user?.id, req.user);
   }
 
   @Post('maintenance/records/:id/attachments')
@@ -228,29 +228,29 @@ export class VehiclesController {
   @Get('workshops')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List all workshops' })
-  listWorkshops() {
-    return this.vehiclesService.listWorkshops();
+  listWorkshops(@Request() req: any) {
+    return this.vehiclesService.listWorkshops(req.user);
   }
 
   @Post('workshops')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create a workshop' })
-  createWorkshop(@Body() dto: CreateWorkshopDto) {
-    return this.vehiclesService.createWorkshop(dto);
+  createWorkshop(@Body() dto: CreateWorkshopDto, @Request() req: any) {
+    return this.vehiclesService.createWorkshop(dto, req.user);
   }
 
   @Get('workshops/:id')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get a workshop' })
-  getWorkshop(@Param('id') id: string) {
-    return this.vehiclesService.getWorkshop(id);
+  getWorkshop(@Param('id') id: string, @Request() req: any) {
+    return this.vehiclesService.getWorkshop(id, req.user);
   }
 
   @Patch('workshops/:id')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update a workshop' })
-  updateWorkshop(@Param('id') id: string, @Body() dto: UpdateWorkshopDto) {
-    return this.vehiclesService.updateWorkshop(id, dto);
+  updateWorkshop(@Param('id') id: string, @Body() dto: UpdateWorkshopDto, @Request() req: any) {
+    return this.vehiclesService.updateWorkshop(id, dto, req.user);
   }
 
   @Delete('workshops/:id')
@@ -258,7 +258,7 @@ export class VehiclesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a workshop' })
   deleteWorkshop(@Param('id') id: string, @Request() req: any) {
-    return this.vehiclesService.deleteWorkshop(id, req.user?.id);
+    return this.vehiclesService.deleteWorkshop(id, req.user?.id, req.user);
   }
 
   // ── 4. Parametric single-vehicle routes (:id must come last) ────────────────
@@ -266,22 +266,22 @@ export class VehiclesController {
   @Get(':id')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get a single vehicle with full details' })
-  getOne(@Param('id') id: string) {
-    return this.vehiclesService.getVehicle(id);
+  getOne(@Param('id') id: string, @Request() req: any) {
+    return this.vehiclesService.getVehicle(id, req.user);
   }
 
   @Post()
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create a new vehicle' })
   create(@Body() dto: CreateVehicleDto, @Request() req: any) {
-    return this.vehiclesService.createVehicle(dto, req.user?.id);
+    return this.vehiclesService.createVehicle(dto, req.user?.id, req.user);
   }
 
   @Patch(':id')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update a vehicle' })
   update(@Param('id') id: string, @Body() dto: UpdateVehicleDto, @Request() req: any) {
-    return this.vehiclesService.updateVehicle(id, dto, req.user?.id);
+    return this.vehiclesService.updateVehicle(id, dto, req.user?.id, req.user);
   }
 
   @Delete(':id')
@@ -289,7 +289,7 @@ export class VehiclesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a vehicle' })
   remove(@Param('id') id: string, @Request() req: any) {
-    return this.vehiclesService.deleteVehicle(id, req.user?.id);
+    return this.vehiclesService.deleteVehicle(id, req.user?.id, req.user);
   }
 
   // ── 5. Parametric sub-resource routes (:vehicleId/*) ────────────────────────

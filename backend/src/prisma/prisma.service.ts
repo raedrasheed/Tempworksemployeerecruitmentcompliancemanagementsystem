@@ -97,6 +97,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       'platform_audit_logs',
       // SaaS bookkeeping.
       'saas_phase1_seq_snapshot',
+      // Phase 3.19 — Workshop tenant scope.
+      'workshops',
     ];
 
     const steps: Array<{ label: string; sql: string }> = [

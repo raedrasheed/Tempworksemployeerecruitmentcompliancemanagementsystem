@@ -1738,8 +1738,16 @@ model Workshop {
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 
+  // Phase 3.19 — tenant scoping. Nullable so existing rows that were
+  // shared catalogue entries continue to surface for every tenant
+  // until an operator explicitly assigns one. Once set, the workshop
+  // is only visible to its owning tenant.
+  // @tenant-reviewed: phase319-fleet-tenant-scope
+  tenantId                    String?
+
   maintenanceRecords MaintenanceRecord[]
 
+  @@index([tenantId])
   @@map("workshops")
 }
 

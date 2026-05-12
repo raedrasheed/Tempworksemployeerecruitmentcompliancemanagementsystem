@@ -440,7 +440,12 @@ export function getStepErrors(
     if (!d.homeAddress?.country?.trim()) errors.push(tf('validation.permanentAddressCountry'));
     if (!d.livedAbroadRecently) errors.push(tf('validation.abroadAnswerRequired'));
     if (d.livedAbroadRecently === 'yes') {
-      if (!d.abroadCountry) errors.push(tf('validation.abroadCountryRequired'));
+      // The standalone abroadCountry was removed in favour of the
+      // canonical country field inside abroadAddress. Mirror the value
+      // for backwards compat with PDF/review consumers below.
+      const abroadCountry = d.abroadAddress?.country?.trim() || d.abroadCountry?.trim() || '';
+      if (!abroadCountry) errors.push(tf('validation.abroadCountryRequired'));
+      if (!d.abroadAddress?.line1?.trim()) errors.push(tf('validation.abroadAddressLine1Required', { defaultValue: 'Previous-country address line 1 is required' }));
       if (!d.abroadDateFrom) errors.push(tf('validation.abroadDateFromRequired'));
       if (!d.abroadDateTo) errors.push(tf('validation.abroadDateToRequired'));
     }
@@ -1146,13 +1151,25 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
         </div>
         {d.livedAbroadRecently === 'yes' && (
           <div className="space-y-4 pt-2 border-s-2 border-blue-100 ps-4">
-            <div className="space-y-1">
-              <Label className="text-xs">{t('applicants.form.step1.abroadCountry')} *</Label>
-              <CountrySelect value={d.abroadCountry} onChange={set('abroadCountry')} placeholder={t('applicants.form.common.selectCountry')} />
-            </div>
+            {/* Previous Country of Residence — the country picker lives
+                inside AddressForm so we don't render a duplicate one
+                above it. The address itself is required when the
+                applicant says yes. */}
             <div className="space-y-1">
               <Label className="text-xs">{t('applicants.form.step1.abroadAddress')} *</Label>
-              <AddressForm label="" value={d.abroadAddress ?? { ...EMPTY_ADDRESS }} onChange={set('abroadAddress')} />
+              <AddressForm
+                label=""
+                value={d.abroadAddress ?? { ...EMPTY_ADDRESS }}
+                onChange={(next) => u((prev) => ({
+                  ...prev,
+                  abroadAddress: next,
+                  // Mirror the address country into the standalone
+                  // abroadCountry field so existing PDF/review/payload
+                  // consumers keep working.
+                  abroadCountry: next?.country ?? '',
+                }))}
+                required
+              />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1">

@@ -108,6 +108,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       // Phase 2.9 — job-ads composite index used by the slug lookups.
       { label: 'job_ads.tenantId slug idx', sql: `CREATE INDEX IF NOT EXISTS "job_ads_tenantId_slug_idx" ON "job_ads"("tenantId","slug");` },
 
+      // IntervalMode column on maintenance_types — present in schema
+      // since the maintenance types phase; some dev DBs predate the
+      // migration.
+      { label: 'IntervalMode enum',         sql: `DO $$ BEGIN CREATE TYPE "IntervalMode" AS ENUM ('DAYS', 'KM', 'BOTH'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;` },
+      { label: 'maintenance_types.intervalMode', sql: `ALTER TABLE "maintenance_types" ADD COLUMN IF NOT EXISTS "intervalMode" "IntervalMode" DEFAULT 'KM';` },
+
       // Phase 3.16 — JobType soft-delete columns.
       { label: 'job_types.deletedAt',       sql: `ALTER TABLE "job_types"     ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);` },
       { label: 'job_types.deletedBy',       sql: `ALTER TABLE "job_types"     ADD COLUMN IF NOT EXISTS "deletedBy" TEXT;` },

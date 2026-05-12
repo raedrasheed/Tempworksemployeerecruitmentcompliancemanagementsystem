@@ -62,7 +62,29 @@ const MAINT_TYPES: { key: string; name: string; intervalDays?: number; intervalK
   { key: 'general',     name: 'General Service',      intervalKm: 30000 },
 ];
 
+/**
+ * Add the IntervalMode enum + `intervalMode` column to maintenance_types
+ * if the local DB predates that migration. Idempotent (uses DO blocks +
+ * IF NOT EXISTS) so safe to run on a fully-migrated DB too.
+ */
+async function ensureIntervalModeColumn(): Promise<void> {
+  try {
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "IntervalMode" AS ENUM ('DAYS', 'KM', 'BOTH');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "maintenance_types" ADD COLUMN IF NOT EXISTS "intervalMode" "IntervalMode" DEFAULT 'KM';`,
+    );
+  } catch {
+    // Best effort — if the heal fails the subsequent insert will surface a clearer error.
+  }
+}
+
 export async function seedMaintenanceTypes(): Promise<SeededMaintenanceType[]> {
+  await ensureIntervalModeColumn();
   const out: SeededMaintenanceType[] = [];
   for (const m of MAINT_TYPES) {
     const id = detId('maint-type', m.key);

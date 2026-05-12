@@ -78,6 +78,24 @@ export class JobAdsService {
     return { tenantId: t };
   }
 
+  /**
+   * Phase 3.18 — check whether the caller is a SUPER PlatformAdmin.
+   * Used to gate the tenantId reassignment on create + update. Falls
+   * back to the JWT-side hint (caller.agencyIsSystem) when the
+   * platform_admins lookup fails so legacy admins are not locked out.
+   * @tenant-reviewed: phase318-tenant-public-jobs
+   */
+  private async isCallerSuperPlatformAdmin(caller: any): Promise<boolean> {
+    if (!caller?.id) return false;
+    try {
+      const row = await (this.prisma as any).platformAdmin.findUnique({
+        where: { userId: caller.id }, select: { level: true },
+      });
+      if (row?.level === 'SUPER') return true;
+    } catch { /* table missing on fresh envs */ }
+    return false;
+  }
+
   /** Slug uniqueness probe — INTENTIONALLY tenant-agnostic. The DB's
    *  `slug @unique` constraint is global until Phase 3 swaps it to a
    *  composite `(tenantId, slug)`. Tenant-filtering this lookup would
@@ -306,10 +324,18 @@ export class JobAdsService {
     const publishedAt = dto.status === 'PUBLISHED' ? new Date() : null;
 
     // Phase 3.18 — stamp the caller's active tenant on the new ad so
-    // findAll's tenant filter actually finds it. PlatformAdmin SUPER
-    // creates land on no tenant (legacy global) unless they pass one
-    // explicitly via the pilot scope. @tenant-reviewed: phase318-tenant-public-jobs
-    const callerTenantId = caller && !caller.agencyIsSystem ? caller.tenantId : undefined;
+    // findAll's tenant filter actually finds it. A SUPER PlatformAdmin
+    // may explicitly target a different tenant via dto.tenantId; that
+    // takes precedence over the caller-implicit value. Non-SUPER
+    // callers cannot move ads between tenants.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    const isSuper = await this.isCallerSuperPlatformAdmin(caller);
+    const explicitTenantId =
+      isSuper && typeof (dto as any).tenantId === 'string' && (dto as any).tenantId.trim()
+        ? (dto as any).tenantId.trim()
+        : undefined;
+    const callerTenantId =
+      explicitTenantId ?? (caller && !caller.agencyIsSystem ? caller.tenantId : undefined);
 
     return this.prisma.jobAd.create({ // @tenant-reviewed: phase29-pilot-scope
       data: {
@@ -354,6 +380,25 @@ export class JobAdsService {
       publishedAt = new Date();
     }
 
+    // Phase 3.18 — SUPER PlatformAdmin may reassign tenantId. Validate
+    // the target tenant exists before writing; reject non-SUPER attempts
+    // silently by dropping the field from the payload.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    let nextTenantId: string | undefined;
+    if ((dto as any).tenantId !== undefined) {
+      const isSuper = await this.isCallerSuperPlatformAdmin(caller);
+      if (isSuper) {
+        const incoming = String((dto as any).tenantId ?? '').trim();
+        if (incoming) {
+          const t = await this.prisma.tenant.findUnique({
+            where: { id: incoming }, select: { id: true },
+          }).catch(() => null);
+          if (!t) throw new NotFoundException(`Tenant ${incoming} not found`);
+          nextTenantId = incoming;
+        }
+      }
+    }
+
     return this.prisma.jobAd.update({ // @tenant-reviewed: phase29-pilot-scope
       where: { id },
       data: {
@@ -368,6 +413,7 @@ export class JobAdsService {
         ...(dto.currency          !== undefined ? { currency:          dto.currency }                                           : {}),
         ...(dto.status            !== undefined ? { status:            dto.status }                                             : {}),
         ...(dto.requiredDocuments !== undefined ? { requiredDocuments: dto.requiredDocuments ? JSON.stringify(dto.requiredDocuments) : null } : {}),
+        ...(nextTenantId          !== undefined ? { tenantId:          nextTenantId } : {}),
         slug,
         publishedAt,
       },

@@ -167,13 +167,22 @@ export class JobAdsService {
           city: true, country: true, contractType: true,
           salaryMin: true, salaryMax: true, currency: true,
           publishedAt: true,
+          // Carry the required-docs list into the public listing so the
+          // /jobs cards can pre-populate the Apply URL even before the
+          // form's detail fetch resolves. Bandwidth impact is small
+          // (one short JSON-encoded string per row).
+          requiredDocuments: true,
           // Exclude description for listing (save bandwidth; use detail endpoint for full text)
         },
       }),
       this.prisma.jobAd.count({ where }), // @tenant-reviewed: phase29-pilot-scope
     ]);
 
-    return PaginatedResponse.create(items, total, Number(page), Number(limit));
+    const mapped = items.map((ad: any) => ({
+      ...ad,
+      requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments),
+    }));
+    return PaginatedResponse.create(mapped, total, Number(page), Number(limit));
   }
 
   // ── Helper: parse requiredDocuments JSON string to string[] ──────────────────

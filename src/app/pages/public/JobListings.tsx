@@ -255,7 +255,7 @@ export function JobListings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {jobs.map(job => {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
-                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}`;
+                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
                   return (
                     <Card key={job.id} className="h-full hover:shadow-md hover:border-blue-300 transition-all group relative">
                       <Button asChild size="sm" className="absolute top-3 end-3 z-10">
@@ -300,7 +300,7 @@ export function JobListings() {
               <div className="flex flex-col gap-3">
                 {jobs.map(job => {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
-                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}`;
+                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
                   return (
                     <Card key={job.id} className="hover:shadow-md hover:border-blue-300 transition-all group">
                       <CardContent className="p-4 flex items-center gap-4">

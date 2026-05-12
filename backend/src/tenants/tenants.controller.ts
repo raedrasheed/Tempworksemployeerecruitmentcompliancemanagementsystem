@@ -99,36 +99,7 @@ export class TenantsController {
     return this.tenants.softDelete(id, actorId, { force: force === 'true' || force === '1' });
   }
 
-  // ── Phase 3.17 — TenantMembership grant/revoke ───────────────────────────
-  // A SUPER PlatformAdmin can attach an existing User to a tenant so the
-  // same user can sign in to multiple tenants via /auth/login-v2.
-  // @tenant-reviewed: phase317-multi-tenant-login
-  @Get(':id/memberships')
-  @RequireTenantLevel('SUPPORT')
-  @ApiOperation({ summary: 'List tenant memberships' })
-  listMemberships(@Param('id') id: string) {
-    return this.tenants.listMemberships(id);
-  }
-
-  @Post(':id/memberships')
-  @RequireTenantLevel('SUPER')
-  @ApiOperation({ summary: 'Grant tenant membership to a user' })
-  grantMembership(
-    @Param('id') id: string,
-    @Body() body: { userId: string },
-    @CurrentUser('id') actorId: string,
-  ) {
-    return this.tenants.grantMembership(id, body.userId, actorId);
-  }
-
-  @Delete(':id/memberships/:userId')
-  @RequireTenantLevel('SUPER')
-  @ApiOperation({ summary: 'Revoke tenant membership from a user' })
-  revokeMembership(
-    @Param('id') id: string,
-    @Param('userId') userId: string,
-    @CurrentUser('id') actorId: string,
-  ) {
-    return this.tenants.revokeMembership(id, userId, actorId);
-  }
+  // ── Phase 3.17 membership endpoints have moved to TenantMembersController
+  // so a tenant's own System Admin can manage their tenant's memberships
+  // without holding PlatformAdmin. @tenant-reviewed: phase317-multi-tenant-login
 }

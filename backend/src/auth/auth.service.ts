@@ -700,6 +700,11 @@ export class AuthService {
           }));
         } catch { return []; }
       })(),
+      // Phase 3.17 — derived from the user's primary agency.tenantId so
+      // the "My Tenant Members" page can route to the right tenant even
+      // for accounts that pre-date the TenantMembership backfill.
+      // @tenant-reviewed: phase317-multi-tenant-login
+      primaryTenantId: (user as any).agency?.tenantId ?? null,
       permissions: effectivePermissions,
       status: user.status,
       lastLoginAt: user.lastLoginAt,

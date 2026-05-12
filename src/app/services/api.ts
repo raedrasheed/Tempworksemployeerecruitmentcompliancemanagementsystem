@@ -85,6 +85,10 @@ export interface AuthUser {
     status: string;
     joinedAt: string | null;
   }>;
+  /** Phase 3.17 — the user's primary tenantId (from agency.tenantId).
+   *  Used by the "Tenant Members" page so a System Admin who has not
+   *  yet logged in via /auth/login-v2 still has a target tenant. */
+  primaryTenantId?: string | null;
 }
 
 export interface TenantRecord {

@@ -22,6 +22,7 @@
   "deletedRecords": "Vymazané záznamy",
   "settings": "Nastavenia",
   "tenants": "Nájomcovia",
+  "tenantMembers": "Členovia nájomcu",
   "platformAdministration": "Správa platformy",
   "sidebar": {
     "platformLabel": "Náborová platforma"

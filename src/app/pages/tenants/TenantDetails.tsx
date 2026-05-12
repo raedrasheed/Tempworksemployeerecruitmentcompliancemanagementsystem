@@ -22,6 +22,13 @@ export function TenantDetails() {
   const level = me?.platformAdmin?.level ?? 'NONE';
   const isSuper = level === 'SUPER';
   const canWrite = level === 'SUPER' || level === 'OPERATOR';
+  // Phase 3.17 — a tenant's own System Admin can also manage that tenant's
+  // memberships. Backend re-checks this on every membership endpoint; the
+  // UI predicate just decides whether to render the grant/revoke controls.
+  const isSystemAdminOfThis =
+    me?.role === 'System Admin' &&
+    !!me?.memberships?.some((m) => m.tenantId === id && m.status === 'ACTIVE');
+  const canManageMembers = isSuper || isSystemAdminOfThis;
 
   const [tenant, setTenant] = useState<TenantRecord | null>(null);
   const [stats, setStats] = useState<Record<string, any> | null>(null);
@@ -140,7 +147,7 @@ export function TenantDetails() {
         </TabsContent>
 
         <TabsContent value="members">
-          <MembersTab tenantId={tenant.id} canManage={isSuper} />
+          <MembersTab tenantId={tenant.id} canManage={canManageMembers} />
         </TabsContent>
 
         <TabsContent value="stats">
@@ -197,7 +204,7 @@ function StatBox({ label, value }: { label: string; value: number }) {
 // @tenant-reviewed: phase317-multi-tenant-login
 type MembershipRow = Awaited<ReturnType<typeof tenantsApi.listMemberships>>[number];
 
-function MembersTab({ tenantId, canManage }: { tenantId: string; canManage: boolean }) {
+export function MembersTab({ tenantId, canManage }: { tenantId: string; canManage: boolean }) {
   const { t } = useTranslation('pages');
   const [rows, setRows] = useState<MembershipRow[]>([]);
   const [loading, setLoading] = useState(true);

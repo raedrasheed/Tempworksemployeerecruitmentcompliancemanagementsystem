@@ -22,6 +22,7 @@
   "deletedRecords": "السجلات المحذوفة",
   "settings": "الإعدادات",
   "tenants": "المستأجرون",
+  "tenantMembers": "أعضاء المستأجر",
   "platformAdministration": "إدارة المنصة",
   "sidebar": {
     "platformLabel": "منصة التوظيف"

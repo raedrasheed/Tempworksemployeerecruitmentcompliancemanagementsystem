@@ -51,6 +51,7 @@ import { TenantsList } from './pages/tenants/TenantsList';
 import { TenantCreate } from './pages/tenants/TenantCreate';
 import { TenantEdit } from './pages/tenants/TenantEdit';
 import { TenantDetails } from './pages/tenants/TenantDetails';
+import { MyTenantMembers } from './pages/tenants/MyTenantMembers';
 import { RolesList } from './pages/roles/RolesList';
 import { CreateRole } from './pages/roles/CreateRole';
 import { PermissionsMatrix } from './pages/roles/PermissionsMatrix';
@@ -218,6 +219,9 @@ export const router = createBrowserRouter([
       { path: 'tenants/new', Component: TenantCreate },
       { path: 'tenants/:id', Component: TenantDetails },
       { path: 'tenants/:id/edit', Component: TenantEdit },
+
+      // Phase 3.17 — "My Tenant Members" for System Admins.
+      { path: 'tenant-members', Component: MyTenantMembers },
       
       // Roles & Permissions routes
       { path: 'roles', Component: RolesList },

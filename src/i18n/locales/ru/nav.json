@@ -22,6 +22,7 @@
   "deletedRecords": "Удалённые записи",
   "settings": "Настройки",
   "tenants": "Тенанты",
+  "tenantMembers": "Участники тенанта",
   "platformAdministration": "Администрирование платформы",
   "sidebar": {
     "platformLabel": "Платформа рекрутинга"

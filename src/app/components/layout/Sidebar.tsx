@@ -94,6 +94,10 @@ const allNavigationItems: NavItem[] = [
   // can update/archive; SUPER can create/delete/restore. Hidden for
   // every non-PlatformAdmin user regardless of tenant role.
   { icon: Globe,           labelKey: 'tenants',             path: '/dashboard/tenants',          permission: null, platformAdminLevel: 'SUPPORT' },
+  // Phase 3.17 — "Tenant Members" for in-tenant System Admins. PlatformAdmin
+  // viewers already have the full Tenants admin above; this entry only
+  // surfaces for System Admins who are not PlatformAdmin.
+  { icon: UserCog,         labelKey: 'tenantMembers',       path: '/dashboard/tenant-members',   permission: null, roles: ['System Admin'], hideForRoles: AGENCY_ROLES },
 ];
 
 const PA_RANK: Record<string, number> = { NONE: 0, SUPPORT: 1, OPERATOR: 2, SUPER: 3 };
@@ -141,7 +145,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     // Role-based blocklist takes precedence — agency users must never see
     // internal-only items (e.g. Leads) even if their permission set allows it.
     if (item.hideForRoles && item.hideForRoles.includes(userRole)) return false;
-    if (!item.permission) return true;
+    if (!item.permission) {
+      // No permission gate — respect the role allow-list when present so
+      // entries like "Tenant Members" can be limited to System Admin.
+      if (item.roles) return item.roles.includes(userRole);
+      return true;
+    }
     if (isAdmin) return true;
     if (item.roles && item.roles.includes(userRole)) return true;
     return permissions.includes(item.permission);

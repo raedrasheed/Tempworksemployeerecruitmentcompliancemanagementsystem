@@ -22,6 +22,7 @@
   "deletedRecords": "Gelöschte Datensätze",
   "settings": "Einstellungen",
   "tenants": "Mandanten",
+  "tenantMembers": "Mandantenmitglieder",
   "platformAdministration": "Plattformverwaltung",
   "sidebar": {
     "platformLabel": "Recruiting-Plattform"

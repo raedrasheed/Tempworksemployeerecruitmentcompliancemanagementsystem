@@ -115,25 +115,56 @@ export class SettingsService {
     return grouped;
   }
 
-  async batchUpdate(dto: BatchUpdateSettingsDto, userId: string) {
-    const results = [];
+  async batchUpdate(dto: BatchUpdateSettingsDto, userId: string, activeTenantId?: string) {
+    // Phase 3.17 — branding.* keys are tenant-scoped when there is an
+    // active tenant on the JWT: they land on Tenant.branding so each
+    // tenant gets its own logo, name, colour, tagline, etc. without
+    // overwriting the others. Non-branding keys still go to the
+    // shared system_settings table (legacy behaviour).
+    // @tenant-reviewed: phase317-multi-tenant-login
+    const tenantBrandingPatch: Record<string, string> = {};
+    let tenantDisplayName: string | undefined;
+
+    const results: any[] = [];
     for (const [key, value] of Object.entries(dto.settings ?? {})) {
+      const isBranding = key.startsWith('branding.');
+      if (activeTenantId && isBranding) {
+        const field = key.replace(/^branding\./, '');
+        if (field === 'companyName') tenantDisplayName = value;
+        else tenantBrandingPatch[field] = value;
+        continue;
+      }
       const updated = await this.prisma.systemSetting.upsert({
         where: { key },
         update: { value, updatedById: userId },
         create: {
           key, value, updatedById: userId, description: key,
           category: key.split('.')[0] || 'general',
-          isPublic: key.startsWith('branding.'),
+          isPublic: isBranding,
         },
       });
       results.push(updated);
     }
+
+    if (activeTenantId && (Object.keys(tenantBrandingPatch).length || tenantDisplayName !== undefined)) {
+      const tenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: activeTenantId }, select: { branding: true },
+      }).catch(() => null);
+      const merged = { ...(tenant?.branding ?? {}), ...tenantBrandingPatch };
+      await (this.prisma as any).tenant.update({
+        where: { id: activeTenantId },
+        data: {
+          branding: merged as any,
+          ...(tenantDisplayName !== undefined ? { name: tenantDisplayName } : {}),
+        },
+      });
+    }
+
     await this.auditLog.log({
       userId,
       action: 'UPDATE',
-      entity: 'Settings',
-      entityId: 'system',
+      entity: activeTenantId ? 'Tenant' : 'Settings',
+      entityId: activeTenantId ?? 'system',
       changes: dto.settings as any,
     });
     return results;
@@ -193,28 +224,54 @@ export class SettingsService {
     return result;
   }
 
-  async uploadLogo(file: Express.Multer.File, userId: string) {
-    const previous = await this.prisma.systemSetting.findUnique({ where: { key: 'branding.logoUrl' } });
-
+  async uploadLogo(file: Express.Multer.File, userId: string, activeTenantId?: string) {
+    // Push the file to the storage backend first so we have a stable URL
+    // to write into either the tenant branding blob or the system setting.
     const upload = await this.storage.uploadFile(file.buffer, {
-      keyPrefix: 'settings/branding',
+      keyPrefix: activeTenantId ? `tenants/${activeTenantId}/branding` : 'settings/branding',
       contentType: file.mimetype,
       originalName: file.originalname,
       inline: true,
     });
 
-    await this.prisma.systemSetting.upsert({
-      where: { key: 'branding.logoUrl' },
-      update: { value: upload.url, updatedById: userId },
-      create: { key: 'branding.logoUrl', value: upload.url, category: 'branding', description: 'Company logo URL', isPublic: true, updatedById: userId },
-    });
-
-    if (previous?.value && previous.value !== upload.url) {
-      await this.storage.deleteFileByUrlOrKey(previous.value);
+    // Phase 3.17 — when a tenant context is present, the new logo
+    // belongs to that tenant's branding blob so the overlay in
+    // getBranding picks it up immediately. The legacy system setting
+    // is left untouched so single-tenant deployments keep their
+    // existing logo as a fallback.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    let previousUrl: string | null = null;
+    if (activeTenantId) {
+      const tenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: activeTenantId }, select: { branding: true },
+      }).catch(() => null);
+      const branding = { ...(tenant?.branding ?? {}) };
+      previousUrl = typeof branding.logoUrl === 'string' ? branding.logoUrl : null;
+      branding.logoUrl = upload.url;
+      await (this.prisma as any).tenant.update({
+        where: { id: activeTenantId },
+        data: { branding: branding as any },
+      });
+    } else {
+      const previous = await this.prisma.systemSetting.findUnique({ where: { key: 'branding.logoUrl' } });
+      previousUrl = previous?.value ?? null;
+      await this.prisma.systemSetting.upsert({
+        where: { key: 'branding.logoUrl' },
+        update: { value: upload.url, updatedById: userId },
+        create: { key: 'branding.logoUrl', value: upload.url, category: 'branding', description: 'Company logo URL', isPublic: true, updatedById: userId },
+      });
     }
 
-    await this.auditLog.log({ userId, action: 'UPDATE', entity: 'Settings', entityId: 'branding.logoUrl', changes: { logoUrl: upload.url } });
-    return { logoUrl: upload.url };
+    if (previousUrl && previousUrl !== upload.url) {
+      await this.storage.deleteFileByUrlOrKey(previousUrl);
+    }
+
+    await this.auditLog.log({
+      userId, action: 'UPDATE', entity: activeTenantId ? 'Tenant' : 'Settings',
+      entityId: activeTenantId ?? 'branding.logoUrl',
+      changes: { logoUrl: upload.url, tenantId: activeTenantId ?? null },
+    });
+    return { logoUrl: upload.url, tenantId: activeTenantId ?? null };
   }
 
   // ─── Job Types ──────────────────────────────────────────────────────────────

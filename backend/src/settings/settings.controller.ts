@@ -41,7 +41,8 @@ export class SettingsController {
   @Roles('System Admin')
   @ApiOperation({ summary: 'Batch update settings' })
   batchUpdate(@Body() dto: BatchUpdateSettingsDto, @CurrentUser() user: any) {
-    return this.settingsService.batchUpdate(dto, user.id);
+    // Phase 3.17 — branding.* keys are routed to the active tenant.
+    return this.settingsService.batchUpdate(dto, user.id, user?.tenantId);
   }
 
   // Public form settings (no auth required)
@@ -315,7 +316,11 @@ export class SettingsController {
   })))
   uploadLogo(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
     if (!file) throw new BadRequestException('No logo file provided');
-    return this.settingsService.uploadLogo(file, user.id);
+    // Phase 3.17 — pass the active tenant so the upload lands on the
+    // tenant's branding (the per-tenant overlay in /settings/branding)
+    // instead of the global system setting that every tenant shares.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    return this.settingsService.uploadLogo(file, user.id, user?.tenantId);
   }
 
   // System Information

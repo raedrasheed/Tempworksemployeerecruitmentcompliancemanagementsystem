@@ -31,6 +31,12 @@ export async function seedEmployees(tenants: SeededTenant[], agencies: SeededAge
           licenseCategory: i % 2 === 0 ? pick(['B', 'C', 'CE', 'D']) : null,
           agencyId: agency.id,
           tenantId: t.id,
+          // Address fields are NOT NULL on Employee — populate with
+          // realistic faker values.
+          addressLine1: faker.location.streetAddress(),
+          city:         faker.location.city(),
+          country:      pick(['Germany', 'Poland', 'Italy', 'Romania']),
+          postalCode:   faker.location.zipCode(),
           // applicationData mirrors the applicant blob so the same UI
           // can render employee profiles after conversion.
           applicationData: {

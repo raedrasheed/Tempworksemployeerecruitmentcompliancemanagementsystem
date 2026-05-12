@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   Search, MapPin, Briefcase, Clock, ChevronLeft, ChevronRight,
@@ -38,6 +38,11 @@ function useFormatSalary() {
 }
 
 export function JobListings() {
+  // Phase 3.18 — when reached at /t/:tenantSlug/jobs, scope the listing
+  // to that tenant. The same component still serves the legacy global
+  // /jobs route when the param is absent.
+  // @tenant-reviewed: phase318-tenant-public-jobs
+  const { tenantSlug } = useParams<{ tenantSlug?: string }>();
   const branding = useBranding();
   const { t } = useTranslation(['public', 'common']);
   const formatSalary = useFormatSalary();
@@ -61,6 +66,7 @@ export function JobListings() {
     try {
       const res = await publicJobAdsApi.list({
         page: p, limit,
+        ...(tenantSlug     ? { tenant:       tenantSlug }     : {}),
         ...(search         ? { search }                       : {}),
         ...(countryFilter  ? { country:      countryFilter }  : {}),
         ...(categoryFilter ? { category:     categoryFilter } : {}),
@@ -73,7 +79,7 @@ export function JobListings() {
     } finally {
       setLoading(false);
     }
-  }, [search, countryFilter, categoryFilter, contractFilter]);
+  }, [search, countryFilter, categoryFilter, contractFilter, tenantSlug]);
 
   useEffect(() => {
     settingsApi.getJobTypes()
@@ -117,7 +123,7 @@ export function JobListings() {
             <Link to="/#contact">
               <Button variant="outline" size="sm">{t('jobs.headerContact')}</Button>
             </Link>
-            <Link to="/apply">
+            <Link to={tenantSlug ? `/apply?company=${encodeURIComponent(tenantSlug)}` : '/apply'}>
               <Button size="sm">{t('jobs.headerApply')}</Button>
             </Link>
           </div>
@@ -255,14 +261,15 @@ export function JobListings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {jobs.map(job => {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
-                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
+                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${tenantSlug ? `&company=${encodeURIComponent(tenantSlug)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
+                  const detailHref = tenantSlug ? `/t/${tenantSlug}/jobs/${job.slug}` : `/jobs/${job.slug}`;
                   return (
                     <Card key={job.id} className="h-full hover:shadow-md hover:border-blue-300 transition-all group relative">
                       <Button asChild size="sm" className="absolute top-3 end-3 z-10">
                         <Link to={applyHref}>{t('jobs.headerApply')}</Link>
                       </Button>
                       <CardContent className="p-5 flex flex-col h-full">
-                        <Link to={`/jobs/${job.slug}`} className="flex flex-col flex-1">
+                        <Link to={detailHref} className="flex flex-col flex-1">
                           <div className="flex items-start justify-between mb-3">
                             <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
                               {enumLabel('contractType', job.contractType)}
@@ -300,11 +307,12 @@ export function JobListings() {
               <div className="flex flex-col gap-3">
                 {jobs.map(job => {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
-                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
+                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${tenantSlug ? `&company=${encodeURIComponent(tenantSlug)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
+                  const detailHref = tenantSlug ? `/t/${tenantSlug}/jobs/${job.slug}` : `/jobs/${job.slug}`;
                   return (
                     <Card key={job.id} className="hover:shadow-md hover:border-blue-300 transition-all group">
                       <CardContent className="p-4 flex items-center gap-4">
-                        <Link to={`/jobs/${job.slug}`} className="flex items-center gap-4 flex-1 min-w-0">
+                        <Link to={detailHref} className="flex items-center gap-4 flex-1 min-w-0">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
@@ -377,7 +385,7 @@ export function JobListings() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold mb-3">{t('jobs.ctaTitle')}</h2>
           <p className="text-blue-100 mb-6">{t('jobs.ctaBody')}</p>
-          <Link to="/apply">
+          <Link to={tenantSlug ? `/apply?company=${encodeURIComponent(tenantSlug)}` : '/apply'}>
             <Button variant="secondary" size="lg">{t('jobs.ctaButton')}</Button>
           </Link>
         </div>

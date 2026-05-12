@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JobAdsService } from './job-ads.service';
-import { JobAdsController, PublicJobAdsController } from './job-ads.controller';
+import { JobAdsController, PublicJobAdsController, PublicTenantJobAdsController } from './job-ads.controller';
 import { FeatureFlagsModule } from '../saas/feature-flags/feature-flags.module';
 import { TenantPrismaService } from '../saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
@@ -17,7 +17,7 @@ import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
  */
 @Module({
   imports: [FeatureFlagsModule],
-  controllers: [JobAdsController, PublicJobAdsController],
+  controllers: [JobAdsController, PublicJobAdsController, PublicTenantJobAdsController],
   providers: [JobAdsService, TenantPrismaService, PilotPrismaAccessor],
   exports: [JobAdsService],
 })

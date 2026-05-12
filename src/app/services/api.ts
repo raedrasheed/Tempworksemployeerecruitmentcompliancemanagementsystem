@@ -1399,23 +1399,33 @@ export const jobAdsApi = {
 // ─── Public Job Ads API (no auth required) ────────────────────────────────────
 
 export const publicJobAdsApi = {
-  // List published listings
-  list: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
-    ).toString() : '';
-    return fetch(`${API_URL}/public/jobs${qs}`).then(async res => {
+  // List published listings. Pass a tenant slug/customDomain to scope.
+  list: (params?: Record<string, any> & { tenant?: string }) => {
+    const { tenant, ...rest } = params ?? {};
+    const qs = Object.keys(rest).length
+      ? '?' + new URLSearchParams(
+          Object.fromEntries(Object.entries(rest).filter(([, v]) => v != null && v !== '')),
+        ).toString()
+      : '';
+    const base = tenant
+      ? `${API_URL}/public/tenants/${encodeURIComponent(tenant)}/jobs`
+      : `${API_URL}/public/jobs`;
+    return fetch(`${base}${qs}`).then(async res => {
       if (!res.ok) throw new Error('Failed to load job listings');
       return res.json() as Promise<PaginatedResponse<any>>;
     });
   },
 
-  // Single by slug
-  getBySlug: (slug: string) =>
-    fetch(`${API_URL}/public/jobs/${slug}`).then(async res => {
+  // Single by slug. `tenant` is optional but recommended on tenant pages.
+  getBySlug: (slug: string, tenant?: string) => {
+    const base = tenant
+      ? `${API_URL}/public/tenants/${encodeURIComponent(tenant)}/jobs/${slug}`
+      : `${API_URL}/public/jobs/${slug}`;
+    return fetch(base).then(async res => {
       if (!res.ok) throw new Error('Job listing not found');
       return res.json() as Promise<any>;
-    }),
+    });
+  },
 };
 
 // ─── Recycle Bin API ──────────────────────────────────────────────────────────

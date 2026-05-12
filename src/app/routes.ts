@@ -134,6 +134,10 @@ export const router = createBrowserRouter([
   { path: '/application-success', Component: ApplicationSuccess },
   { path: '/jobs', Component: JobListings },
   { path: '/jobs/:slug', Component: JobDetail },
+  // Phase 3.18 — tenant-scoped public job board so each tenant gets
+  // its own "Current Job Openings" URL.
+  { path: '/t/:tenantSlug/jobs', Component: JobListings },
+  { path: '/t/:tenantSlug/jobs/:slug', Component: JobDetail },
   { path: '/data-processing-agreement', Component: DataProcessingAgreement },
   
   // Protected routes (with MainLayout)

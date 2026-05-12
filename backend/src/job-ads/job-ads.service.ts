@@ -133,7 +133,7 @@ export class JobAdsService {
   // resolver attaches a tenant to public traffic, the same code path
   // will automatically narrow the listing to that tenant — no code
   // change required.
-  async findPublished(filter: FilterJobAdsDto) {
+  async findPublished(filter: FilterJobAdsDto, tenantHint?: string) {
     const scope = this.scope();
     const {
       page = 1, limit = 20, search, category, country, contractType,
@@ -141,7 +141,23 @@ export class JobAdsService {
     } = filter as any;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere() };
+    // Phase 3.18 — public tenant scoping. Resolve the hint (slug or
+    // customDomain) to a tenantId and add it to the WHERE so each
+    // tenant's /jobs page sees only its own listings. No-op when the
+    // hint is missing or doesn't resolve (legacy global listing).
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    let publicTenantWhere: any = {};
+    if (tenantHint) {
+      const hint = tenantHint.trim().toLowerCase();
+      const tenant = await this.prisma.tenant.findFirst({
+        where: { OR: [{ slug: hint }, { customDomain: hint }] },
+        select: { id: true },
+      }).catch(() => null);
+      if (tenant) publicTenantWhere = { tenantId: tenant.id };
+      else        publicTenantWhere = { tenantId: '__no_such_tenant__' }; // forces empty result
+    }
+
+    const where: any = { deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere(), ...publicTenantWhere };
     if (category)     where.category     = category;
     if (country)      where.country      = country;
     if (contractType) where.contractType = contractType;
@@ -196,10 +212,20 @@ export class JobAdsService {
   //
   // Same public-traffic semantics as `findPublished`. With no tenant in
   // ALS, the slug lookup is global — preserving today's public URLs.
-  async findBySlug(slug: string) {
+  async findBySlug(slug: string, tenantHint?: string) {
     const scope = this.scope();
+    let publicTenantWhere: any = {};
+    if (tenantHint) {
+      const hint = tenantHint.trim().toLowerCase();
+      const tenant = await this.prisma.tenant.findFirst({
+        where: { OR: [{ slug: hint }, { customDomain: hint }] },
+        select: { id: true },
+      }).catch(() => null);
+      if (tenant) publicTenantWhere = { tenantId: tenant.id };
+      else        publicTenantWhere = { tenantId: '__no_such_tenant__' };
+    }
     const ad = await this.prisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope
-      where: { slug, deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere() },
+      where: { slug, deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere(), ...publicTenantWhere },
     });
     if (!ad) throw new NotFoundException(`Job ad '${slug}' not found`);
     return { ...ad, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };

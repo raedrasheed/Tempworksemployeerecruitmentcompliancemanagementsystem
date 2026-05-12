@@ -39,7 +39,7 @@ export function JobDetail() {
   const branding = useBranding();
   const { t } = useTranslation('public');
   const formatSalary = useFormatSalary();
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, tenantSlug } = useParams<{ slug: string; tenantSlug?: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -47,11 +47,11 @@ export function JobDetail() {
 
   useEffect(() => {
     if (!slug) return;
-    publicJobAdsApi.getBySlug(slug)
+    publicJobAdsApi.getBySlug(slug, tenantSlug)
       .then(setJob)
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, tenantSlug]);
 
   if (loading) {
     return (
@@ -98,7 +98,7 @@ export function JobDetail() {
             <Link to="/jobs">
               <Button variant="outline" size="sm">{t('jobDetail.headerAllJobs')}</Button>
             </Link>
-            <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
+            <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}${tenantSlug ? `&company=${encodeURIComponent(tenantSlug)}` : ''}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
               <Button size="sm">{t('jobDetail.applyNow')}</Button>
             </Link>
           </div>
@@ -152,7 +152,7 @@ export function JobDetail() {
                   </div>
                 </div>
                 <div className="flex-shrink-0">
-                  <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
+                  <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}${tenantSlug ? `&company=${encodeURIComponent(tenantSlug)}` : ''}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
                     <Button size="lg" className="w-full sm:w-auto">
                       {t('jobDetail.applyNow')}
                     </Button>
@@ -179,7 +179,7 @@ export function JobDetail() {
               <p className="text-blue-100 text-sm mb-5">
                 {t('jobDetail.interestedBody')}
               </p>
-              <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
+              <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}${tenantSlug ? `&company=${encodeURIComponent(tenantSlug)}` : ''}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
                 <Button variant="secondary" size="lg">
                   {t('jobDetail.applyForPosition')}
                 </Button>

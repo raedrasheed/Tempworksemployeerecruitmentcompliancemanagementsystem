@@ -28,17 +28,42 @@ export class PublicJobAdsController {
 
   @Public()
   @Get()
-  @ApiOperation({ summary: 'List published job ads (public, no auth)' })
-  findPublished(@Query() filter: FilterJobAdsDto) {
-    return this.jobAdsService.findPublished(filter);
+  @ApiOperation({ summary: 'List published job ads (public, no auth). Pass ?tenant=<slug-or-domain> to scope to a single tenant.' })
+  findPublished(@Query() filter: FilterJobAdsDto, @Query('tenant') tenant?: string) {
+    return this.jobAdsService.findPublished(filter, tenant);
   }
 
   @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Get a single published job ad by slug (public, no auth)' })
   @ApiParam({ name: 'slug', description: 'URL-friendly slug' })
-  findBySlug(@Param('slug') slug: string) {
-    return this.jobAdsService.findBySlug(slug);
+  findBySlug(@Param('slug') slug: string, @Query('tenant') tenant?: string) {
+    return this.jobAdsService.findBySlug(slug, tenant);
+  }
+}
+
+// ── Tenant-scoped public endpoints ────────────────────────────────────────────
+// Mirrors /public/jobs but scopes by an explicit tenant slug or
+// customDomain in the URL so each tenant gets its own clean "Current
+// Job Openings" page (/t/:tenant/jobs).
+// @tenant-reviewed: phase318-tenant-public-jobs
+@ApiTags('Job Ads – Public (tenant-scoped)')
+@Controller('public/tenants/:tenant/jobs')
+export class PublicTenantJobAdsController {
+  constructor(private readonly jobAdsService: JobAdsService) {}
+
+  @Public()
+  @Get()
+  @ApiOperation({ summary: 'List published job ads for the named tenant' })
+  findPublished(@Param('tenant') tenant: string, @Query() filter: FilterJobAdsDto) {
+    return this.jobAdsService.findPublished(filter, tenant);
+  }
+
+  @Public()
+  @Get(':slug')
+  @ApiOperation({ summary: 'Get a single published job ad by slug, scoped to the named tenant' })
+  findBySlug(@Param('tenant') tenant: string, @Param('slug') slug: string) {
+    return this.jobAdsService.findBySlug(slug, tenant);
   }
 }
 

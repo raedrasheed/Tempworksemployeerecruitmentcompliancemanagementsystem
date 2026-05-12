@@ -26,6 +26,7 @@ import { seedJobAds } from './modules/07-job-ads';
 import { seedApplicants } from './modules/08-applicants';
 import { seedEmployees } from './modules/09-employees';
 import { seedVehicles } from './modules/10-vehicles';
+import { seedWorkshops, seedMaintenanceTypes, seedMaintenanceRecords } from './modules/11-workshops-maintenance';
 import { resetSeededRows } from './reset';
 
 interface Args {
@@ -46,6 +47,7 @@ function parseArgs(): Args {
 const STEPS = [
   'tenants', 'roles', 'agencies', 'users', 'memberships',
   'job-types', 'job-ads', 'applicants', 'employees', 'vehicles',
+  'workshops', 'maintenance-types', 'maintenance-records',
 ] as const;
 
 async function main(): Promise<void> {
@@ -74,6 +76,11 @@ async function main(): Promise<void> {
   if (wanted.has('applicants') && tenants.length) await seedApplicants(tenants, agencies);
   if (wanted.has('employees')  && tenants.length) await seedEmployees(tenants, agencies);
   if (wanted.has('vehicles')   && tenants.length) await seedVehicles(tenants, agencies);
+  const workshops   = wanted.has('workshops')          ? await seedWorkshops()          : [];
+  const maintTypes  = wanted.has('maintenance-types')  ? await seedMaintenanceTypes()   : [];
+  if (wanted.has('maintenance-records') && workshops.length && maintTypes.length) {
+    await seedMaintenanceRecords(workshops, maintTypes);
+  }
 
   console.log('');
   console.log('seed complete. Sign in with any of:');

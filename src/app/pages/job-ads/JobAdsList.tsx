@@ -28,11 +28,12 @@ const WRITE_ROLES = ['System Admin', 'HR Manager', 'Recruiter'];
 
 // ── Column visibility ──────────────────────────────────────────────────────
 type ColKey =
-  | 'title' | 'category' | 'city' | 'country' | 'contractType'
+  | 'title' | 'tenant' | 'category' | 'city' | 'country' | 'contractType'
   | 'status' | 'applicants' | 'createdAt' | 'updatedAt' | 'slug';
 
 const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
   { key: 'title',        labelKey: 'jobAds.list.cols.title' },
+  { key: 'tenant',       labelKey: 'jobAds.list.cols.tenant' },
   { key: 'category',     labelKey: 'jobAds.list.cols.category' },
   { key: 'city',         labelKey: 'jobAds.list.cols.city' },
   { key: 'country',      labelKey: 'jobAds.list.cols.country' },
@@ -45,7 +46,7 @@ const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
-  title: true, category: true, city: true, country: true, contractType: true,
+  title: true, tenant: true, category: true, city: true, country: true, contractType: true,
   status: true, applicants: true, createdAt: true,
   updatedAt: false, slug: false,
 };
@@ -71,6 +72,10 @@ export function JobAdsList() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const canWrite = WRITE_ROLES.includes(currentUser?.role ?? '');
+  // Phase 3.18 — only PlatformAdmin viewers see the Tenant column.
+  // Other viewers are already scoped to one tenant on the backend.
+  const isPlatformAdminViewer =
+    !!currentUser?.agencyIsSystem || currentUser?.platformAdmin?.level === 'SUPER';
 
   const [ads, setAds] = useState<any[]>([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 1 });
@@ -394,7 +399,7 @@ export function JobAdsList() {
                 <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('jobAds.list.toggleColumns')}</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
-                    {ALL_COLUMNS.map(c => (
+                    {ALL_COLUMNS.filter(c => c.key !== 'tenant' || isPlatformAdminViewer).map(c => (
                       <button
                         key={c.key}
                         onClick={() => toggleColumn(c.key)}
@@ -438,6 +443,11 @@ export function JobAdsList() {
           <thead>
             <tr className="border-b bg-muted/40">
               {col('title')        && <SortableHead label={t('jobAds.list.cols.title')}        field="title" />}
+              {isPlatformAdminViewer && col('tenant') && (
+                <th className="px-4 py-3 text-start font-medium text-muted-foreground">
+                  {t('jobAds.list.cols.tenant', { defaultValue: 'Tenant' })}
+                </th>
+              )}
               {col('category')     && <SortableHead label={t('jobAds.list.cols.category')}     field="category" />}
               {col('city')         && <SortableHead label={t('jobAds.list.cols.city')}         field="city" />}
               {col('country')      && <SortableHead label={t('jobAds.list.cols.country')}      field="country" />}
@@ -478,6 +488,16 @@ export function JobAdsList() {
                     <td className="px-4 py-3">
                       <div className="font-medium text-foreground line-clamp-1">{ad.title}</div>
                       <div className="text-xs text-muted-foreground">/{ad.slug}</div>
+                    </td>
+                  )}
+                  {isPlatformAdminViewer && col('tenant') && (
+                    <td className="px-4 py-3 text-sm">
+                      {ad.tenant ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="font-medium">{ad.tenant.name}</span>
+                          <span className="text-muted-foreground text-xs font-mono">/{ad.tenant.slug}</span>
+                        </span>
+                      ) : <span className="text-muted-foreground italic text-xs">no tenant</span>}
                     </td>
                   )}
                   {col('category')     && <td className="px-4 py-3 text-muted-foreground">{ad.category ?? '—'}</td>}

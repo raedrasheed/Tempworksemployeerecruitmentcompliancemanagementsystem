@@ -4178,6 +4178,7 @@
       "footerPage": "Page {{page}} of {{totalPages}}",
       "cols": {
         "title": "Title",
+        "tenant": "Tenant",
         "category": "Category",
         "city": "City",
         "country": "Country",

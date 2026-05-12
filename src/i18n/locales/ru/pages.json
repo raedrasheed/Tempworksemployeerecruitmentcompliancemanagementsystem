@@ -4228,6 +4228,7 @@
       "footerPage": "Страница {{page}} из {{totalPages}}",
       "cols": {
         "title": "Название",
+        "tenant": "Тенант",
         "category": "Категория",
         "city": "Город",
         "country": "Страна",

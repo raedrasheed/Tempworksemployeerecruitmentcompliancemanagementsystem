@@ -4184,6 +4184,7 @@
       "footerPage": "Seite {{page}} von {{totalPages}}",
       "cols": {
         "title": "Titel",
+        "tenant": "Mandant",
         "category": "Kategorie",
         "city": "Stadt",
         "country": "Land",

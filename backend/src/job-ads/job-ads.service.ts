@@ -140,7 +140,29 @@ export class JobAdsService {
       this.prisma.jobAd.count({ where }), // @tenant-reviewed: phase29-pilot-scope
     ]);
 
-    return PaginatedResponse.create(items, total, Number(page), Number(limit));
+    // Phase 3.18 — when the caller is a PlatformAdmin (sees every
+    // tenant's ads), attach a `tenant: { id, name, slug }` object to
+    // each row so the dashboard list can render a tenant column.
+    // Other callers are already scoped to a single tenant; surfacing
+    // the same name is harmless but unnecessary.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    let enriched = items as any[];
+    if (caller?.agencyIsSystem) {
+      const ids = Array.from(new Set(items.map((r: any) => r.tenantId).filter(Boolean)));
+      if (ids.length) {
+        const tenants = await this.prisma.tenant.findMany({
+          where: { id: { in: ids as string[] } },
+          select: { id: true, name: true, slug: true },
+        }).catch(() => []);
+        const byId = new Map<string, any>(tenants.map((t: any): [string, any] => [t.id, t]));
+        enriched = items.map((r: any) => ({
+          ...r,
+          tenant: r.tenantId ? byId.get(r.tenantId) ?? null : null,
+        }));
+      }
+    }
+
+    return PaginatedResponse.create(enriched, total, Number(page), Number(limit));
   }
 
   // ── Public listing (only PUBLISHED, no auth required) ────────────────────────
@@ -262,7 +284,16 @@ export class JobAdsService {
       },
     });
     if (!ad) throw new NotFoundException(`Job ad ${id} not found`);
-    return { ...ad, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
+    // Phase 3.18 — attach the owning tenant for PlatformAdmin viewers so
+    // the detail page can show which tenant a Job Ad belongs to.
+    let tenant: any = null;
+    if (caller?.agencyIsSystem && (ad as any).tenantId) {
+      tenant = await this.prisma.tenant.findUnique({
+        where: { id: (ad as any).tenantId },
+        select: { id: true, name: true, slug: true },
+      }).catch(() => null);
+    }
+    return { ...ad, tenant, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
   }
 
   // ── Create ────────────────────────────────────────────────────────────────────

@@ -4227,6 +4227,7 @@
       "footerPage": "Strana {{page}} z {{totalPages}}",
       "cols": {
         "title": "Názov",
+        "tenant": "Nájomca",
         "category": "Kategória",
         "city": "Mesto",
         "country": "Krajina",

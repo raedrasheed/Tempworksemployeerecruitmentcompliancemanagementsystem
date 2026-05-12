@@ -4268,6 +4268,7 @@
       "footerPage": "الصفحة {{page}} من {{totalPages}}",
       "cols": {
         "title": "العنوان",
+        "tenant": "المستأجر",
         "category": "الفئة",
         "city": "المدينة",
         "country": "الدولة",

@@ -4184,6 +4184,7 @@
       "footerPage": "{{page}} / {{totalPages}}",
       "cols": {
         "title": "Başlık",
+        "tenant": "Kiracı",
         "category": "Kategori",
         "city": "Şehir",
         "country": "Ülke",

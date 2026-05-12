@@ -75,6 +75,16 @@ export interface AuthUser {
   photoUrl?: string;
   /** Phase 3.15 — PlatformAdmin level driving Platform Administration nav. */
   platformAdmin?: { level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER' };
+  /** Phase 3.17 — every ACTIVE tenant membership for this user. The topbar
+   *  renders a switcher when this list has more than one entry. */
+  memberships?: Array<{
+    membershipId: string;
+    tenantId: string;
+    slug: string;
+    name: string;
+    status: string;
+    joinedAt: string | null;
+  }>;
 }
 
 export interface TenantRecord {
@@ -2001,4 +2011,31 @@ export const tenantsApi = {
   restore: (id: string) => apiFetch<TenantRecord>(`/tenants/${id}/restore`,  { method: 'POST' }),
   remove:  (id: string, force = false) =>
     apiFetch<TenantRecord>(`/tenants/${id}${force ? '?force=true' : ''}`, { method: 'DELETE' }),
+
+  // Phase 3.17 — tenant membership management.
+  listMemberships:  (id: string) =>
+    apiFetch<Array<{
+      id: string; status: string; userId: string;
+      joinedAt: string | null; invitedAt: string | null;
+      user: { id: string; email: string; firstName: string; lastName: string; status: string } | null;
+    }>>(`/tenants/${id}/memberships`),
+  grantMembership:  (id: string, userId: string) =>
+    apiFetch<{ id: string; status: string }>(
+      `/tenants/${id}/memberships`,
+      { method: 'POST', body: JSON.stringify({ userId }) },
+    ),
+  revokeMembership: (id: string, userId: string) =>
+    apiFetch<{ id: string; status: string }>(
+      `/tenants/${id}/memberships/${userId}`,
+      { method: 'DELETE' },
+    ),
+};
+
+// Phase 3.17 — switch the active tenant for the current session.
+export const authTenantApi = {
+  switch: (tenantId: string) =>
+    apiFetch<{ accessToken: string; refreshToken: string; tenantId: string; membershipId: string }>(
+      '/auth/switch-tenant',
+      { method: 'POST', body: JSON.stringify({ tenantId }) },
+    ),
 };

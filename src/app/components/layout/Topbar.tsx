@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { authApi, getCurrentUser, setCurrentUser, notificationsApi, resolveAssetUrl, type AuthUser } from '../../services/api';
+import { authApi, authTenantApi, getCurrentUser, setCurrentUser, setTokens, notificationsApi, resolveAssetUrl, type AuthUser } from '../../services/api';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
@@ -511,6 +511,48 @@ export function Topbar() {
               <Lock className="w-4 h-4" />
               <span>{t('topbar.changePassword')}</span>
             </DropdownMenuItem>
+
+            {/* Phase 3.17 — tenant switcher. Only rendered when the user
+                has more than one ACTIVE TenantMembership. The active
+                tenant is highlighted; clicking another fetches a fresh
+                JWT bound to that tenant and reloads /auth/me. */}
+            {(liveUser?.memberships?.length ?? 0) > 1 && (
+              <>
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {t('topbar.switchTenant', { defaultValue: 'Switch tenant' })}
+                </div>
+                {liveUser!.memberships!.map((m) => {
+                  const active = (liveUser as any)?.tenantId === m.tenantId;
+                  return (
+                    <DropdownMenuItem
+                      key={m.tenantId}
+                      className="cursor-pointer"
+                      onClick={async () => {
+                        if (active) return;
+                        try {
+                          const res = await authTenantApi.switch(m.tenantId);
+                          setTokens(res.accessToken, res.refreshToken);
+                          const me = await authApi.me();
+                          if (me) {
+                            setCurrentUser(me);
+                            updateUser?.(me);
+                          }
+                          // Hard reload so sidebar/branding/etc. pick up the new context cleanly.
+                          window.location.assign('/dashboard');
+                        } catch {
+                          // setTokens has already been swapped only on success path.
+                        }
+                      }}
+                    >
+                      <Building2 className="w-4 h-4" />
+                      <span className="flex-1 truncate">{m.name}</span>
+                      {active && <span className="text-[10px] text-blue-600">{t('topbar.tenantActive', { defaultValue: 'active' })}</span>}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </>
+            )}
 
             <DropdownMenuSeparator />
 

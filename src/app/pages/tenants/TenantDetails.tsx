@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Edit, Archive, Power, Trash2, RotateCcw } from 'lucide-react';
+import { Edit, Archive, Power, Trash2, RotateCcw, UserPlus, X } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { tenantsApi, getCurrentUser, type TenantRecord } from '../../services/api';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { tenantsApi, usersApi, getCurrentUser, type TenantRecord } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
@@ -98,6 +100,7 @@ export function TenantDetails() {
           <TabsTrigger value="general">{t('tenants.tabs.general')}</TabsTrigger>
           <TabsTrigger value="branding">{t('tenants.tabs.branding')}</TabsTrigger>
           <TabsTrigger value="access">{t('tenants.tabs.access')}</TabsTrigger>
+          <TabsTrigger value="members">{t('tenants.tabs.members', { defaultValue: 'Members' })}</TabsTrigger>
           <TabsTrigger value="stats">{t('tenants.tabs.stats')}</TabsTrigger>
           <TabsTrigger value="flags">{t('tenants.tabs.flags')}</TabsTrigger>
         </TabsList>
@@ -134,6 +137,10 @@ export function TenantDetails() {
             <Row label={t('tenants.fields.planId')} value={tenant.planId} />
             <Row label={t('tenants.fields.onboardingStatus')} value={tenant.onboardingStatus} />
           </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="members">
+          <MembersTab tenantId={tenant.id} canManage={isSuper} />
         </TabsContent>
 
         <TabsContent value="stats">
@@ -183,5 +190,169 @@ function StatBox({ label, value }: { label: string; value: number }) {
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-2xl font-semibold">{value}</div>
     </div>
+  );
+}
+
+// Phase 3.17 — TenantMembership management UI.
+// @tenant-reviewed: phase317-multi-tenant-login
+type MembershipRow = Awaited<ReturnType<typeof tenantsApi.listMemberships>>[number];
+
+function MembersTab({ tenantId, canManage }: { tenantId: string; canManage: boolean }) {
+  const { t } = useTranslation('pages');
+  const [rows, setRows] = useState<MembershipRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [grantingId, setGrantingId] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    tenantsApi.listMemberships(tenantId)
+      .then((data) => setRows(data))
+      .catch((err) => toast.error(apiError(err)))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, [tenantId]);
+
+  // Lazy user search — only fires when the input is non-empty.
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < 2) { setCandidates([]); return; }
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      usersApi.list?.({ search: q, page: 1, limit: 10 })
+        .then((res: any) => { if (!cancelled) setCandidates(res?.data ?? []); })
+        .catch(() => { if (!cancelled) setCandidates([]); });
+    }, 250);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [search]);
+
+  const memberUserIds = new Set(
+    rows.filter(r => r.status === 'ACTIVE').map(r => r.userId),
+  );
+
+  const grant = async (userId: string) => {
+    setGrantingId(userId);
+    try {
+      await tenantsApi.grantMembership(tenantId, userId);
+      toast.success(t('tenants.members.toastGranted', { defaultValue: 'Tenant access granted' }));
+      setSearch(''); setCandidates([]);
+      load();
+    } catch (err) {
+      toast.error(apiError(err));
+    } finally { setGrantingId(null); }
+  };
+
+  const revoke = async (row: MembershipRow) => {
+    const name = row.user ? `${row.user.firstName} ${row.user.lastName}` : row.userId;
+    if (!await confirm({
+      title: t('tenants.members.confirmRevokeTitle', { defaultValue: 'Revoke tenant access?' }),
+      description: t('tenants.members.confirmRevokeDesc', { defaultValue: `${name} will no longer be able to sign in to this tenant.` }),
+      variant: 'destructive',
+    })) return;
+    try {
+      await tenantsApi.revokeMembership(tenantId, row.userId);
+      toast.success(t('tenants.members.toastRevoked', { defaultValue: 'Tenant access revoked' }));
+      load();
+    } catch (err) { toast.error(apiError(err)); }
+  };
+
+  return (
+    <Card>
+      <CardContent className="py-6 space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-medium">{t('tenants.members.title', { defaultValue: 'Tenant Members' })}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t('tenants.members.subtitle', { defaultValue: 'Users who can sign in to this tenant via /auth/login-v2.' })}
+            </p>
+          </div>
+          <Badge variant="outline" className="bg-slate-50 text-slate-800 border-slate-300">
+            {rows.filter(r => r.status === 'ACTIVE').length} active
+          </Badge>
+        </div>
+
+        {canManage && (
+          <div className="rounded-md border p-3 space-y-2">
+            <label className="text-xs font-medium">
+              {t('tenants.members.grantLabel', { defaultValue: 'Grant tenant access to a user' })}
+            </label>
+            <div className="relative">
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t('tenants.members.searchPlaceholder', { defaultValue: 'Search by name or email…' })}
+              />
+              {candidates.length > 0 && (
+                <div className="absolute z-10 left-0 right-0 mt-1 bg-white border rounded-md shadow-md max-h-60 overflow-auto">
+                  {candidates.map((u: any) => {
+                    const already = memberUserIds.has(u.id);
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        disabled={already || grantingId === u.id}
+                        onClick={() => grant(u.id)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span>
+                          <span className="font-medium">{u.firstName} {u.lastName}</span>
+                          <span className="text-muted-foreground ms-2">{u.email}</span>
+                        </span>
+                        {already
+                          ? <span className="text-xs text-muted-foreground">{t('tenants.members.alreadyMember', { defaultValue: 'already a member' })}</span>
+                          : <UserPlus className="w-4 h-4 text-blue-600" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('tenants.members.cols.user', { defaultValue: 'User' })}</TableHead>
+              <TableHead>{t('tenants.members.cols.email', { defaultValue: 'Email' })}</TableHead>
+              <TableHead>{t('tenants.members.cols.status', { defaultValue: 'Status' })}</TableHead>
+              <TableHead>{t('tenants.members.cols.joinedAt', { defaultValue: 'Joined' })}</TableHead>
+              <TableHead className="text-end">{t('tenants.members.cols.actions', { defaultValue: 'Actions' })}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading && (
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{t('tenants.list.loading')}</TableCell></TableRow>
+            )}
+            {!loading && rows.length === 0 && (
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{t('tenants.members.empty', { defaultValue: 'No members yet.' })}</TableCell></TableRow>
+            )}
+            {!loading && rows.map((r) => (
+              <TableRow key={r.id} className={r.status === 'REMOVED' ? 'opacity-60' : ''}>
+                <TableCell className="font-medium">{r.user ? `${r.user.firstName} ${r.user.lastName}` : r.userId}</TableCell>
+                <TableCell className="text-sm">{r.user?.email ?? '—'}</TableCell>
+                <TableCell>
+                  <Badge className={
+                    r.status === 'ACTIVE'    ? 'bg-green-500' :
+                    r.status === 'INVITED'   ? 'bg-amber-500' :
+                    r.status === 'SUSPENDED' ? 'bg-red-500'   :
+                    'bg-gray-500'
+                  }>{r.status}</Badge>
+                </TableCell>
+                <TableCell className="text-sm">{r.joinedAt ? new Date(r.joinedAt).toLocaleDateString() : '—'}</TableCell>
+                <TableCell className="text-end">
+                  {canManage && r.status === 'ACTIVE' && (
+                    <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => revoke(r)} title={t('tenants.members.revoke', { defaultValue: 'Revoke access' })}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

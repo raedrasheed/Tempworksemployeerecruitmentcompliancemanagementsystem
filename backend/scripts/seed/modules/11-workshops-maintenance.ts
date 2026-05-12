@@ -74,11 +74,14 @@ export async function seedMaintenanceTypes(): Promise<SeededMaintenanceType[]> {
           select: { id: true },
         })
       : await prisma.maintenanceType.create({
+          // `intervalMode` deliberately omitted — the column is optional
+          // with a KM default, and some dev DBs predate the enum
+          // migration. The schema's default applies when present and
+          // the field is simply skipped when not.
           data: {
             id, name: m.name, description: `${m.name} service`,
             defaultIntervalDays: m.intervalDays ?? null,
             defaultIntervalKm: m.intervalKm ?? null,
-            intervalMode: m.intervalDays && !m.intervalKm ? 'DAYS' : m.intervalKm && !m.intervalDays ? 'KM' : 'BOTH',
             isActive: true,
           } as any,
           select: { id: true },

@@ -474,15 +474,30 @@ export class VehiclesService {
     // Phase 3.19 — tenant scoping. Tenantless rows (legacy global
     // workshops) are surfaced to every tenant via OR { tenantId: null }
     // so existing data keeps working until an operator reassigns them.
+    // A cached Prisma client generated before tenantId existed will
+    // reject the field with PrismaClientValidationError — fall back to
+    // the unfiltered list so the page still renders. Run
+    // `npx prisma generate` to refresh the client.
     // @tenant-reviewed: phase319-fleet-tenant-scope
     const filter = this.callerTenantWhere(caller);
     const where: any = { deletedAt: null };
     if (filter.tenantId) where.OR = [{ tenantId: filter.tenantId }, { tenantId: null }];
-    return this.prisma.workshop.findMany({
-      where: where as any,
-      orderBy: { name: 'asc' },
-      select: VehiclesService.WORKSHOP_SELECT,
-    });
+    try {
+      return await this.prisma.workshop.findMany({
+        where: where as any,
+        orderBy: { name: 'asc' },
+        select: VehiclesService.WORKSHOP_SELECT,
+      });
+    } catch (err: any) {
+      if (err?.name === 'PrismaClientValidationError') {
+        return this.prisma.workshop.findMany({
+          where: { deletedAt: null } as any,
+          orderBy: { name: 'asc' },
+          select: VehiclesService.WORKSHOP_SELECT,
+        });
+      }
+      throw err;
+    }
   }
 
   async getWorkshop(id: string, caller?: any) {

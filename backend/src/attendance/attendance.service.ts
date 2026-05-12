@@ -87,6 +87,21 @@ export class AttendanceService {
     return getPilotScope(this.pilot, 'attendance');
   }
 
+  /**
+   * Phase 3.18 — caller-driven tenant filter. PlatformAdmin bypasses
+   * the filter; everyone else sees only their own tenant's employees.
+   * Falls back to `{}` when no tenant context is present so legacy
+   * single-tenant deployments behave exactly like before.
+   * @tenant-reviewed: phase318-tenant-public-jobs
+   */
+  private callerTenantWhere(caller: any): Record<string, any> {
+    if (!caller) return {};
+    if (caller.agencyIsSystem) return {};
+    const t = caller.tenantId;
+    if (!t) return {};
+    return { tenantId: t };
+  }
+
   /** Mutation parent gate. Loads the employee through the pilot
    *  client with `tenantWhere()` so cross-tenant ids raise 404 when
    *  the pilot is active. Legacy mode (`tenantWhere() === {}`) reduces
@@ -113,7 +128,7 @@ export class AttendanceService {
 
   // ── List employees with attendance stats ─────────────────────────────────────
 
-  async listEmployeesWithStats(dto: FilterAttendanceEmployeesDto): Promise<PaginatedResponse<any>> {
+  async listEmployeesWithStats(dto: FilterAttendanceEmployeesDto, caller?: any): Promise<PaginatedResponse<any>> {
     const {
       page = 1,
       limit = 20,
@@ -131,7 +146,7 @@ export class AttendanceService {
 
     // Build employee where clause
     const tenantWhere = this.scope().tenantWhere();
-    const where: any = { deletedAt: null, ...tenantWhere }; // @tenant-reviewed: phase247-attendance-pilot-scope
+    const where: any = { deletedAt: null, ...tenantWhere, ...this.callerTenantWhere(caller) }; // @tenant-reviewed: phase318-tenant-public-jobs
 
     if (agencyId) where.agencyId = agencyId;
 
@@ -256,10 +271,10 @@ export class AttendanceService {
 
   // ── Get single employee attendance ──────────────────────────────────────────
 
-  async getEmployeeAttendance(employeeId: string, dto: GetEmployeeAttendanceDto) {
+  async getEmployeeAttendance(employeeId: string, dto: GetEmployeeAttendanceDto, caller?: any) {
     const tenantWhere = this.scope().tenantWhere();
-    const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase247-attendance-pilot-scope (parent gate)
-      where: { id: employeeId, deletedAt: null, ...tenantWhere },
+    const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase318-tenant-public-jobs
+      where: { id: employeeId, deletedAt: null, ...tenantWhere, ...this.callerTenantWhere(caller) },
       select: {
         id:              true,
         employeeNumber:  true,
@@ -754,7 +769,7 @@ export class AttendanceService {
     return `${h}:${String(m).padStart(2, '0')}`;
   }
 
-  async exportExcel(dto: ExportAttendanceDto, locale: ServerLocale = 'en'): Promise<Buffer> {
+  async exportExcel(dto: ExportAttendanceDto, locale: ServerLocale = 'en', caller?: any): Promise<Buffer> {
     const month = Number(dto.month);
     const year  = Number(dto.year);
 
@@ -776,8 +791,9 @@ export class AttendanceService {
     }
 
     const exportTenantWhere = this.scope().tenantWhere(); // @tenant-reviewed: phase248-attendance-export-scope
-    const employees = await this.prisma.employee.findMany({ // @tenant-reviewed: phase248-attendance-export-scope (export filters via pilot scope when active)
-      where: { ...empWhere, ...exportTenantWhere },
+    const callerTenantWhere = this.callerTenantWhere(caller);
+    const employees = await this.prisma.employee.findMany({ // @tenant-reviewed: phase318-tenant-public-jobs
+      where: { ...empWhere, ...exportTenantWhere, ...callerTenantWhere },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
       select: {
         id:              true,

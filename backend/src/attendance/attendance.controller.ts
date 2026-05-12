@@ -19,6 +19,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 const READ_ROLES   = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter'];
 const WRITE_ROLES  = ['System Admin', 'HR Manager', 'Recruiter'];
@@ -39,8 +40,8 @@ export class AttendanceController {
   @Get('employees')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List employees with attendance statistics' })
-  listEmployees(@Query() dto: FilterAttendanceEmployeesDto) {
-    return this.attendanceService.listEmployeesWithStats(dto);
+  listEmployees(@Query() dto: FilterAttendanceEmployeesDto, @CurrentUser() user: any) {
+    return this.attendanceService.listEmployeesWithStats(dto, user);
   }
 
   // GET /attendance/export/excel — Excel export
@@ -50,9 +51,10 @@ export class AttendanceController {
   async exportExcel(
     @Query() dto: ExportAttendanceDto,
     @Res() res: Response,
+    @CurrentUser() user: any,
     @Headers('accept-language') acceptLanguage?: string,
   ) {
-    const buffer    = await this.attendanceService.exportExcel(dto, resolveAcceptLanguage(acceptLanguage));
+    const buffer    = await this.attendanceService.exportExcel(dto, resolveAcceptLanguage(acceptLanguage), user);
     const monthPad  = String(dto.month).padStart(2, '0');
     const filename  = dto.employeeId
       ? `attendance-driver-${dto.year}-${monthPad}.xlsx`
@@ -73,8 +75,9 @@ export class AttendanceController {
   getEmployeeAttendance(
     @Param('employeeId') employeeId: string,
     @Query() dto: GetEmployeeAttendanceDto,
+    @CurrentUser() user: any,
   ) {
-    return this.attendanceService.getEmployeeAttendance(employeeId, dto);
+    return this.attendanceService.getEmployeeAttendance(employeeId, dto, user);
   }
 
   // POST /attendance — upsert single record

@@ -66,6 +66,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       roleId: user.roleId,
       agencyId: user.agencyId,
       agencyIsSystem,
+      // Phase 3.17 — active tenant + membership stamped at login or
+      // tenant-switch time. Undefined on legacy tokens issued before
+      // 3.17 (single-tenant fallback still works).
+      // @tenant-reviewed: phase317-multi-tenant-login
+      tenantId:     payload?.tenantId,
+      membershipId: payload?.membershipId,
     };
   }
 }

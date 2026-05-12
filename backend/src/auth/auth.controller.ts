@@ -74,6 +74,19 @@ export class AuthController {
     return this.authService.loginV2(loginDto, ip);
   }
 
+  // Phase 3.17 — re-issue a JWT bound to a different tenant the user
+  // has an ACTIVE membership in. Requires a valid current session.
+  // @tenant-reviewed: phase317-multi-tenant-login
+  @Post('switch-tenant')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Switch the active tenant for the current session' })
+  @ApiResponse({ status: 200, description: 'New access + refresh tokens bound to the target tenant' })
+  switchTenant(@Body() body: { tenantId: string }, @Req() req: any) {
+    const userId = req?.user?.id ?? req?.user?.sub;
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    return this.authService.switchTenant(userId, body.tenantId, ip);
+  }
+
   // ---------------------------------------------------------------------------
   // Logout
   // ---------------------------------------------------------------------------

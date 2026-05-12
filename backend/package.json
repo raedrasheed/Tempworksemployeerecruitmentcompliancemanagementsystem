@@ -146,6 +146,7 @@
     "saas:phase313-tenant-aware-login":                  "ts-node scripts/saas/phase3/tenant-aware-login.ts",
     "saas:phase314-frontend-tenant-login-check":         "ts-node scripts/saas/phase3/frontend-tenant-login-check.ts",
     "saas:phase315-tenant-management-module":            "ts-node scripts/saas/phase3/tenant-management-module.ts",
+    "saas:phase317-multi-tenant-login":                  "ts-node scripts/saas/phase3/multi-tenant-login.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

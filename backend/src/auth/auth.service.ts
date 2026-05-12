@@ -56,7 +56,7 @@ export class AuthService {
   // Login
   // ---------------------------------------------------------------------------
   async login(
-    loginDto: { agencyId?: string; email: string; password: string },
+    loginDto: { agencyId?: string; email: string; password: string; tenantId?: string; membershipId?: string },
     ipAddress?: string,
   ) {
     const normalizedEmail = loginDto.email.trim().toLowerCase();
@@ -218,7 +218,10 @@ export class AuthService {
       } as any;
     }
 
-    return this.finalizeLogin(user, passwordExpired, ipAddress);
+    return this.finalizeLogin(user, passwordExpired, ipAddress, {
+      tenantId:     loginDto.tenantId,
+      membershipId: loginDto.membershipId,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -259,19 +262,56 @@ export class AuthService {
       throw generic;
     }
 
-    // Resolve user by email + tenant membership via agency.tenantId.
+    // Phase 3.17 — resolve user via TenantMembership (many-to-many) so
+    // one User row can belong to multiple tenants. Falls back to the
+    // legacy `agency.tenantId` join during the transition: if no
+    // membership row exists yet but the user's primary agency already
+    // belongs to the resolved tenant, create the membership row on
+    // the fly so subsequent logins go through the membership path.
+    // @tenant-reviewed: phase317-multi-tenant-login
     const user = await this.prisma.user.findFirst({
-      where: {
-        email,
-        deletedAt: null,
-        agency: { tenantId: tenant.id },
-      },
-      select: { id: true, agencyId: true },
+      where: { email, deletedAt: null },
+      select: { id: true, agencyId: true, agency: { select: { tenantId: true } } },
     });
     if (!user) {
       await this.auditLog.log({
         userEmail: email, action: 'LOGIN_FAILED', entity: 'User', entityId: 'unknown',
-        changes: { reason: 'login-v2: user not in tenant' }, ipAddress,
+        changes: { reason: 'login-v2: user not found' }, ipAddress,
+      }).catch(() => undefined);
+      throw generic;
+    }
+
+    let membership = await (this.prisma as any).tenantMembership.findUnique({
+      where: { userId_tenantId: { userId: user.id, tenantId: tenant.id } },
+      select: { id: true, status: true },
+    }).catch(() => null);
+
+    if (!membership) {
+      // Legacy backfill: the user's primary agency may already pin them
+      // to this tenant. If so, create the membership row transparently.
+      if (user.agency?.tenantId === tenant.id) {
+        try {
+          membership = await (this.prisma as any).tenantMembership.create({
+            data: {
+              userId: user.id, tenantId: tenant.id,
+              status: 'ACTIVE', joinedAt: new Date(),
+            },
+            select: { id: true, status: true },
+          });
+        } catch {
+          // Race: another request just created the row.
+          membership = await (this.prisma as any).tenantMembership.findUnique({
+            where: { userId_tenantId: { userId: user.id, tenantId: tenant.id } },
+            select: { id: true, status: true },
+          }).catch(() => null);
+        }
+      }
+    }
+
+    if (!membership || membership.status !== 'ACTIVE') {
+      await this.auditLog.log({
+        userEmail: email, action: 'LOGIN_FAILED', entity: 'User', entityId: user.id,
+        changes: { reason: 'login-v2: no active tenant membership', tenantId: tenant.id }, ipAddress,
       }).catch(() => undefined);
       throw generic;
     }
@@ -279,11 +319,14 @@ export class AuthService {
     // Delegate to existing login flow with agencyId pin so the agency-mismatch
     // path also enforces tenant membership defensively. Translate ANY 401 from
     // the legacy flow into the same generic message — no information leakage.
+    // The tenant + membership context is stamped onto the issued JWT via
+    // `generateTokens` below.
     try {
-      return await this.login(
-        { email, password: dto.password, agencyId: user.agencyId },
+      const result = await this.login(
+        { email, password: dto.password, agencyId: user.agencyId, tenantId: tenant.id, membershipId: membership.id },
         ipAddress,
       );
+      return result;
     } catch (err: any) {
       if (err instanceof UnauthorizedException) throw generic;
       throw err;
@@ -407,6 +450,7 @@ export class AuthService {
     user: { id: string; email: string; firstName: string; lastName: string; agencyId: string; role: { name: string }; agency?: any },
     passwordExpired: boolean,
     ipAddress?: string,
+    session?: { tenantId?: string; membershipId?: string },
   ) {
     await this.prisma.user.update({
       where: { id: user.id },
@@ -422,7 +466,11 @@ export class AuthService {
       ipAddress,
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role.name);
+    const tokens = await this.generateTokens(
+      user.id, user.email, user.role.name,
+      session?.tenantId ?? (user as any).agency?.tenantId ?? undefined,
+      session?.membershipId,
+    );
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
     await this.prisma.user.update({
       where: { id: user.id },
@@ -627,6 +675,30 @@ export class AuthService {
           where: { userId: user.id }, select: { level: true },
         }).catch(() => null);
         return { level: pa?.level ?? 'NONE' };
+      })(),
+      // Phase 3.17 — list every tenant this user can switch into.
+      // Used by the topbar tenant picker. Empty for legacy users until
+      // they log in once via /auth/login-v2 (the auto-backfill on
+      // loginV2 creates the membership row on first login).
+      // @tenant-reviewed: phase317-multi-tenant-login
+      memberships: await (async () => {
+        try {
+          const rows = await (this.prisma as any).tenantMembership.findMany({
+            where: { userId: user.id, status: 'ACTIVE' },
+            select: {
+              id: true, tenantId: true, joinedAt: true,
+              tenant: { select: { id: true, slug: true, name: true, status: true } },
+            },
+          });
+          return rows.map((r: any) => ({
+            membershipId: r.id,
+            tenantId:     r.tenantId,
+            slug:         r.tenant?.slug,
+            name:         r.tenant?.name,
+            status:       r.tenant?.status,
+            joinedAt:     r.joinedAt,
+          }));
+        } catch { return []; }
       })(),
       permissions: effectivePermissions,
       status: user.status,
@@ -993,10 +1065,61 @@ export class AuthService {
   }
 
   // ---------------------------------------------------------------------------
+  // Phase 3.17 — switch the active tenant for an already-authenticated user.
+  // Returns a fresh JWT bound to the target tenant + membership. Rejects
+  // when the user has no active membership in the requested tenant.
+  // @tenant-reviewed: phase317-multi-tenant-login
+  // ---------------------------------------------------------------------------
+  async switchTenant(userId: string, tenantId: string, ipAddress?: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null, status: 'ACTIVE' },
+      include: { role: true },
+    });
+    if (!user) throw new UnauthorizedException({ code: 'AUTH.USER_NOT_FOUND' });
+
+    const membership = await (this.prisma as any).tenantMembership.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      select: { id: true, status: true },
+    }).catch(() => null);
+    if (!membership || membership.status !== 'ACTIVE') {
+      throw new UnauthorizedException({ code: 'AUTH.TENANT_MEMBERSHIP_REQUIRED' });
+    }
+
+    const tokens = await this.generateTokens(
+      user.id, user.email, user.role.name, tenantId, membership.id,
+    );
+    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
+    await this.prisma.user.update({ where: { id: user.id }, data: { refreshToken: refreshTokenHash } });
+
+    await this.auditLog.log({
+      userId, userEmail: user.email, action: 'TENANT_SWITCH', entity: 'User',
+      entityId: user.id, changes: { tenantId }, ipAddress,
+    }).catch(() => undefined);
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tenantId,
+      membershipId: membership.id,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // Token generation
   // ---------------------------------------------------------------------------
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    tenantId?: string,
+    membershipId?: string,
+  ) {
+    // Phase 3.17 — JWT now carries the active tenant + membership so
+    // tenant-aware routes can authorise without a second DB hop.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    const payload: Record<string, any> = { sub: userId, email, role };
+    if (tenantId)     payload.tenantId     = tenantId;
+    if (membershipId) payload.membershipId = membershipId;
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {

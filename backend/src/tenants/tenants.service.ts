@@ -349,4 +349,94 @@ export class TenantsService {
     await this.emitAudit({ actorId, action: 'TENANT_RESTORED', tenantId: id, previous: { status: t.status }, next: { status: 'ACTIVE' } });
     return this.shape(updated);
   }
+
+  // ─── Phase 3.17 — TenantMembership management ─────────────────────────────
+  // One User can belong to many Tenants. The membership row is what
+  // gates /auth/login-v2 + /auth/switch-tenant.
+  // @tenant-reviewed: phase317-multi-tenant-login
+
+  async listMemberships(tenantId: string) {
+    const t = await (this.prisma as any).tenant.findUnique({ where: { id: tenantId }, select: { id: true } });
+    if (!t) throw new NotFoundException({ code: 'TENANT.NOT_FOUND' });
+    const rows = await (this.prisma as any).tenantMembership.findMany({
+      where: { tenantId },
+      select: {
+        id: true, status: true, joinedAt: true, invitedAt: true,
+        userId: true,
+      },
+      orderBy: { joinedAt: 'desc' },
+    });
+    const userIds = rows.map((r: any) => r.userId);
+    const users = userIds.length
+      ? await (this.prisma as any).user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, email: true, firstName: true, lastName: true, status: true },
+        })
+      : [];
+    const byId = new Map<string, any>(users.map((u: any) => [u.id, u]));
+    return rows.map((r: any) => ({
+      ...r,
+      user: byId.get(r.userId) ?? null,
+    }));
+  }
+
+  async grantMembership(tenantId: string, userId: string, actorId: string) {
+    const t = await (this.prisma as any).tenant.findUnique({ where: { id: tenantId }, select: { id: true } });
+    if (!t) throw new NotFoundException({ code: 'TENANT.NOT_FOUND' });
+    const u = await (this.prisma as any).user.findUnique({ where: { id: userId }, select: { id: true, email: true } });
+    if (!u) throw new NotFoundException({ code: 'USER.NOT_FOUND' });
+
+    const existing = await (this.prisma as any).tenantMembership.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      select: { id: true, status: true },
+    }).catch(() => null);
+
+    let row: any;
+    let action = 'TENANT_MEMBERSHIP_GRANT_IDEMPOTENT';
+    if (existing && existing.status === 'ACTIVE') {
+      row = existing;
+    } else if (existing) {
+      row = await (this.prisma as any).tenantMembership.update({
+        where: { id: existing.id },
+        data: { status: 'ACTIVE', joinedAt: new Date() },
+      });
+      action = 'TENANT_MEMBERSHIP_REACTIVATED';
+    } else {
+      row = await (this.prisma as any).tenantMembership.create({
+        data: { userId, tenantId, status: 'ACTIVE', invitedBy: actorId, joinedAt: new Date() },
+      });
+      action = 'TENANT_MEMBERSHIP_GRANTED';
+    }
+
+    await this.emitAudit({
+      actorId, action, tenantId,
+      next: { userId, email: u.email, membershipId: row.id, status: 'ACTIVE' },
+    });
+    return row;
+  }
+
+  async revokeMembership(tenantId: string, userId: string, actorId: string) {
+    const existing = await (this.prisma as any).tenantMembership.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      select: { id: true, status: true },
+    }).catch(() => null);
+    if (!existing) throw new NotFoundException({ code: 'TENANT.MEMBERSHIP_NOT_FOUND' });
+
+    // Refuse to remove the last platform-admin tether to a tenant — if
+    // the membership being revoked is the actor's own and they hold
+    // SUPER, they'd lock themselves out. Cheap guard:
+    if (userId === actorId) {
+      throw new ForbiddenException({ code: 'TENANT.SELF_REVOKE_FORBIDDEN' });
+    }
+
+    const updated = await (this.prisma as any).tenantMembership.update({
+      where: { id: existing.id },
+      data: { status: 'REMOVED' },
+    });
+    await this.emitAudit({
+      actorId, action: 'TENANT_MEMBERSHIP_REVOKED', tenantId,
+      previous: { status: existing.status }, next: { userId, status: 'REMOVED' },
+    });
+    return updated;
+  }
 }

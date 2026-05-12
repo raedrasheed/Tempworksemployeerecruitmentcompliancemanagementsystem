@@ -32,8 +32,15 @@ export function LoginPage() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
 
-  const proceedAfterLogin = (result: any) => {
+  const proceedAfterLogin = async (result: any) => {
     toast.success(t('login.welcomeBack'));
+    // Phase 3.17 — tenant changed (we just signed in). Drop any cached
+    // /settings/branding response so the dashboard renders the right
+    // tenant's logo + name on the first paint after login.
+    try {
+      const mod = await import('../../hooks/useBranding');
+      mod.invalidateBrandingCache?.();
+    } catch { /* missing in minimal build */ }
     if (result?.passwordExpired) {
       navigate('/change-password', {
         state: { message: t('login.passwordExpiredMessage') },

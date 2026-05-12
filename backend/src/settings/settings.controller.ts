@@ -277,8 +277,32 @@ export class SettingsController {
   // Branding
   @Public()
   @Get('branding')
-  @ApiOperation({ summary: 'Get company branding settings (public)' })
-  getBranding() { return this.settingsService.getBranding(); }
+  @ApiOperation({ summary: 'Get company branding settings (public; overlays the active tenant\'s branding)' })
+  @ApiQuery({ name: 'tenant', required: false, description: 'Tenant slug or customDomain — overrides whatever the JWT carries' })
+  getBranding(@Req() req: Request, @Query('tenant') tenantHint?: string) {
+    // Phase 3.17 — tenant-aware branding. Pulls the active tenantId from
+    // the bearer JWT if present (best-effort decode, no signature
+    // verification — this is a public endpoint). Falls back to the
+    // optional ?tenant=<slug-or-domain> query hint, then to the global
+    // system defaults.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    let tenantIdFromJwt: string | null = null;
+    const auth = (req.headers['authorization'] as string | undefined) ?? '';
+    const m = /^Bearer\s+(.+)$/i.exec(auth);
+    if (m) {
+      try {
+        const parts = m[1].split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+          tenantIdFromJwt = typeof payload?.tenantId === 'string' ? payload.tenantId : null;
+        }
+      } catch { tenantIdFromJwt = null; }
+    }
+    return this.settingsService.getBranding({
+      tenantId: tenantIdFromJwt ?? undefined,
+      tenantHint: tenantHint ?? undefined,
+    });
+  }
 
   @Post('branding/logo')
   @Roles('System Admin')

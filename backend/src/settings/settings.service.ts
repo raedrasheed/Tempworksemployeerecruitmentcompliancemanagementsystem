@@ -140,8 +140,8 @@ export class SettingsService {
   }
 
   // ─── Branding ────────────────────────────────────────────────────────────────
-  async getBranding(): Promise<Record<string, string>> {
-    // Query by key prefix — batchUpdate may store with a different category
+  async getBranding(opts?: { tenantId?: string; tenantHint?: string }): Promise<Record<string, string>> {
+    // System defaults from system_settings (legacy single-tenant path).
     const settings = await this.prisma.systemSetting.findMany({
       where: { key: { startsWith: 'branding.' } },
     });
@@ -149,6 +149,47 @@ export class SettingsService {
     for (const s of settings) {
       result[s.key.replace('branding.', '')] = s.value;
     }
+
+    // Phase 3.17 — overlay the active tenant's branding so each tenant
+    // can show its own logo, primary color, and display name. The
+    // Tenant model stores these on the existing `branding Json?` column
+    // (see Phase 3.15). Falls back silently when no tenant is resolved
+    // so single-tenant deployments keep the old behaviour.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    let tenant: any = null;
+    try {
+      if (opts?.tenantId) {
+        tenant = await (this.prisma as any).tenant.findUnique({
+          where: { id: opts.tenantId },
+          select: { id: true, name: true, slug: true, branding: true },
+        });
+      } else if (opts?.tenantHint) {
+        const hint = opts.tenantHint.trim().toLowerCase();
+        tenant = await (this.prisma as any).tenant.findFirst({
+          where: { OR: [{ slug: hint }, { customDomain: hint }] },
+          select: { id: true, name: true, slug: true, branding: true },
+        });
+      }
+    } catch { tenant = null; }
+
+    if (tenant) {
+      const b: any = tenant.branding ?? {};
+      // companyName: the tenant's display name takes precedence.
+      result.companyName = tenant.name || result.companyName;
+      // Logo + primary colour come straight from Tenant.branding when set.
+      if (typeof b.logoUrl === 'string' && b.logoUrl)        result.logoUrl      = b.logoUrl;
+      if (typeof b.primaryColor === 'string' && b.primaryColor) result.primaryColor = b.primaryColor;
+      // Optional copy fields — only override when the tenant has set them.
+      for (const k of ['tagline', 'heroBadge', 'heroHeadline', 'heroDescription',
+                       'address', 'phone1', 'phone2',
+                       'emailInfo', 'emailRecruitment', 'emailSupport',
+                       'linkedIn', 'facebook', 'footerTagline', 'vatInfo']) {
+        if (typeof b[k] === 'string' && b[k]) result[k] = b[k];
+      }
+      result.tenantId   = tenant.id;
+      result.tenantSlug = tenant.slug;
+    }
+
     return result;
   }
 

@@ -534,6 +534,15 @@ export function Topbar() {
                         try {
                           const res = await authTenantApi.switch(m.tenantId);
                           setTokens(res.accessToken, res.refreshToken);
+                          // Tenant changed → branding may differ. Invalidate
+                          // the cached /settings/branding response before
+                          // we hard-reload so the new logo + name surface
+                          // immediately. Imported lazily to keep this
+                          // dropdown render-pure.
+                          try {
+                            const mod = await import('../../hooks/useBranding');
+                            mod.invalidateBrandingCache?.();
+                          } catch { /* hook missing in a minimal build */ }
                           const me = await authApi.me();
                           if (me) {
                             setCurrentUser(me);

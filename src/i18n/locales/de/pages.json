@@ -621,7 +621,8 @@
         "tier": "Stufe",
         "applied": "Beworben am",
         "status": "Status",
-        "actions": "Aktionen"
+        "actions": "Aktionen",
+        "source": "Quelle"
       },
       "promoteDialog": {
         "title_one": "{{count}} Lead zum Kandidaten befördern",
@@ -646,7 +647,8 @@
         "agency": "Agentur",
         "tier": "Stufe",
         "applied": "Beworben am",
-        "status": "Status"
+        "status": "Status",
+        "source": "Quelle"
       },
       "total": "Gesamt",
       "leads": "Leads",
@@ -726,7 +728,8 @@
         "agency": "Agentur",
         "applied": "Beworben am",
         "status": "Status",
-        "actions": "Aktionen"
+        "actions": "Aktionen",
+        "source": "Quelle"
       },
       "workflowDialog": {
         "title_one": "{{count}} Kandidaten mit Workflow verbinden",

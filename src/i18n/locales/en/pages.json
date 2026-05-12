@@ -754,7 +754,8 @@
         "tier": "Tier",
         "applied": "Applied",
         "status": "Status",
-        "actions": "Actions"
+        "actions": "Actions",
+        "source": "Source"
       },
       "promoteDialog": {
         "title_one": "Promote {{count}} Lead to Candidate",
@@ -788,7 +789,8 @@
         "agency": "Agency",
         "tier": "Tier",
         "applied": "Applied",
-        "status": "Status"
+        "status": "Status",
+        "source": "Source"
       },
       "total": "Total",
       "leads": "Leads",
@@ -921,7 +923,8 @@
         "agency": "Agency",
         "applied": "Applied",
         "status": "Status",
-        "actions": "Actions"
+        "actions": "Actions",
+        "source": "Source"
       },
       "workflowDialog": {
         "title_one": "Connect {{count}} Candidate to a Workflow",

@@ -655,7 +655,7 @@ export function CandidateProfile() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {applicantData.approvalStatus === 'PENDING_APPROVAL' && (
                     <Badge className="bg-amber-100 text-amber-900 border border-amber-300">{t('pages:applicants.profile.candidateApproval.pendingBadge')}</Badge>
                   )}
@@ -665,6 +665,19 @@ export function CandidateProfile() {
                   <Badge className={statusBadgeClass(applicantData.status)}>
                     {enumLabel('applicantStatus', applicantData.status)}
                   </Badge>
+                  {applicantData.applicationSource && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        applicantData.applicationSource.kind === 'JOB_AD'   ? 'bg-blue-50 text-blue-800 border-blue-300'   :
+                        applicantData.applicationSource.kind === 'PUBLIC'   ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                        'bg-slate-50 text-slate-800 border-slate-300'
+                      }
+                      title={applicantData.applicationSource.label}
+                    >
+                      {applicantData.applicationSource.label}
+                    </Badge>
+                  )}
                 </div>
               </div>
 

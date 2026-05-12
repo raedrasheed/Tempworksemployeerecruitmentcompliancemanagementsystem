@@ -629,7 +629,8 @@
         "tier": "Úroveň",
         "applied": "Dátum podania",
         "status": "Stav",
-        "actions": "Akcie"
+        "actions": "Akcie",
+        "source": "Zdroj"
       },
       "promoteDialog": {
         "title_one": "Povýšiť {{count}} záujemcu na kandidáta",
@@ -654,7 +655,8 @@
         "agency": "Agentúra",
         "tier": "Úroveň",
         "applied": "Dátum podania",
-        "status": "Stav"
+        "status": "Stav",
+        "source": "Zdroj"
       },
       "total": "Spolu",
       "leads": "Záujemcovia",
@@ -742,7 +744,8 @@
         "agency": "Agentúra",
         "applied": "Dátum podania",
         "status": "Stav",
-        "actions": "Akcie"
+        "actions": "Akcie",
+        "source": "Zdroj"
       },
       "workflowDialog": {
         "title_one": "Pripojiť {{count}} kandidáta k workflow",

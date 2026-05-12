@@ -167,6 +167,42 @@ export class ApplicantsService {
     };
   }
 
+  /**
+   * Compute the human-readable application source indicator for a row.
+   *
+   *   - jobAd  set                       → JOB_AD       — "Apply from Job Ad: <id> - <title>"
+   *   - source === 'SELF_APPLIED'        → PUBLIC       — "Public Application"
+   *   - source === 'STAFF_CREATED' / etc → INTERNAL     — "Internal Application"
+   *
+   * Returns both a machine-readable kind and a pre-formatted label so the
+   * frontend can render the indicator without re-implementing the rule.
+   */
+  private buildApplicationSource(row: any): {
+    kind: 'JOB_AD' | 'PUBLIC' | 'INTERNAL';
+    label: string;
+    jobAdId?: string;
+    jobAdTitle?: string;
+  } {
+    if (row?.jobAd?.id) {
+      return {
+        kind: 'JOB_AD',
+        label: `Apply from Job Ad: ${row.jobAd.id} - ${row.jobAd.title ?? ''}`.trim(),
+        jobAdId: row.jobAd.id,
+        jobAdTitle: row.jobAd.title ?? undefined,
+      };
+    }
+    if (row?.source === 'SELF_APPLIED') {
+      return { kind: 'PUBLIC', label: 'Public Application' };
+    }
+    return { kind: 'INTERNAL', label: 'Internal Application' };
+  }
+
+  private withApplicationSource<T>(row: T): T {
+    if (!row) return row;
+    (row as any).applicationSource = this.buildApplicationSource(row);
+    return row;
+  }
+
   private get includeWithRelations() {
     return {
       ...this.include,
@@ -222,7 +258,7 @@ export class ApplicantsService {
       this.prisma.applicant.count({ where }), // @tenant-reviewed: phase228-pilot-scope
     ]);
 
-    return PaginatedResponse.create(items, total, page, limit);
+    return PaginatedResponse.create(items.map((r: any) => this.withApplicationSource(r)), total, page, limit);
   }
 
   // ── Find One ──────────────────────────────────────────────────────────────────
@@ -245,7 +281,7 @@ export class ApplicantsService {
       }
     }
 
-    return applicant;
+    return this.withApplicationSource(applicant);
   }
 
   // ── Create ────────────────────────────────────────────────────────────────────
@@ -498,7 +534,7 @@ export class ApplicantsService {
     const fullName = [coreData.firstName, coreData.lastName].filter(Boolean).join(' ');
     this.email.sendApplicationConfirmation(coreData.email, fullName, leadNumber, appData).catch(() => {});
 
-    return applicant;
+    return this.withApplicationSource(applicant);
   }
 
   // ── Set Workflow Stage ────────────────────────────────────────────────────────

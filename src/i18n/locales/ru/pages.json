@@ -629,7 +629,8 @@
         "tier": "Уровень",
         "applied": "Дата подачи",
         "status": "Статус",
-        "actions": "Действия"
+        "actions": "Действия",
+        "source": "Источник"
       },
       "promoteDialog": {
         "title_one": "Перевести {{count}} лида в кандидаты",
@@ -654,7 +655,8 @@
         "agency": "Агентство",
         "tier": "Уровень",
         "applied": "Дата подачи",
-        "status": "Статус"
+        "status": "Статус",
+        "source": "Источник"
       },
       "total": "Всего",
       "leads": "Лиды",
@@ -742,7 +744,8 @@
         "agency": "Агентство",
         "applied": "Дата подачи",
         "status": "Статус",
-        "actions": "Действия"
+        "actions": "Действия",
+        "source": "Источник"
       },
       "workflowDialog": {
         "title_one": "Подключить {{count}} кандидата к workflow",

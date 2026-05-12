@@ -47,7 +47,7 @@ type SortOrder = 'asc' | 'desc';
 // ── Column visibility ────────────────────────────────────────────────────────
 type ColKey =
   | 'contact' | 'nationality' | 'appliedPosition' | 'passportNumber'
-  | 'age' | 'gender' | 'agency' | 'tier' | 'applied' | 'status';
+  | 'age' | 'gender' | 'agency' | 'tier' | 'applied' | 'status' | 'source';
 
 const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
   { key: 'contact',         labelKey: 'applicants.list.cols.contact' },
@@ -59,13 +59,14 @@ const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
   { key: 'agency',          labelKey: 'applicants.list.cols.agency' },
   { key: 'tier',            labelKey: 'applicants.list.cols.tier' },
   { key: 'applied',         labelKey: 'applicants.list.cols.applied' },
+  { key: 'source',          labelKey: 'applicants.list.cols.source' },
   { key: 'status',          labelKey: 'applicants.list.cols.status' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   contact: true, nationality: true, appliedPosition: true,
   passportNumber: true, age: true, gender: true,
-  agency: true, tier: false, applied: true, status: true,
+  agency: true, tier: false, applied: true, source: true, status: true,
 };
 
 /** Age in whole years from a DOB string/Date. Returns null for missing /
@@ -687,6 +688,7 @@ export function CandidatesList() {
                   {col('agency')      && <SortableHead label={t('applicants.candidates.tableHeaders.agency')}       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('tier') && !isAgencyUser && <SortableHead label={t('applicants.list.tableHeaders.tier')} field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('applied')     && <SortableHead label={t('applicants.candidates.tableHeaders.applied')}      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('source')      && <TableHead>{t('applicants.candidates.tableHeaders.source', { defaultValue: t('applicants.list.tableHeaders.source') })}</TableHead>}
                   {col('status')      && <SortableHead label={t('applicants.candidates.tableHeaders.status')}       field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   <TableHead className="text-end">{t('applicants.candidates.tableHeaders.actions')}</TableHead>
                 </TableRow>
@@ -772,6 +774,23 @@ export function CandidatesList() {
                     {col('applied') && (
                       <TableCell>
                         <span className="text-sm">{applicant.createdAt ? new Date(applicant.createdAt).toLocaleDateString() : '—'}</span>
+                      </TableCell>
+                    )}
+                    {col('source') && (
+                      <TableCell>
+                        {applicant.applicationSource ? (
+                          <Badge
+                            variant="outline"
+                            className={
+                              applicant.applicationSource.kind === 'JOB_AD'  ? 'bg-blue-50 text-blue-800 border-blue-300'   :
+                              applicant.applicationSource.kind === 'PUBLIC'  ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                              'bg-slate-50 text-slate-800 border-slate-300'
+                            }
+                            title={applicant.applicationSource.label}
+                          >
+                            <span className="truncate max-w-[200px] inline-block align-bottom">{applicant.applicationSource.label}</span>
+                          </Badge>
+                        ) : <span className="text-muted-foreground text-sm">—</span>}
                       </TableCell>
                     )}
                     {col('status') && (

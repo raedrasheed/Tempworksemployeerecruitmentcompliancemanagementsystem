@@ -621,7 +621,8 @@
         "tier": "Aşama",
         "applied": "Başvuru Tarihi",
         "status": "Durum",
-        "actions": "İşlemler"
+        "actions": "İşlemler",
+        "source": "Kaynak"
       },
       "promoteDialog": {
         "title_one": "{{count}} Aday Adayını Adaya Yükselt",
@@ -646,7 +647,8 @@
         "agency": "Ajans",
         "tier": "Aşama",
         "applied": "Başvuru Tarihi",
-        "status": "Durum"
+        "status": "Durum",
+        "source": "Kaynak"
       },
       "total": "Toplam",
       "leads": "Aday Adayları",
@@ -726,7 +728,8 @@
         "agency": "Ajans",
         "applied": "Başvuru Tarihi",
         "status": "Durum",
-        "actions": "İşlemler"
+        "actions": "İşlemler",
+        "source": "Kaynak"
       },
       "workflowDialog": {
         "title_one": "{{count}} adayı bir iş akışına bağla",

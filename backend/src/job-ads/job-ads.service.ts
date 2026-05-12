@@ -200,20 +200,24 @@ export class JobAdsService {
     } = filter as any;
     const skip = (Number(page) - 1) * Number(limit);
 
-    // Phase 3.18 — public tenant scoping. Resolve the hint (slug or
-    // customDomain) to a tenantId and add it to the WHERE so each
-    // tenant's /jobs page sees only its own listings. No-op when the
-    // hint is missing or doesn't resolve (legacy global listing).
+    // Phase 3.18 — public tenant scoping.
+    //  - WITH hint:  resolve slug/customDomain → only that tenant's ads.
+    //  - WITHOUT hint: the legacy global /jobs URL now returns ONLY the
+    //    tenant-less (global) ads. Tenant-owned ads must come from
+    //    /t/<slug>/jobs so each tenant keeps its catalogue separate.
     // @tenant-reviewed: phase318-tenant-public-jobs
-    let publicTenantWhere: any = {};
+    let publicTenantWhere: any;
     if (tenantHint) {
       const hint = tenantHint.trim().toLowerCase();
       const tenant = await this.prisma.tenant.findFirst({
         where: { OR: [{ slug: hint }, { customDomain: hint }] },
         select: { id: true },
       }).catch(() => null);
-      if (tenant) publicTenantWhere = { tenantId: tenant.id };
-      else        publicTenantWhere = { tenantId: '__no_such_tenant__' }; // forces empty result
+      publicTenantWhere = tenant
+        ? { tenantId: tenant.id }
+        : { tenantId: '__no_such_tenant__' }; // unresolved → empty result
+    } else {
+      publicTenantWhere = { tenantId: null };
     }
 
     const where: any = { deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere(), ...publicTenantWhere };
@@ -273,15 +277,23 @@ export class JobAdsService {
   // ALS, the slug lookup is global — preserving today's public URLs.
   async findBySlug(slug: string, tenantHint?: string) {
     const scope = this.scope();
-    let publicTenantWhere: any = {};
+    // Phase 3.18 — same isolation as findPublished: a slug lookup
+    // without a tenant hint only resolves a tenant-less (global) ad,
+    // never one owned by a tenant. Tenant-owned ads must be reached
+    // via /public/tenants/<slug>/jobs/<jobSlug>.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    let publicTenantWhere: any;
     if (tenantHint) {
       const hint = tenantHint.trim().toLowerCase();
       const tenant = await this.prisma.tenant.findFirst({
         where: { OR: [{ slug: hint }, { customDomain: hint }] },
         select: { id: true },
       }).catch(() => null);
-      if (tenant) publicTenantWhere = { tenantId: tenant.id };
-      else        publicTenantWhere = { tenantId: '__no_such_tenant__' };
+      publicTenantWhere = tenant
+        ? { tenantId: tenant.id }
+        : { tenantId: '__no_such_tenant__' };
+    } else {
+      publicTenantWhere = { tenantId: null };
     }
     const ad = await this.prisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope
       where: { slug, deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere(), ...publicTenantWhere },

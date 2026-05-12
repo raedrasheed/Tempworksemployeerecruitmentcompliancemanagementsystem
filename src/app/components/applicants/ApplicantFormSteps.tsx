@@ -2929,9 +2929,9 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       )}
 
       {/* Education */}
-      {d.education.length > 0 && (
+      {(d.education?.length ?? 0) > 0 && (
         <ReviewSection title={t('applicants.form.step11.educationSection')}>
-          {d.education.map(e => (
+          {d.education!.map(e => (
             <div key={e.id} className="p-3 bg-gray-50 rounded-lg space-y-1">
               <p className="text-sm font-semibold text-gray-900">{e.level} — {e.institution}</p>
               {e.fieldOfStudy && <p className="text-xs text-gray-500">{e.fieldOfStudy}</p>}
@@ -2942,9 +2942,9 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       )}
 
       {/* Work History */}
-      {d.workHistory.length > 0 && (
+      {(d.workHistory?.length ?? 0) > 0 && (
         <ReviewSection title={t('applicants.form.step11.workSection')}>
-          {d.workHistory.map(w => (
+          {d.workHistory!.map(w => (
             <div key={w.id} className="p-3 bg-gray-50 rounded-lg space-y-1">
               <p className="text-sm font-semibold text-gray-900">{w.jobTitle} — {w.company}</p>
               <p className="text-xs text-gray-500">{w.country} · {w.startDate} – {w.current ? t('applicants.form.step11.presentLabel') : w.endDate}</p>
@@ -2956,10 +2956,10 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       )}
 
       {/* Languages */}
-      {d.languages.length > 0 && (
+      {(d.languages?.length ?? 0) > 0 && (
         <ReviewSection title={t('applicants.form.step11.languagesSection')}>
           <div className="grid md:grid-cols-2 gap-3">
-            {d.languages.map(l => {
+            {d.languages!.map(l => {
               // Mother-tongue speakers don't rate themselves on the CEFR scale,
               // so suppress the per-skill line entirely. For all other languages,
               // only render the skills that actually have a level set.
@@ -2992,10 +2992,10 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       )}
 
       {/* Skills */}
-      {d.skills.length > 0 && (
+      {(d.skills?.length ?? 0) > 0 && (
         <ReviewSection title={t('applicants.form.step11.skillsSection')}>
           <div className="grid md:grid-cols-2 gap-3">
-            {d.skills.map(s => (
+            {d.skills!.map(s => (
               <div key={s.id} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                 <span className="text-sm font-semibold text-gray-900">{s.skill}</span>
                 {s.level && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{enumLabel('skillLevel', s.level) || s.level}</span>}

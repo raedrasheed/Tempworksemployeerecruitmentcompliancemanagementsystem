@@ -94,9 +94,9 @@ export class JobAdsController {
 
   @Get()
   @Roles(...JOB_ADS_READ_ROLES)
-  @ApiOperation({ summary: 'List job ads (paginated + filtered, dashboard)' })
-  findAll(@Query() filter: FilterJobAdsDto) {
-    return this.jobAdsService.findAll(filter);
+  @ApiOperation({ summary: 'List job ads (paginated + filtered, dashboard) — scoped to the caller\'s active tenant' })
+  findAll(@Query() filter: FilterJobAdsDto, @CurrentUser() user: any) {
+    return this.jobAdsService.findAll(filter, user);
   }
 
   // ── Single ─────────────────────────────────────────────────────────────────
@@ -105,8 +105,8 @@ export class JobAdsController {
   @Roles(...JOB_ADS_READ_ROLES)
   @ApiOperation({ summary: 'Get a single job ad by ID' })
   @ApiParam({ name: 'id', description: 'Job ad UUID' })
-  findOne(@Param('id') id: string) {
-    return this.jobAdsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.jobAdsService.findOne(id, user);
   }
 
   // ── Create ─────────────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ export class JobAdsController {
   @ApiOperation({ summary: 'Create a job ad' })
   @ApiResponse({ status: 201, description: 'Job ad created' })
   create(@Body() dto: CreateJobAdDto, @CurrentUser() user: any) {
-    return this.jobAdsService.create(dto, user?.id);
+    return this.jobAdsService.create(dto, user?.id, user);
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ export class JobAdsController {
     @Body() dto: UpdateJobAdDto,
     @CurrentUser() user: any,
   ) {
-    return this.jobAdsService.update(id, dto, user?.id);
+    return this.jobAdsService.update(id, dto, user?.id, user);
   }
 
   // ── Soft-delete ────────────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ export class JobAdsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a job ad' })
   @ApiParam({ name: 'id', description: 'Job ad UUID' })
-  remove(@Param('id') id: string) {
-    return this.jobAdsService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.jobAdsService.remove(id, user);
   }
 }

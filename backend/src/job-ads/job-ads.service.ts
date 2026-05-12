@@ -59,6 +59,25 @@ export class JobAdsService {
       .slice(0, 100);
   }
 
+  /**
+   * Phase 3.18 — dashboard scoping helper. PlatformAdmin SUPER and
+   * platform admins generally bypass the tenant filter (they manage
+   * every tenant); all other callers see only their own tenant. The
+   * tenantId comes from the JWT (Phase 3.17) and falls back to the
+   * caller's agency.tenantId for legacy tokens (set on req.user in
+   * jwt.strategy.ts).
+   *
+   * Returns either `{}` (no filter, super admin) or `{ tenantId: <id> }`.
+   * @tenant-reviewed: phase318-tenant-public-jobs
+   */
+  private callerTenantWhere(caller: any): Record<string, any> {
+    if (!caller) return {};
+    if (caller.agencyIsSystem) return {}; // PlatformAdmin sees everything
+    const t = caller.tenantId;
+    if (!t) return {}; // no scope info → behave like legacy until login-v2
+    return { tenantId: t };
+  }
+
   /** Slug uniqueness probe — INTENTIONALLY tenant-agnostic. The DB's
    *  `slug @unique` constraint is global until Phase 3 swaps it to a
    *  composite `(tenantId, slug)`. Tenant-filtering this lookup would
@@ -83,7 +102,7 @@ export class JobAdsService {
 
   // ── Dashboard: list (paginated + filtered) ───────────────────────────────────
 
-  async findAll(filter: FilterJobAdsDto) {
+  async findAll(filter: FilterJobAdsDto, caller?: any) {
     const scope = this.scope();
     const {
       page = 1, limit = 20, search, status, category, country, contractType,
@@ -91,7 +110,7 @@ export class JobAdsService {
     } = filter as any;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null, ...scope.tenantWhere() };
+    const where: any = { deletedAt: null, ...scope.tenantWhere(), ...this.callerTenantWhere(caller) };
     if (status)       where.status       = status;
     if (category)     where.category     = category;
     if (country)      where.country      = country;
@@ -233,10 +252,10 @@ export class JobAdsService {
 
   // ── Dashboard detail by ID ────────────────────────────────────────────────────
 
-  async findOne(id: string) {
+  async findOne(id: string, caller?: any) {
     const scope = this.scope();
     const ad = await this.prisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope
-      where: { id, deletedAt: null, ...scope.tenantWhere() },
+      where: { id, deletedAt: null, ...scope.tenantWhere(), ...this.callerTenantWhere(caller) },
       include: {
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         _count: { select: { applicants: true } },
@@ -248,12 +267,18 @@ export class JobAdsService {
 
   // ── Create ────────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateJobAdDto, userId?: string) {
+  async create(dto: CreateJobAdDto, userId?: string, caller?: any) {
     const scope = this.scope();
     const baseSlug = dto.slug ? dto.slug.toLowerCase().replace(/\s+/g, '-') : this.toSlug(dto.title);
     const slug = await this.uniqueSlug(baseSlug);
 
     const publishedAt = dto.status === 'PUBLISHED' ? new Date() : null;
+
+    // Phase 3.18 — stamp the caller's active tenant on the new ad so
+    // findAll's tenant filter actually finds it. PlatformAdmin SUPER
+    // creates land on no tenant (legacy global) unless they pass one
+    // explicitly via the pilot scope. @tenant-reviewed: phase318-tenant-public-jobs
+    const callerTenantId = caller && !caller.agencyIsSystem ? caller.tenantId : undefined;
 
     return this.prisma.jobAd.create({ // @tenant-reviewed: phase29-pilot-scope
       data: {
@@ -272,16 +297,17 @@ export class JobAdsService {
         createdById:       userId ?? null,
         requiredDocuments: dto.requiredDocuments ? JSON.stringify(dto.requiredDocuments) : null,
         ...scope.tenantData(),
+        ...(callerTenantId ? { tenantId: callerTenantId } : {}),
       },
     });
   }
 
   // ── Update ────────────────────────────────────────────────────────────────────
 
-  async update(id: string, dto: UpdateJobAdDto, userId?: string) {
+  async update(id: string, dto: UpdateJobAdDto, userId?: string, caller?: any) {
     // findOne is tenant-scoped, so cross-tenant id presents as 404
     // before any update SQL runs.
-    const existing = await this.findOne(id);
+    const existing = await this.findOne(id, caller);
 
     // Regenerate slug if title changed and no explicit slug provided
     let slug = existing.slug;
@@ -319,9 +345,9 @@ export class JobAdsService {
 
   // ── Soft-delete ───────────────────────────────────────────────────────────────
 
-  async remove(id: string) {
+  async remove(id: string, caller?: any) {
     // findOne is tenant-scoped, so cross-tenant id presents as 404.
-    await this.findOne(id);
+    await this.findOne(id, caller);
     return this.prisma.jobAd.update({ // @tenant-reviewed: phase29-pilot-scope
       where: { id },
       data: { deletedAt: new Date() },

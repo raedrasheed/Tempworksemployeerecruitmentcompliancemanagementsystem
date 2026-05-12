@@ -37,6 +37,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         roleId: true,
         agencyId: true,
         role: { select: { name: true } },
+        // Phase 3.18 — pull the user's primary tenantId via their agency
+        // so dashboard tenant-scope filters work for legacy tokens that
+        // never went through /auth/login-v2.
+        // @tenant-reviewed: phase318-tenant-public-jobs
+        agency: { select: { tenantId: true } },
         // Phase 3.9 — Agency.isSystem column removed; no longer selected here.
       },
     });
@@ -70,7 +75,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       // tenant-switch time. Undefined on legacy tokens issued before
       // 3.17 (single-tenant fallback still works).
       // @tenant-reviewed: phase317-multi-tenant-login
-      tenantId:     payload?.tenantId,
+      tenantId:     payload?.tenantId ?? user.agency?.tenantId ?? undefined,
       membershipId: payload?.membershipId,
     };
   }

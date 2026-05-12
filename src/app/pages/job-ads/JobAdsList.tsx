@@ -76,6 +76,17 @@ export function JobAdsList() {
   // Other viewers are already scoped to one tenant on the backend.
   const isPlatformAdminViewer =
     !!currentUser?.agencyIsSystem || currentUser?.platformAdmin?.level === 'SUPER';
+  // Resolve the current tenant slug so View Public Page points to the
+  // tenant-scoped /t/<slug>/jobs URL instead of the global /jobs board
+  // (which now only lists tenant-less ads). PlatformAdmin viewers
+  // fall through to the global /jobs link.
+  const activeTenantId = currentUser?.activeTenantId ?? currentUser?.primaryTenantId ?? null;
+  const activeTenantSlug = activeTenantId
+    ? currentUser?.memberships?.find((m) => m.tenantId === activeTenantId)?.slug ?? null
+    : null;
+  const publicJobsHref = activeTenantSlug
+    ? `/t/${encodeURIComponent(activeTenantSlug)}/jobs`
+    : '/jobs';
 
   const [ads, setAds] = useState<any[]>([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 1 });
@@ -272,7 +283,7 @@ export function JobAdsList() {
         </div>
         {canWrite && (
           <div className="flex items-center gap-2">
-            <Link to="/jobs" target="_blank">
+            <Link to={publicJobsHref} target="_blank">
               <Button variant="outline" size="sm" className="gap-2">
                 <ExternalLink className="w-4 h-4" /> {t('jobAds.list.viewPublicPage')}
               </Button>

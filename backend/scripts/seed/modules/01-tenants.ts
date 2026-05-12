@@ -14,10 +14,14 @@ export const TENANTS: SeededTenant[] = [
 ];
 
 export async function seedTenants(): Promise<SeededTenant[]> {
+  const out: SeededTenant[] = [];
   for (const t of TENANTS) {
-    await (prisma as any).tenant.upsert({
-      where: { id: t.id },
-      update: { name: t.name, slug: t.slug, status: 'ACTIVE' },
+    // Adopt an existing row that already has the same slug — re-key
+    // the seed's deterministic id off that row so child references
+    // (agencies, memberships, …) line up.
+    const row = await (prisma as any).tenant.upsert({
+      where: { slug: t.slug },
+      update: { name: t.name, status: 'ACTIVE' },
       create: {
         id: t.id, slug: t.slug, name: t.name, status: 'ACTIVE', region: 'eu',
         branding: {
@@ -27,8 +31,10 @@ export async function seedTenants(): Promise<SeededTenant[]> {
           timezone:     'Europe/Berlin',
         },
       },
+      select: { id: true, slug: true, name: true },
     });
+    out.push({ id: row.id, slug: row.slug, name: row.name });
   }
-  console.log(`  • tenants: ${TENANTS.length} upserted`);
-  return TENANTS;
+  console.log(`  • tenants: ${out.length} upserted`);
+  return out;
 }

@@ -46,10 +46,21 @@ export async function seedApplicants(tenants: SeededTenant[], agencies: SeededAg
           country: pick(['Germany', 'UK', 'Italy']),
         }],
       };
-      await prisma.applicant.upsert({
-        where: { id },
-        update: { tier, agencyId: agency.id, tenantId: t.id },
-        create: {
+      // Applicants lost the global email-unique constraint in Phase 3.x.
+      // Match on the seeded UUID; if a previous run created one with a
+      // different id under the same email + tenant, just create a new
+      // dummy row — collisions are harmless.
+      const found = await prisma.applicant.findUnique({ where: { id }, select: { id: true } });
+      if (found) {
+        await prisma.applicant.update({
+          where: { id },
+          data: { tier, agencyId: agency.id, tenantId: t.id } as any,
+        });
+        count++;
+        continue;
+      }
+      await prisma.applicant.create({
+        data: ({
           id, tier,
           firstName, lastName,
           email: `seed-${t.slug}-${i}@applicant.example`,
@@ -64,7 +75,7 @@ export async function seedApplicants(tenants: SeededTenant[], agencies: SeededAg
           source: i % 3 === 0 ? 'SELF_APPLIED' : 'STAFF_CREATED',
           dateOfBirth: faker.date.birthdate({ min: 22, max: 55, mode: 'age' }),
           hasDrivingLicense: applicationData.hasDrivingLicense === 'yes',
-        },
+        }) as any,
       });
       count++;
     }

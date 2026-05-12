@@ -15,13 +15,14 @@ export async function seedEmployees(tenants: SeededTenant[], agencies: SeededAge
       const firstName = faker.person.firstName();
       const lastName = faker.person.lastName();
       const agency = pick(tenantAgencies);
+      const email = `seed-${t.slug}-emp-${i}@employee.example`;
       await prisma.employee.upsert({
-        where: { id },
+        where: { email },
         update: { tenantId: t.id, agencyId: agency.id } as any,
         create: ({
           id,
           firstName, lastName,
-          email: `seed-${t.slug}-emp-${i}@employee.example`,
+          email,
           phone: faker.phone.number({ style: 'international' }),
           nationality: pick(NATIONALITIES),
           status: pick(STATUSES) as any,

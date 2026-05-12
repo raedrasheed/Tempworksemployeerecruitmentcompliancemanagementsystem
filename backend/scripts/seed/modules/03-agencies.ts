@@ -18,17 +18,32 @@ export async function seedAgencies(tenants: SeededTenant[]): Promise<SeededAgenc
       name: `${t.name} ${faker.location.city()} Branch`,
     };
     for (const a of [a1, a2]) {
-      await prisma.agency.upsert({
-        where: { id: a.id },
-        update: { name: a.name, tenantId: t.id, status: 'ACTIVE' },
-        create: {
-          id: a.id, name: a.name, country: 'Germany',
-          contactPerson: 'Seed Contact', email: `contact+${a.id.slice(0, 8)}@${t.slug}.example`,
-          phone: '+49 30 123 4567', status: 'ACTIVE', tenantId: t.id,
-          isDefault: a === a1,
-        },
+      // Agency has no @unique besides id; match an existing agency with
+      // the same (tenantId, name) so the seed adopts it instead of
+      // creating a duplicate. Updates the deterministic id back into
+      // the seed graph so child rows point at the right row.
+      const existing = await prisma.agency.findFirst({
+        where: { tenantId: t.id, name: a.name },
+        select: { id: true },
       });
-      out.push(a);
+      if (existing) {
+        await prisma.agency.update({
+          where: { id: existing.id },
+          data: { status: 'ACTIVE', tenantId: t.id },
+        });
+        out.push({ ...a, id: existing.id });
+      } else {
+        const row = await prisma.agency.create({
+          data: {
+            id: a.id, name: a.name, country: 'Germany',
+            contactPerson: 'Seed Contact', email: `contact+${a.id.slice(0, 8)}@${t.slug}.example`,
+            phone: '+49 30 123 4567', status: 'ACTIVE', tenantId: t.id,
+            isDefault: a === a1,
+          },
+          select: { id: true },
+        });
+        out.push({ ...a, id: row.id });
+      }
     }
   }
   console.log(`  • agencies: ${out.length} upserted`);

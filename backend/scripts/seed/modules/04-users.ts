@@ -35,9 +35,10 @@ export async function seedUsers(
         tenantId: t.id,
         agencyId: primary.id,
       };
-      await prisma.user.upsert({
-        where: { id: u.id },
-        update: { email: u.email, agencyId: primary.id, status: 'ACTIVE' },
+      const existing = await prisma.user.findUnique({ where: { email: u.email }, select: { id: true } });
+      const row = await prisma.user.upsert({
+        where: { email: u.email },
+        update: { agencyId: primary.id, status: 'ACTIVE', roleId: roleByName.get(role)! },
         create: {
           id: u.id, email: u.email,
           firstName: faker.person.firstName(), lastName: faker.person.lastName(),
@@ -46,7 +47,10 @@ export async function seedUsers(
           phone: faker.phone.number({ style: 'international' }),
           preferredLanguage: 'en', timeZone: 'Europe/Berlin',
         },
+        select: { id: true },
       });
+      // Keep the in-memory id aligned with whatever the DB actually has.
+      u.id = existing?.id ?? row.id;
       perTenant.push(u);
     }
   }
@@ -63,9 +67,10 @@ export async function seedUsers(
     tenantId: platformTenant.id,
     agencyId: platformAgency.id,
   };
-  await prisma.user.upsert({
-    where: { id: superUser.id },
-    update: { email: superUser.email, status: 'ACTIVE' },
+  const superExisting = await prisma.user.findUnique({ where: { email: superUser.email }, select: { id: true } });
+  const superRow = await prisma.user.upsert({
+    where: { email: superUser.email },
+    update: { status: 'ACTIVE' },
     create: {
       id: superUser.id, email: superUser.email,
       firstName: 'Super', lastName: 'Admin',
@@ -73,7 +78,9 @@ export async function seedUsers(
       status: 'ACTIVE', jobTitle: 'Platform Owner', department: 'Platform',
       phone: '+49 30 000 0000', preferredLanguage: 'en', timeZone: 'Europe/Berlin',
     },
+    select: { id: true },
   });
+  superUser.id = superExisting?.id ?? superRow.id;
 
   // SUPER PlatformAdmin row.
   await (prisma as any).platformAdmin.upsert({

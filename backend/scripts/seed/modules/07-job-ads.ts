@@ -26,7 +26,7 @@ export async function seedJobAds(
         ? faker.date.recent({ days: 30 })
         : null;
       await prisma.jobAd.upsert({
-        where: { id },
+        where: { slug },
         update: { status, title, publishedAt, tenantId: t.id },
         create: {
           id, slug, title, category,

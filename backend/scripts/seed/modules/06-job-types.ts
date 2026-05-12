@@ -10,8 +10,8 @@ const CATEGORIES = [
 export async function seedJobTypes(): Promise<string[]> {
   for (const name of CATEGORIES) {
     await prisma.jobType.upsert({
-      where: { id: detId('jobtype', name) },
-      update: { name, isActive: true },
+      where: { name },
+      update: { isActive: true },
       create: {
         id: detId('jobtype', name), name, isActive: true,
         description: `${name} role`,

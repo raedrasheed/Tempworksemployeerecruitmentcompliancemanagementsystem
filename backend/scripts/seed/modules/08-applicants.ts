@@ -3,7 +3,7 @@ import { detId, faker, pick } from '../lib/rng';
 import type { SeededTenant } from './01-tenants';
 import type { SeededAgency } from './03-agencies';
 
-const STATUSES = ['NEW', 'IN_REVIEW', 'SHORTLISTED', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
+const STATUSES = ['NEW', 'SCREENING', 'INTERVIEW', 'OFFER', 'ACCEPTED', 'REJECTED', 'ONBOARDING'];
 const NATIONALITIES = ['Polish', 'German', 'Romanian', 'Italian', 'Spanish', 'Bulgarian', 'Ukrainian'];
 
 export async function seedApplicants(tenants: SeededTenant[], agencies: SeededAgency[]): Promise<number> {

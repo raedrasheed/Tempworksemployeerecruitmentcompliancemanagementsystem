@@ -89,6 +89,8 @@ export interface AuthUser {
    *  Used by the "Tenant Members" page so a System Admin who has not
    *  yet logged in via /auth/login-v2 still has a target tenant. */
   primaryTenantId?: string | null;
+  /** Phase 3.17 — the tenant the current JWT is bound to. */
+  activeTenantId?: string | null;
 }
 
 export interface TenantRecord {

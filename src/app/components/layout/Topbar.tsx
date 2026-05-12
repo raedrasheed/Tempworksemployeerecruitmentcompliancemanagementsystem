@@ -523,11 +523,12 @@ export function Topbar() {
                   {t('topbar.switchTenant', { defaultValue: 'Switch tenant' })}
                 </div>
                 {liveUser!.memberships!.map((m) => {
-                  const active = (liveUser as any)?.tenantId === m.tenantId;
+                  const active =
+                    (liveUser?.activeTenantId ?? liveUser?.primaryTenantId) === m.tenantId;
                   return (
                     <DropdownMenuItem
                       key={m.tenantId}
-                      className="cursor-pointer"
+                      className={`cursor-pointer ${active ? 'bg-blue-50' : ''}`}
                       onClick={async () => {
                         if (active) return;
                         try {
@@ -538,16 +539,15 @@ export function Topbar() {
                             setCurrentUser(me);
                             updateUser?.(me);
                           }
-                          // Hard reload so sidebar/branding/etc. pick up the new context cleanly.
                           window.location.assign('/dashboard');
                         } catch {
                           // setTokens has already been swapped only on success path.
                         }
                       }}
                     >
-                      <Building2 className="w-4 h-4" />
-                      <span className="flex-1 truncate">{m.name}</span>
-                      {active && <span className="text-[10px] text-blue-600">{t('topbar.tenantActive', { defaultValue: 'active' })}</span>}
+                      <Building2 className={`w-4 h-4 ${active ? 'text-blue-600' : ''}`} />
+                      <span className={`flex-1 truncate ${active ? 'font-semibold text-blue-700' : ''}`}>{m.name}</span>
+                      {active && <CheckCircle className="w-4 h-4 text-blue-600" aria-label={t('topbar.tenantActive', { defaultValue: 'active' })} />}
                     </DropdownMenuItem>
                   );
                 })}

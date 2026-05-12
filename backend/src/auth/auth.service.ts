@@ -625,7 +625,7 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   // Get current user profile
   // ---------------------------------------------------------------------------
-  async getMe(userId: string) {
+  async getMe(userId: string, opts?: { activeTenantId?: string }) {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
       include: {
@@ -705,6 +705,10 @@ export class AuthService {
       // for accounts that pre-date the TenantMembership backfill.
       // @tenant-reviewed: phase317-multi-tenant-login
       primaryTenantId: (user as any).agency?.tenantId ?? null,
+      // Phase 3.17 — the tenant the current JWT is bound to. Falls back
+      // to primaryTenantId for legacy tokens issued before 3.17.
+      // @tenant-reviewed: phase317-multi-tenant-login
+      activeTenantId: opts?.activeTenantId ?? (user as any).agency?.tenantId ?? null,
       permissions: effectivePermissions,
       status: user.status,
       lastLoginAt: user.lastLoginAt,

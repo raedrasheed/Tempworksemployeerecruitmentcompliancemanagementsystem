@@ -120,8 +120,10 @@ export class AuthController {
   @Get('me')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
-  getMe(@CurrentUser('id') userId: string) {
-    return this.authService.getMe(userId);
+  getMe(@CurrentUser() caller: any) {
+    // Phase 3.17 — pass the JWT-stamped tenantId so /auth/me can mark
+    // which membership is currently active in the topbar switcher.
+    return this.authService.getMe(caller?.id, { activeTenantId: caller?.tenantId });
   }
 
   // ---------------------------------------------------------------------------

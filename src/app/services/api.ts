@@ -2024,6 +2024,7 @@ export const tenantsApi = {
       id: string; status: string; userId: string;
       joinedAt: string | null; invitedAt: string | null;
       user: { id: string; email: string; firstName: string; lastName: string; status: string } | null;
+      platformAdminLevel: 'SUPPORT' | 'OPERATOR' | 'SUPER' | null;
     }>>(`/tenants/${id}/memberships`),
   grantMembership:  (id: string, userId: string) =>
     apiFetch<{ id: string; status: string }>(

@@ -367,16 +367,29 @@ export class TenantsService {
       orderBy: { joinedAt: 'desc' },
     });
     const userIds = rows.map((r: any) => r.userId);
-    const users = userIds.length
-      ? await (this.prisma as any).user.findMany({
-          where: { id: { in: userIds } },
-          select: { id: true, email: true, firstName: true, lastName: true, status: true },
-        })
-      : [];
-    const byId = new Map<string, any>(users.map((u: any) => [u.id, u]));
+    const [users, platformAdmins] = await Promise.all([
+      userIds.length
+        ? (this.prisma as any).user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, email: true, firstName: true, lastName: true, status: true },
+          })
+        : [],
+      userIds.length
+        ? (this.prisma as any).platformAdmin.findMany({
+            where: { userId: { in: userIds } },
+            select: { userId: true, level: true },
+          }).catch(() => [])
+        : [],
+    ]);
+    const userById = new Map<string, any>(users.map((u: any) => [u.id, u]));
+    const paById   = new Map<string, string>(platformAdmins.map((p: any) => [p.userId, p.level]));
     return rows.map((r: any) => ({
       ...r,
-      user: byId.get(r.userId) ?? null,
+      user: userById.get(r.userId) ?? null,
+      // Phase 3.17 — surface the row's PlatformAdmin level so the UI
+      // can hide the revoke action for SUPER users (only another SUPER
+      // can remove them; the backend re-checks this on revoke).
+      platformAdminLevel: paById.get(r.userId) ?? null,
     }));
   }
 
@@ -427,6 +440,22 @@ export class TenantsService {
     // SUPER, they'd lock themselves out. Cheap guard:
     if (userId === actorId) {
       throw new ForbiddenException({ code: 'TENANT.SELF_REVOKE_FORBIDDEN' });
+    }
+
+    // Phase 3.17 — protect SUPER PlatformAdmins. Only another SUPER can
+    // revoke a SUPER user's tenant membership; a tenant System Admin
+    // (or even an OPERATOR/SUPPORT PlatformAdmin) cannot.
+    // @tenant-reviewed: phase317-multi-tenant-login
+    const [targetPa, actorPa] = await Promise.all([
+      (this.prisma as any).platformAdmin.findUnique({
+        where: { userId }, select: { level: true },
+      }).catch(() => null),
+      (this.prisma as any).platformAdmin.findUnique({
+        where: { userId: actorId }, select: { level: true },
+      }).catch(() => null),
+    ]);
+    if (targetPa?.level === 'SUPER' && actorPa?.level !== 'SUPER') {
+      throw new ForbiddenException({ code: 'TENANT.SUPER_REVOKE_REQUIRES_SUPER' });
     }
 
     const updated = await (this.prisma as any).tenantMembership.update({

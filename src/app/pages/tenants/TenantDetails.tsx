@@ -206,6 +206,10 @@ type MembershipRow = Awaited<ReturnType<typeof tenantsApi.listMemberships>>[numb
 
 export function MembersTab({ tenantId, canManage }: { tenantId: string; canManage: boolean }) {
   const { t } = useTranslation('pages');
+  // Phase 3.17 — only a SUPER PlatformAdmin viewer may revoke a SUPER
+  // target's membership. Backend re-checks this; the UI just hides the
+  // X to keep the contract obvious.
+  const viewerIsSuper = (getCurrentUser()?.platformAdmin?.level ?? 'NONE') === 'SUPER';
   const [rows, setRows] = useState<MembershipRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -335,28 +339,44 @@ export function MembersTab({ tenantId, canManage }: { tenantId: string; canManag
             {!loading && rows.length === 0 && (
               <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{t('tenants.members.empty', { defaultValue: 'No members yet.' })}</TableCell></TableRow>
             )}
-            {!loading && rows.map((r) => (
-              <TableRow key={r.id} className={r.status === 'REMOVED' ? 'opacity-60' : ''}>
-                <TableCell className="font-medium">{r.user ? `${r.user.firstName} ${r.user.lastName}` : r.userId}</TableCell>
-                <TableCell className="text-sm">{r.user?.email ?? '—'}</TableCell>
-                <TableCell>
-                  <Badge className={
-                    r.status === 'ACTIVE'    ? 'bg-green-500' :
-                    r.status === 'INVITED'   ? 'bg-amber-500' :
-                    r.status === 'SUSPENDED' ? 'bg-red-500'   :
-                    'bg-gray-500'
-                  }>{r.status}</Badge>
-                </TableCell>
-                <TableCell className="text-sm">{r.joinedAt ? new Date(r.joinedAt).toLocaleDateString() : '—'}</TableCell>
-                <TableCell className="text-end">
-                  {canManage && r.status === 'ACTIVE' && (
-                    <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => revoke(r)} title={t('tenants.members.revoke', { defaultValue: 'Revoke access' })}>
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+            {!loading && rows.map((r) => {
+              const targetIsSuper = r.platformAdminLevel === 'SUPER';
+              const canRevokeRow  = canManage && r.status === 'ACTIVE' && (!targetIsSuper || viewerIsSuper);
+              return (
+                <TableRow key={r.id} className={r.status === 'REMOVED' ? 'opacity-60' : ''}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>{r.user ? `${r.user.firstName} ${r.user.lastName}` : r.userId}</span>
+                      {targetIsSuper && (
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">SUPER</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{r.user?.email ?? '—'}</TableCell>
+                  <TableCell>
+                    <Badge className={
+                      r.status === 'ACTIVE'    ? 'bg-green-500' :
+                      r.status === 'INVITED'   ? 'bg-amber-500' :
+                      r.status === 'SUSPENDED' ? 'bg-red-500'   :
+                      'bg-gray-500'
+                    }>{r.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{r.joinedAt ? new Date(r.joinedAt).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell className="text-end">
+                    {canRevokeRow && (
+                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => revoke(r)} title={t('tenants.members.revoke', { defaultValue: 'Revoke access' })}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {canManage && r.status === 'ACTIVE' && targetIsSuper && !viewerIsSuper && (
+                      <span className="text-xs text-muted-foreground" title={t('tenants.members.superLocked', { defaultValue: 'Only a SUPER PlatformAdmin can remove a SUPER user.' })}>
+                        🔒
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>

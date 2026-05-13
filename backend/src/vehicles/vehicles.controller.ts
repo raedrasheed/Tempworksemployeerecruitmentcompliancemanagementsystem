@@ -28,6 +28,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../common/decorators/require-permission.decorator';
 
 const READ_ROLES   = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance'];
 const WRITE_ROLES  = ['System Admin', 'HR Manager'];
@@ -50,6 +51,7 @@ export class VehiclesController {
   // ── 1. Static list / utility routes (must come before :id) ──────────────────
 
   @Get()
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List all vehicles with filters' })
   list(@Query() dto: FilterVehiclesDto, @Request() req: any) {
@@ -57,6 +59,7 @@ export class VehiclesController {
   }
 
   @Get('stats')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get vehicle dashboard statistics' })
   getStats() {
@@ -64,6 +67,7 @@ export class VehiclesController {
   }
 
   @Get('export/excel')
+  @RequirePermission('vehicles:export', 'vehicles:read')
   @Roles(...EXPORT_ROLES)
   @ApiOperation({ summary: 'Export vehicle list as Excel' })
   async exportExcel(
@@ -83,6 +87,7 @@ export class VehiclesController {
   // ── 2. Static sub-resource routes — maintenance (before :id) ────────────────
 
   @Get('maintenance/types')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List all maintenance types' })
   listMaintenanceTypes() {
@@ -90,6 +95,7 @@ export class VehiclesController {
   }
 
   @Post('maintenance/types')
+  @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create a maintenance type' })
   createMaintenanceType(@Body() dto: CreateMaintenanceTypeDto) {
@@ -97,6 +103,7 @@ export class VehiclesController {
   }
 
   @Patch('maintenance/types/:id')
+  @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update a maintenance type' })
   updateMaintenanceType(@Param('id') id: string, @Body() dto: UpdateMaintenanceTypeDto) {
@@ -104,6 +111,7 @@ export class VehiclesController {
   }
 
   @Delete('maintenance/types/:id')
+  @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a maintenance type' })
@@ -112,6 +120,7 @@ export class VehiclesController {
   }
 
   @Get('maintenance/records')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List maintenance records with filters' })
   listMaintenance(@Query() dto: FilterMaintenanceDto, @Request() req: any) {
@@ -119,6 +128,7 @@ export class VehiclesController {
   }
 
   @Get('maintenance/records/export/excel')
+  @RequirePermission('vehicles:export', 'vehicles:read')
   @Roles(...EXPORT_ROLES)
   @ApiOperation({ summary: 'Export maintenance records as Excel' })
   async exportMaintenanceExcel(
@@ -138,6 +148,7 @@ export class VehiclesController {
   }
 
   @Get('maintenance/records/export/pdf')
+  @RequirePermission('vehicles:export', 'vehicles:read')
   @Roles(...EXPORT_ROLES)
   @ApiOperation({ summary: 'Export maintenance records as PDF' })
   async exportMaintenancePdf(
@@ -157,6 +168,7 @@ export class VehiclesController {
   }
 
   @Get('maintenance/records/:id')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get a single maintenance record' })
   getMaintenance(@Param('id') id: string) {
@@ -164,6 +176,7 @@ export class VehiclesController {
   }
 
   @Post('maintenance/records')
+  @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create a maintenance record' })
   createMaintenance(@Body() dto: CreateMaintenanceRecordDto, @Request() req: any) {
@@ -171,6 +184,7 @@ export class VehiclesController {
   }
 
   @Patch('maintenance/records/:id')
+  @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update a maintenance record' })
   updateMaintenance(@Param('id') id: string, @Body() dto: UpdateMaintenanceRecordDto, @Request() req: any) {
@@ -178,6 +192,7 @@ export class VehiclesController {
   }
 
   @Delete('maintenance/records/:id')
+  @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a maintenance record' })
@@ -186,6 +201,7 @@ export class VehiclesController {
   }
 
   @Post('maintenance/records/:id/attachments')
+  @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
   // SECURITY-FIX: previously had no fileFilter and no limits.
   @UseInterceptors(FileInterceptor('file', memoryUpload({
@@ -209,6 +225,7 @@ export class VehiclesController {
   }
 
   @Get('maintenance/records/:id/attachments')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List all attachments for a maintenance record' })
   getMaintenanceAttachments(@Param('id') recordId: string) {
@@ -216,6 +233,7 @@ export class VehiclesController {
   }
 
   @Delete('maintenance/attachments/:id')
+  @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete an attachment' })
@@ -226,6 +244,7 @@ export class VehiclesController {
   // ── 3. Static sub-resource routes — workshops (before :id) ──────────────────
 
   @Get('workshops')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'List all workshops' })
   listWorkshops(@Request() req: any) {
@@ -233,6 +252,7 @@ export class VehiclesController {
   }
 
   @Post('workshops')
+  @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create a workshop' })
   createWorkshop(@Body() dto: CreateWorkshopDto, @Request() req: any) {
@@ -240,6 +260,7 @@ export class VehiclesController {
   }
 
   @Get('workshops/:id')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get a workshop' })
   getWorkshop(@Param('id') id: string, @Request() req: any) {
@@ -247,6 +268,7 @@ export class VehiclesController {
   }
 
   @Patch('workshops/:id')
+  @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update a workshop' })
   updateWorkshop(@Param('id') id: string, @Body() dto: UpdateWorkshopDto, @Request() req: any) {
@@ -254,6 +276,7 @@ export class VehiclesController {
   }
 
   @Delete('workshops/:id')
+  @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a workshop' })
@@ -264,6 +287,7 @@ export class VehiclesController {
   // ── 4. Parametric single-vehicle routes (:id must come last) ────────────────
 
   @Get(':id')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get a single vehicle with full details' })
   getOne(@Param('id') id: string, @Request() req: any) {
@@ -271,6 +295,7 @@ export class VehiclesController {
   }
 
   @Post()
+  @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create a new vehicle' })
   create(@Body() dto: CreateVehicleDto, @Request() req: any) {
@@ -278,6 +303,7 @@ export class VehiclesController {
   }
 
   @Patch(':id')
+  @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update a vehicle' })
   update(@Param('id') id: string, @Body() dto: UpdateVehicleDto, @Request() req: any) {
@@ -285,6 +311,7 @@ export class VehiclesController {
   }
 
   @Delete(':id')
+  @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a vehicle' })
@@ -295,6 +322,7 @@ export class VehiclesController {
   // ── 5. Parametric sub-resource routes (:vehicleId/*) ────────────────────────
 
   @Get(':vehicleId/drivers')
+  @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get driver assignment history for a vehicle' })
   getDriverHistory(@Param('vehicleId') vehicleId: string) {
@@ -302,6 +330,7 @@ export class VehiclesController {
   }
 
   @Post(':vehicleId/drivers')
+  @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Assign a driver to a vehicle (replaces current active driver)' })
   assignDriver(@Param('vehicleId') vehicleId: string, @Body() dto: AssignDriverDto, @Request() req: any) {
@@ -309,6 +338,7 @@ export class VehiclesController {
   }
 
   @Delete(':vehicleId/drivers/:assignmentId')
+  @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'End a driver assignment' })
@@ -317,6 +347,7 @@ export class VehiclesController {
   }
 
   @Post(':vehicleId/documents')
+  @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Add a document (with optional file upload) to a vehicle' })
@@ -334,6 +365,7 @@ export class VehiclesController {
   }
 
   @Patch(':vehicleId/documents/:docId')
+  @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update a vehicle document' })
   updateDocument(
@@ -345,6 +377,7 @@ export class VehiclesController {
   }
 
   @Delete(':vehicleId/documents/:docId')
+  @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a vehicle document' })

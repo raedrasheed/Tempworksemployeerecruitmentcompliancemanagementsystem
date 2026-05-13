@@ -16,7 +16,7 @@ import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesA
 import { usePermissions } from '../../hooks/usePermissions';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { ApplicationDataView } from '../../components/applicants/ApplicationDataView';
-import { AttendanceTab } from '../../components/attendance/AttendanceTab';
+import { AttendanceSheet } from '../attendance/AttendanceSheet';
 import { WorkHistoryTimeline } from '../../components/employees/WorkHistoryTimeline';
 import { apiError } from '../../../i18n/apiError';
 import { enumLabel } from '../../../i18n/enumLabel';
@@ -740,12 +740,7 @@ export function EmployeeProfile() {
         </TabsContent>
 
         <TabsContent value="attendance">
-          <AttendanceTab
-            employeeId={id!}
-            employeeName={[employee?.firstName, employee?.lastName].filter(Boolean).join(' ')}
-            canWrite={canEdit('employees')}
-            canLock={currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance'}
-          />
+          <AttendanceSheet employeeId={id!} hideBackButton />
         </TabsContent>
 
         <TabsContent value="contracts">

@@ -8,9 +8,6 @@ import {
   Clock,
   Calendar,
   User,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
   RefreshCw,
   ClipboardList,
   Trash2,
@@ -40,14 +37,6 @@ import {
   DialogFooter,
 } from '../../components/ui/dialog';
 import { Textarea } from '../../components/ui/textarea';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table';
 import { attendanceApi, companyProfilesApi } from '../../services/api';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -68,18 +57,7 @@ const STATUS_OPTIONS = [
   { value: 'UNPAID_LEAVE', label: 'Unpaid Leave (neplatené voľno)' },
 ];
 
-// Statuses available when picking which leave bucket an in-day
-// interruption rolls up into — same list minus PRESENT.
 const INTERRUPTION_STATUS_OPTIONS = STATUS_OPTIONS.filter((o) => o.value !== 'PRESENT');
-
-const STATUS_LEGEND: { value: string; label: string; description: string }[] = [
-  { value: 'PRESENT',      label: 'Present (Odpracované)',           description: 'Day worked.' },
-  { value: 'ABSENT',       label: 'Absent (absencia)',               description: 'No-show — employee did not come to work when expected.' },
-  { value: 'VACATION',     label: 'Vacation (dovolenka)',            description: 'Paid leave taken by the employee.' },
-  { value: 'HOLIDAY',      label: 'Public Holiday (sviatok)',        description: 'Official Slovak public holiday — counts towards the monthly working hours when it falls on a weekday.' },
-  { value: 'SICK',         label: 'Sick Leave (platené voľno / lekár)', description: 'Paid sick leave / doctor visit.' },
-  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave (neplatené voľno)',  description: 'Unpaid absence — employee not currently willing to work.' },
-];
 
 const statusColors: Record<string, string> = {
   PRESENT:      'bg-green-100 text-green-700 border-green-200',
@@ -88,7 +66,6 @@ const statusColors: Record<string, string> = {
   HOLIDAY:      'bg-purple-100 text-purple-700 border-purple-200',
   SICK:         'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',
   UNPAID_LEAVE: 'bg-red-100 text-red-700 border-red-200',
-  // Legacy fallbacks
   OFF:          'bg-orange-100 text-orange-700 border-orange-200',
   LATE:         'bg-amber-100 text-amber-700 border-amber-200',
   ON_LEAVE:     'bg-blue-100 text-blue-700 border-blue-200',
@@ -98,7 +75,6 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   PRESENT: 'Present', ABSENT: 'Absent', VACATION: 'Vacation', HOLIDAY: 'Public Holiday',
   SICK: 'Sick Leave', UNPAID_LEAVE: 'Unpaid Leave',
-  // Legacy values still rendered when stored
   OFF: 'Absent', LATE: 'Late', ON_LEAVE: 'On Leave', HALF_DAY: 'Half Day',
 };
 
@@ -106,11 +82,6 @@ const LEAVE_STATUSES = new Set(['ABSENT', 'VACATION', 'HOLIDAY', 'SICK', 'UNPAID
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-/**
- * Decimal hours = (checkOut - checkIn) - (breakOut - breakIn)
- *               - (interruptionOut - interruptionIn).
- * Returns '' when check-in / check-out are missing.
- */
 function calcHours(
   checkIn: string, checkOut: string,
   breakIn: string, breakOut: string,
@@ -142,14 +113,14 @@ function calcHours(
   return m > 0 ? (h + m / 60).toFixed(2).replace(/\.?0+$/, '') : String(h);
 }
 
+function fmtHours(h: number | null | undefined): string {
+  if (h == null || !Number.isFinite(Number(h))) return '—';
+  const n = Number(h);
+  return `${n.toFixed(1).replace(/\.0$/, '')}h`;
+}
+
 // ─── Slovak public holidays calendar ───────────────────────────────────────────
-//
-// Pre-populated for 2024-2030 so the UI can highlight known holidays
-// and pre-select PUBLIC_HOLIDAY status when the user adds a record on
-// one of these dates. Easter-dependent dates (Good Friday + Easter
-// Monday) included; the rest are fixed-date.
 const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
-  // 2024
   '2024-01-01': 'Day of the Establishment of the Slovak Republic',
   '2024-01-06': 'Epiphany',
   '2024-03-29': 'Good Friday',
@@ -165,7 +136,6 @@ const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
   '2024-12-24': 'Christmas Eve',
   '2024-12-25': 'Christmas Day',
   '2024-12-26': 'St. Stephen\'s Day',
-  // 2025
   '2025-01-01': 'Day of the Establishment of the Slovak Republic',
   '2025-01-06': 'Epiphany',
   '2025-04-18': 'Good Friday',
@@ -181,7 +151,6 @@ const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
   '2025-12-24': 'Christmas Eve',
   '2025-12-25': 'Christmas Day',
   '2025-12-26': 'St. Stephen\'s Day',
-  // 2026
   '2026-01-01': 'Day of the Establishment of the Slovak Republic',
   '2026-01-06': 'Epiphany',
   '2026-04-03': 'Good Friday',
@@ -197,7 +166,6 @@ const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
   '2026-12-24': 'Christmas Eve',
   '2026-12-25': 'Christmas Day',
   '2026-12-26': 'St. Stephen\'s Day',
-  // 2027
   '2027-01-01': 'Day of the Establishment of the Slovak Republic',
   '2027-01-06': 'Epiphany',
   '2027-03-26': 'Good Friday',
@@ -213,7 +181,6 @@ const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
   '2027-12-24': 'Christmas Eve',
   '2027-12-25': 'Christmas Day',
   '2027-12-26': 'St. Stephen\'s Day',
-  // 2028
   '2028-01-01': 'Day of the Establishment of the Slovak Republic',
   '2028-01-06': 'Epiphany',
   '2028-04-14': 'Good Friday',
@@ -229,7 +196,6 @@ const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
   '2028-12-24': 'Christmas Eve',
   '2028-12-25': 'Christmas Day',
   '2028-12-26': 'St. Stephen\'s Day',
-  // 2029
   '2029-01-01': 'Day of the Establishment of the Slovak Republic',
   '2029-01-06': 'Epiphany',
   '2029-03-30': 'Good Friday',
@@ -245,7 +211,6 @@ const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
   '2029-12-24': 'Christmas Eve',
   '2029-12-25': 'Christmas Day',
   '2029-12-26': 'St. Stephen\'s Day',
-  // 2030
   '2030-01-01': 'Day of the Establishment of the Slovak Republic',
   '2030-01-06': 'Epiphany',
   '2030-04-19': 'Good Friday',
@@ -292,8 +257,6 @@ function BulkFillModal({
   const [skipWeekends, setSkipWeekends] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Only PRESENT carries times; every leave status posts with zero
-  // times so the Excel export's leave rows stay at 0:00 per spec.
   const isWorkStatus = status === 'PRESENT';
   const autoHours = isWorkStatus ? calcHours(checkIn, checkOut, breakIn, breakOut) : '';
 
@@ -345,14 +308,10 @@ function BulkFillModal({
           <div className="space-y-1.5">
             <Label>Default Status</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -416,9 +375,7 @@ function BulkFillModal({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button onClick={handleBulkFill} disabled={saving || targetDays.length === 0}>
             {saving ? 'Filling…' : `Fill ${targetDays.length} Days`}
           </Button>
@@ -612,7 +569,6 @@ export function AttendanceSheet() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Data state
   const [employee, setEmployee] = useState<any>(null);
   const [records, setRecords] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
@@ -620,33 +576,24 @@ export function AttendanceSheet() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
 
-  // Lock state
   const [lockedPeriods, setLockedPeriods] = useState<any[]>([]);
 
-  // Edit modal state
   const [editRecord, setEditRecord] = useState<any>(null);
   const [editDate, setEditDate] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
     status: 'PRESENT',
-    checkIn: '',
-    checkOut: '',
-    breakIn: '',
-    breakOut: '',
-    interruptionIn: '',
-    interruptionOut: '',
-    interruptionStatus: '',
-    workingHours: '',
-    notes: '',
+    checkIn: '', checkOut: '',
+    breakIn: '', breakOut: '',
+    interruptionIn: '', interruptionOut: '', interruptionStatus: '',
+    workingHours: '', notes: '',
   });
 
-  // Delete confirmation state
   const [deleteRecord, setDeleteRecord] = useState<any>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Modals
   const [showBulkFill, setShowBulkFill] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -694,10 +641,7 @@ export function AttendanceSheet() {
   const openEditModal = (record: any, date: string) => {
     setEditRecord(record ?? null);
     setEditDate(date);
-    // Auto-pre-select Public Holiday for blank cells that fall on a
-    // known Slovak public holiday date — user can override.
-    const fallbackStatus =
-      !record && isSlovakPublicHoliday(date) ? 'HOLIDAY' : 'PRESENT';
+    const fallbackStatus = !record && isSlovakPublicHoliday(date) ? 'HOLIDAY' : 'PRESENT';
     setEditForm({
       status: record?.status ?? fallbackStatus,
       checkIn:  record?.checkIn  ?? '',
@@ -716,24 +660,17 @@ export function AttendanceSheet() {
   const handleFormChange = (field: keyof EditForm, value: string) => {
     setEditForm((prev) => {
       const updated: EditForm = { ...prev, [field]: value };
-
-      // Switching to a non-Present status: per spec, all the time
-      // fields go to 00:00 / empty and total becomes 0.
-      if (field === 'status') {
-        if (LEAVE_STATUSES.has(value)) {
-          updated.checkIn = '';
-          updated.checkOut = '';
-          updated.breakIn = '';
-          updated.breakOut = '';
-          updated.interruptionIn = '';
-          updated.interruptionOut = '';
-          updated.interruptionStatus = '';
-          updated.workingHours = '0';
-          return updated;
-        }
+      if (field === 'status' && LEAVE_STATUSES.has(value)) {
+        updated.checkIn = '';
+        updated.checkOut = '';
+        updated.breakIn = '';
+        updated.breakOut = '';
+        updated.interruptionIn = '';
+        updated.interruptionOut = '';
+        updated.interruptionStatus = '';
+        updated.workingHours = '0';
+        return updated;
       }
-
-      // Time-field edits — recompute total. Interruption deducts.
       if (['checkIn', 'checkOut', 'breakIn', 'breakOut', 'interruptionIn', 'interruptionOut'].includes(field)) {
         const calculated = calcHours(
           updated.checkIn, updated.checkOut, updated.breakIn, updated.breakOut,
@@ -751,9 +688,6 @@ export function AttendanceSheet() {
       const isLeave = LEAVE_STATUSES.has(editForm.status);
       const payload: any = {
         status: editForm.status,
-        // Leave statuses post empty times so the record stays at 0:00
-        // across the board, matching the spec's "absent/vacation/etc.
-        // print zero" rule.
         checkIn:  isLeave ? null : (editForm.checkIn  || null),
         checkOut: isLeave ? null : (editForm.checkOut || null),
         breakIn:  isLeave ? null : (editForm.breakIn  || null),
@@ -764,19 +698,13 @@ export function AttendanceSheet() {
         workingHours: editForm.workingHours ? Number(editForm.workingHours) : undefined,
         notes: editForm.notes || undefined,
       };
-
       if (editRecord?.id) {
         await attendanceApi.update(editRecord.id, payload);
         toast.success(t('attendance.toast.recordUpdated'));
       } else {
-        await attendanceApi.upsert({
-          employeeId: id,
-          date: editDate,
-          ...payload,
-        });
+        await attendanceApi.upsert({ employeeId: id, date: editDate, ...payload });
         toast.success(t('attendance.toast.recordSaved'));
       }
-
       setShowEditModal(false);
       fetchData();
     } catch (err: any) {
@@ -834,46 +762,84 @@ export function AttendanceSheet() {
         </Button>
       </div>
 
-      {/* Employee header */}
-      {loading ? (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-muted animate-pulse" />
-              <div className="space-y-2">
-                <div className="h-5 w-40 bg-muted rounded animate-pulse" />
-                <div className="h-4 w-60 bg-muted rounded animate-pulse" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : employee ? (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-wrap items-start gap-5">
-              {employee.photoUrl ? (
-                <img
-                  src={
-                    employee.photoUrl.startsWith('http')
-                      ? employee.photoUrl
-                      : `${(
-                          import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
-                        ).replace('/api/v1', '')}${employee.photoUrl}`
-                  }
-                  alt={fullName}
-                  className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-xl font-bold flex-shrink-0">
-                  {initials}
-                </div>
+      {/* Toolbar card — matches AttendanceTab layout */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              {loading ? <span className="text-muted-foreground">Loading…</span> : fullName}
+              {isLocked && (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 ms-2">
+                  <Lock className="w-3 h-3 me-1" />Period Locked
+                </Badge>
               )}
+            </CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MONTH_NAMES.map((name, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {YEARS.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)}>
+                <Download className="w-4 h-4 me-1" />Export
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowBulkFill(true)} disabled={isLocked}>
+                <ClipboardList className="w-4 h-4 me-1" />Fill Month
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLockModal(true)}
+                className={isLocked ? 'text-amber-700 hover:text-amber-800' : ''}
+              >
+                {isLocked
+                  ? <Unlock className="w-4 h-4 me-1" />
+                  : <Lock className="w-4 h-4 me-1" />}
+                {isLocked ? 'Unlock' : 'Lock'} Period
+              </Button>
+              <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="text-xl font-semibold text-[#0F172A]">{fullName}</h2>
+        {/* Employee info + lock notice */}
+        {(employee || isLocked) && (
+          <CardContent className="pt-0 space-y-3">
+            {employee && (
+              <div className="flex items-center gap-3">
+                {employee.photoUrl ? (
+                  <img
+                    src={
+                      employee.photoUrl.startsWith('http')
+                        ? employee.photoUrl
+                        : `${(import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '')}${employee.photoUrl}`
+                    }
+                    alt={fullName}
+                    className="w-9 h-9 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-sm font-bold shrink-0">
+                    {initials}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-x-5 gap-y-0.5 text-sm text-muted-foreground">
                   {employee.status && (
                     <Badge
+                      variant="outline"
                       className={
                         employee.status === 'ACTIVE'
                           ? 'bg-green-100 text-green-700 border-green-200'
@@ -887,203 +853,131 @@ export function AttendanceSheet() {
                       {employee.status.replace(/_/g, ' ')}
                     </Badge>
                   )}
-                  {isLocked && (
-                    <Badge className="bg-red-100 text-red-700 border-red-200">
-                      <Lock className="w-3 h-3 me-1" />
-                      Period Locked
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1">
                     <User className="w-3.5 h-3.5" />
                     ID: {employee.employeeNumber ?? '—'}
                   </span>
                   {(employee.agency?.name ?? employee.agencyName) && (
-                    <span className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5" />
-                      Agency: {employee.agency?.name ?? employee.agencyName}
-                    </span>
+                    <span>Agency: {employee.agency?.name ?? employee.agencyName}</span>
                   )}
                   {employee.email && <span>{employee.email}</span>}
                 </div>
               </div>
-
-              {/* Action buttons */}
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowBulkFill(true)}
-                  disabled={isLocked}
-                >
-                  <ClipboardList className="w-4 h-4 me-1" />
-                  Fill Month
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowLockModal(true)}
-                  className={isLocked ? 'text-amber-700 hover:text-amber-800' : 'text-red-700 hover:text-red-800'}
-                >
-                  {isLocked ? <Unlock className="w-4 h-4 me-1" /> : <Lock className="w-4 h-4 me-1" />}
-                  {isLocked ? 'Unlock' : 'Lock'} Period
-                </Button>
-                <Button size="sm" onClick={() => setShowExportModal(true)}>
-                  <Download className="w-4 h-4 me-1" />
-                  Export
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={fetchData}
-                  disabled={loading}
-                >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* Month / Year selectors */}
-      <div className="flex items-end gap-3">
-        <div className="space-y-1 min-w-[160px]">
-          <Label className="text-xs text-muted-foreground">Month</Label>
-          <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTH_NAMES.map((name, i) => (
-                <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1 min-w-[110px]">
-          <Label className="text-xs text-muted-foreground">Year</Label>
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {YEARS.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Summary stats: day counts × hour totals per status + the
-          monthly grand total. The grand total equals Present + Holiday
-          + Vacation + Sick + Unpaid + Absent hours, which is what the
-          Excel "Spolu" row reports. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        {[
-          { countKey: 'presentCount',      hoursKey: 'presentHours',      label: 'Present (Odpracované)',          color: 'bg-green-100 text-green-700',     icon: CheckCircle },
-          { countKey: 'holidayCount',      hoursKey: 'holidayHours',      label: 'Public Holiday (sviatok)',       color: 'bg-purple-100 text-purple-700',   icon: AlertCircle },
-          { countKey: 'vacationCount',     hoursKey: 'vacationHours',     label: 'Vacation (dovolenka)',           color: 'bg-cyan-100 text-cyan-700',       icon: Calendar    },
-          { countKey: 'sickCount',         hoursKey: 'sickHours',         label: 'Sick (platené voľno)',           color: 'bg-fuchsia-100 text-fuchsia-700', icon: AlertCircle },
-          { countKey: 'unpaidLeaveCount',  hoursKey: 'unpaidLeaveHours',  label: 'Unpaid (neplatené voľno)',       color: 'bg-red-100 text-red-700',         icon: AlertCircle },
-          { countKey: 'absentCount',       hoursKey: 'absentHours',       label: 'Absent (absencia)',              color: 'bg-orange-100 text-orange-700',   icon: XCircle     },
-          { countKey: null,                hoursKey: 'presentHours',      label: 'Worked Hours',                   color: 'bg-blue-100 text-blue-700',       icon: Clock       },
-          { countKey: null,                hoursKey: 'monthlyTotalHours', label: 'Monthly Total (Spolu)',          color: 'bg-slate-900 text-white',         icon: Clock       },
-        ].map(({ countKey, hoursKey, label, color, icon: Icon }) => {
-          const count = countKey ? (summary?.[countKey] ?? 0) : null;
-          const hours = summary?.[hoursKey] != null
-            ? `${Number(summary[hoursKey]).toFixed(1).replace(/\.0$/, '')}h`
-            : '—';
-          return (
-            <Card key={label} className="border">
-              <CardContent className="p-3">
-                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${color}`}>
-                  <Icon className="w-3 h-3" />
-                  {label}
+            )}
+            {isLocked && (
+              <div className="flex items-start gap-2 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+                <div>
+                  <strong>Period locked.</strong> Attendance edits are disabled for {MONTH_NAMES[month - 1]} {year}.
+                  Use the "Unlock Period" button to reopen.
                 </div>
-                {count !== null ? (
-                  <>
-                    <p className="text-2xl font-bold text-[#0F172A]">{count}<span className="text-xs text-muted-foreground ms-1">days</span></p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{hours}</p>
-                  </>
-                ) : (
-                  <p className="text-2xl font-bold text-[#0F172A]">{hours}</p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Summary tiles — same SummaryTile style as AttendanceTab */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <SummaryTile
+          label="Present"
+          value={fmtHours(summary?.presentHours)}
+          subValue={summary?.presentCount ? `${summary.presentCount} days` : undefined}
+          tone="emerald"
+        />
+        <SummaryTile
+          label="Public Holiday"
+          value={fmtHours(summary?.holidayHours)}
+          subValue={summary?.holidayCount ? `${summary.holidayCount} days` : undefined}
+          tone="purple"
+        />
+        <SummaryTile
+          label="Vacation"
+          value={fmtHours(summary?.vacationHours)}
+          subValue={summary?.vacationCount ? `${summary.vacationCount} days` : undefined}
+          tone="blue"
+        />
+        <SummaryTile
+          label="Sick Leave"
+          value={fmtHours(summary?.sickHours)}
+          subValue={summary?.sickCount ? `${summary.sickCount} days` : undefined}
+          tone="violet"
+        />
+        <SummaryTile
+          label="Unpaid Leave"
+          value={fmtHours(summary?.unpaidLeaveHours)}
+          subValue={summary?.unpaidLeaveCount ? `${summary.unpaidLeaveCount} days` : undefined}
+          tone="orange"
+        />
+        <SummaryTile
+          label="Absent"
+          value={fmtHours(summary?.absentHours)}
+          subValue={summary?.absentCount ? `${summary.absentCount} days` : undefined}
+          tone="red"
+        />
+        <SummaryTile
+          label="Monthly Total"
+          value={fmtHours(summary?.monthlyTotalHours)}
+          tone="slate"
+        />
       </div>
 
-      {/* Attendance table */}
+      {/* Daily attendance table — same table style as AttendanceTab */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-600" />
-            Daily Attendance — {MONTH_NAMES[month - 1]} {year}
-          </CardTitle>
-        </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="py-16 text-center text-muted-foreground">
-              <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin opacity-40" />
-              <p>Loading attendance records…</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead className="w-24">Date</TableHead>
-                    <TableHead className="w-16">Day</TableHead>
-                    <TableHead className="w-36">Status</TableHead>
-                    <TableHead className="w-20">Check In</TableHead>
-                    <TableHead className="w-20">Check Out</TableHead>
-                    <TableHead className="w-20">Break In</TableHead>
-                    <TableHead className="w-20">Break Out</TableHead>
-                    <TableHead className="w-20">Interr. In</TableHead>
-                    <TableHead className="w-20">Interr. Out</TableHead>
-                    <TableHead className="w-20">Total Hours</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="text-end w-24">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {days.map((day) => {
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-muted-foreground">
+                <tr>
+                  <th className="text-start px-3 py-2 font-medium w-10">#</th>
+                  <th className="text-start px-3 py-2 font-medium">Date</th>
+                  <th className="text-start px-3 py-2 font-medium">Status</th>
+                  <th className="text-start px-3 py-2 font-medium">Check In</th>
+                  <th className="text-start px-3 py-2 font-medium">Check Out</th>
+                  <th className="text-start px-3 py-2 font-medium">Break In</th>
+                  <th className="text-start px-3 py-2 font-medium">Break Out</th>
+                  <th className="text-start px-3 py-2 font-medium">Interr. In</th>
+                  <th className="text-start px-3 py-2 font-medium">Interr. Out</th>
+                  <th className="text-end px-3 py-2 font-medium">Total</th>
+                  <th className="text-start px-3 py-2 font-medium">Notes</th>
+                  <th className="px-3 py-2 w-24" />
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={12} className="p-6 text-center text-muted-foreground">
+                      Loading attendance records…
+                    </td>
+                  </tr>
+                ) : (
+                  days.map((day) => {
                     const record = recordByDate(day.date);
-                    const isWeekend = day.isWeekend;
                     const isHoliday = isSlovakPublicHoliday(day.date);
-
                     return (
-                      <TableRow
+                      <tr
                         key={day.date}
-                        className={
-                          isHoliday
-                            ? 'bg-purple-50/40 hover:bg-purple-50/60'
-                            : isWeekend
-                            ? 'bg-muted/20 hover:bg-muted/30'
-                            : 'hover:bg-muted/10'
-                        }
+                        className={`border-t hover:bg-muted/20 ${
+                          isHoliday ? 'bg-purple-50/40' : day.isWeekend ? 'bg-muted/10' : ''
+                        }`}
                       >
-                        <TableCell className="font-medium text-sm text-[#0F172A]">
-                          <div className="flex flex-col">
-                            <span>{day.date}</span>
+                        <td className="px-3 py-1.5 text-muted-foreground">{day.dayNum}</td>
+                        <td className="px-3 py-1.5">
+                          <div>
+                            <span>
+                              {day.date}
+                              {day.isWeekend && (
+                                <span className="text-xs text-muted-foreground ms-1">· {day.dayName}</span>
+                              )}
+                            </span>
                             {isHoliday && (
-                              <span className="text-[10px] text-purple-700 italic" title={slovakPublicHolidayName(day.date)}>
-                                sviatok
-                              </span>
+                              <div className="text-[10px] text-purple-700 italic">
+                                {slovakPublicHolidayName(day.date)}
+                              </div>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`text-xs font-medium ${isWeekend ? 'text-muted-foreground' : 'text-foreground'}`}>
-                            {day.dayName}
-                          </span>
-                        </TableCell>
-                        <TableCell>
+                        </td>
+                        <td className="px-3 py-1.5">
                           {record?.status ? (
                             <Badge
                               variant="outline"
@@ -1092,110 +986,75 @@ export function AttendanceSheet() {
                               {statusLabels[record.status] ?? record.status}
                             </Badge>
                           ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
+                            <span className="text-xs text-muted-foreground italic">—</span>
                           )}
-                        </TableCell>
-                        <TableCell className="text-sm font-mono">{record?.checkIn  || <span className="text-muted-foreground">—</span>}</TableCell>
-                        <TableCell className="text-sm font-mono">{record?.checkOut || <span className="text-muted-foreground">—</span>}</TableCell>
-                        <TableCell className="text-sm font-mono">{record?.breakIn  || <span className="text-muted-foreground">—</span>}</TableCell>
-                        <TableCell className="text-sm font-mono">{record?.breakOut || <span className="text-muted-foreground">—</span>}</TableCell>
-                        <TableCell className="text-sm font-mono">
-                          {record?.interruptionIn || <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell className="text-sm font-mono">
+                        </td>
+                        <td className="px-3 py-1.5 font-mono">{record?.checkIn  ?? '—'}</td>
+                        <td className="px-3 py-1.5 font-mono">{record?.checkOut ?? '—'}</td>
+                        <td className="px-3 py-1.5 font-mono">{record?.breakIn  ?? '—'}</td>
+                        <td className="px-3 py-1.5 font-mono">{record?.breakOut ?? '—'}</td>
+                        <td className="px-3 py-1.5 font-mono">{record?.interruptionIn ?? '—'}</td>
+                        <td className="px-3 py-1.5 font-mono">
                           {record?.interruptionOut ? (
-                            <div className="flex flex-col leading-tight">
-                              <span>{record.interruptionOut}</span>
-                              {record?.interruptionStatus && (
-                                <span className="text-[10px] text-muted-foreground italic">
+                            <div className="leading-tight">
+                              <div>{record.interruptionOut}</div>
+                              {record.interruptionStatus && (
+                                <div className="text-[10px] text-muted-foreground italic">
                                   → {statusLabels[record.interruptionStatus] ?? record.interruptionStatus}
-                                </span>
+                                </div>
                               )}
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {record?.workingHours != null ? (
-                            <span className="inline-flex items-center gap-1 text-slate-700">
-                              <Clock className="w-3 h-3 opacity-50" />
-                              {Number(record.workingHours).toFixed(2).replace(/\.?0+$/, '')}h
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                          {record?.notes || <span className="opacity-40">—</span>}
-                        </TableCell>
-                        <TableCell className="text-end">
-                          <div className="flex items-center justify-end gap-1">
-                            {record ? (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => openEditModal(record, day.date)}
-                                  className="h-7 px-2"
-                                  disabled={isLocked}
-                                >
-                                  <Pencil className="w-3.5 h-3.5 me-1" />
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => { setDeleteRecord(record); setShowDeleteModal(true); }}
-                                  className="h-7 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                  disabled={isLocked}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              </>
-                            ) : (
+                          ) : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-end font-medium">
+                          {record?.workingHours != null
+                            ? `${Number(record.workingHours).toFixed(2).replace(/\.?0+$/, '')}h`
+                            : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-muted-foreground truncate max-w-xs">
+                          {record?.notes ?? ''}
+                        </td>
+                        <td className="px-3 py-1.5 text-end whitespace-nowrap">
+                          {record ? (
+                            <>
                               <Button
-                                variant="ghost"
                                 size="sm"
-                                onClick={() => openEditModal(null, day.date)}
-                                className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={() => openEditModal(record, day.date)}
                                 disabled={isLocked}
                               >
-                                <Plus className="w-3.5 h-3.5 me-1" />
-                                Add
+                                <Pencil className="w-3.5 h-3.5 me-1" />Edit
                               </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => { setDeleteRecord(record); setShowDeleteModal(true); }}
+                                disabled={isLocked}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                              onClick={() => openEditModal(null, day.date)}
+                              disabled={isLocked}
+                            >
+                              <Plus className="w-3.5 h-3.5 me-1" />Add
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
                     );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Status legend */}
-      <Card className="bg-muted/20 border-muted">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Status Reference</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
-            {STATUS_LEGEND.map((s) => (
-              <li key={s.value} className="flex items-start gap-2">
-                <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[s.value]}`}>
-                  {s.label}
-                </Badge>
-                <span className="text-muted-foreground">{s.description}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted-foreground mt-3 italic">
-            Total Working Hours = Check-Out − Check-In − (Break-Out − Break-In)
-          </p>
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
 
@@ -1204,11 +1063,9 @@ export function AttendanceSheet() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {editRecord ? (
-                <><Pencil className="w-5 h-5 text-blue-600" />Edit Attendance</>
-              ) : (
-                <><Plus className="w-5 h-5 text-blue-600" />Add Attendance</>
-              )}
+              {editRecord
+                ? <><Pencil className="w-5 h-5 text-blue-600" />Edit Attendance</>
+                : <><Plus className="w-5 h-5 text-blue-600" />Add Attendance</>}
             </DialogTitle>
           </DialogHeader>
 
@@ -1228,74 +1085,40 @@ export function AttendanceSheet() {
 
             <div className="space-y-1.5">
               <Label htmlFor="edit-status">Status</Label>
-              <Select
-                value={editForm.status}
-                onValueChange={(v) => handleFormChange('status', v)}
-              >
-                <SelectTrigger id="edit-status">
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={editForm.status} onValueChange={(v) => handleFormChange('status', v)}>
+                <SelectTrigger id="edit-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Time fields — only meaningful when the day is Present.
-                For any leave status the spec wants 0:00 across the row,
-                so the inputs are hidden. */}
             {editForm.status === 'PRESENT' && (
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="edit-checkin">Check In</Label>
-                    <Input
-                      id="edit-checkin"
-                      type="time"
-                      value={editForm.checkIn}
-                      onChange={(e) => handleFormChange('checkIn', e.target.value)}
-                    />
+                    <Input id="edit-checkin" type="time" value={editForm.checkIn} onChange={(e) => handleFormChange('checkIn', e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="edit-checkout">Check Out</Label>
-                    <Input
-                      id="edit-checkout"
-                      type="time"
-                      value={editForm.checkOut}
-                      onChange={(e) => handleFormChange('checkOut', e.target.value)}
-                    />
+                    <Input id="edit-checkout" type="time" value={editForm.checkOut} onChange={(e) => handleFormChange('checkOut', e.target.value)} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="edit-breakin">Break In (zac pres)</Label>
-                    <Input
-                      id="edit-breakin"
-                      type="time"
-                      value={editForm.breakIn}
-                      onChange={(e) => handleFormChange('breakIn', e.target.value)}
-                    />
+                    <Input id="edit-breakin" type="time" value={editForm.breakIn} onChange={(e) => handleFormChange('breakIn', e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="edit-breakout">Break Out (kon pres)</Label>
-                    <Input
-                      id="edit-breakout"
-                      type="time"
-                      value={editForm.breakOut}
-                      onChange={(e) => handleFormChange('breakOut', e.target.value)}
-                    />
+                    <Input id="edit-breakout" type="time" value={editForm.breakOut} onChange={(e) => handleFormChange('breakOut', e.target.value)} />
                   </div>
                 </div>
 
-                {/* Interruption (zac prer / kon prer) — used when the
-                    employee leaves mid-day and the missing hours roll
-                    up into another leave status (e.g. doctor's visit
-                    → Sick). */}
                 <div className="space-y-2 rounded-md border border-dashed border-amber-300 bg-amber-50/40 p-3">
                   <p className="text-xs font-semibold text-amber-800">
                     In-day interruption (zac prer / kon prer)
@@ -1307,30 +1130,17 @@ export function AttendanceSheet() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="edit-interruption-in" className="text-xs">Interruption In (zac prer)</Label>
-                      <Input
-                        id="edit-interruption-in"
-                        type="time"
-                        value={editForm.interruptionIn}
-                        onChange={(e) => handleFormChange('interruptionIn', e.target.value)}
-                      />
+                      <Input id="edit-interruption-in" type="time" value={editForm.interruptionIn} onChange={(e) => handleFormChange('interruptionIn', e.target.value)} />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="edit-interruption-out" className="text-xs">Interruption Out (kon prer)</Label>
-                      <Input
-                        id="edit-interruption-out"
-                        type="time"
-                        value={editForm.interruptionOut}
-                        onChange={(e) => handleFormChange('interruptionOut', e.target.value)}
-                      />
+                      <Input id="edit-interruption-out" type="time" value={editForm.interruptionOut} onChange={(e) => handleFormChange('interruptionOut', e.target.value)} />
                     </div>
                   </div>
                   {(editForm.interruptionIn || editForm.interruptionOut) && (
                     <div className="space-y-1.5">
                       <Label className="text-xs">Attribute interruption to</Label>
-                      <Select
-                        value={editForm.interruptionStatus || ''}
-                        onValueChange={(v) => handleFormChange('interruptionStatus', v)}
-                      >
+                      <Select value={editForm.interruptionStatus || ''} onValueChange={(v) => handleFormChange('interruptionStatus', v)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a leave status" />
                         </SelectTrigger>
@@ -1384,13 +1194,7 @@ export function AttendanceSheet() {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowEditModal(false)}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setShowEditModal(false)} disabled={saving}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : editRecord ? 'Save Changes' : 'Add Record'}
             </Button>
@@ -1434,7 +1238,10 @@ export function AttendanceSheet() {
       )}
 
       {/* Delete Confirmation Modal */}
-      <Dialog open={showDeleteModal} onOpenChange={(open) => { if (!open) { setShowDeleteModal(false); setDeleteRecord(null); } }}>
+      <Dialog
+        open={showDeleteModal}
+        onOpenChange={(open) => { if (!open) { setShowDeleteModal(false); setDeleteRecord(null); } }}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
@@ -1460,6 +1267,34 @@ export function AttendanceSheet() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── Summary Tile — same component pattern as AttendanceTab ───────────────────
+
+function SummaryTile({
+  label, value, subValue, tone,
+}: {
+  label: string;
+  value: string;
+  subValue?: string;
+  tone: string;
+}) {
+  const palette: Record<string, string> = {
+    emerald: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    blue:    'text-blue-700 bg-blue-50 border-blue-200',
+    red:     'text-red-700 bg-red-50 border-red-200',
+    violet:  'text-violet-700 bg-violet-50 border-violet-200',
+    slate:   'text-slate-700 bg-slate-50 border-slate-200',
+    purple:  'text-purple-700 bg-purple-50 border-purple-200',
+    orange:  'text-orange-700 bg-orange-50 border-orange-200',
+  };
+  return (
+    <div className={`border rounded-md px-3 py-2 ${palette[tone] ?? palette.slate}`}>
+      <p className="text-xs">{label}</p>
+      <p className="text-xl font-semibold">{value}</p>
+      {subValue && <p className="text-xs opacity-70 mt-0.5">{subValue}</p>}
     </div>
   );
 }

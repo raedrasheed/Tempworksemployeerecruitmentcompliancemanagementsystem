@@ -4071,7 +4071,7 @@
       "cityPh": "Город",
       "postalCode": "Почтовый индекс",
       "postalCodePh": "Индекс",
-      "preferredLanguage": "Предпочитаемый язык",
+      "preferredLanguage": "Предпочитаемый язык интерфейса",
       "selectLanguage": "Выберите язык",
       "timeZone": "Часовой пояс",
       "selectTimeZone": "Выберите часовой пояс",

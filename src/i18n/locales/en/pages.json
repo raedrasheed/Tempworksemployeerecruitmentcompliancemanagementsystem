@@ -4023,7 +4023,7 @@
       "cityPh": "City",
       "postalCode": "Postal Code",
       "postalCodePh": "Post code",
-      "preferredLanguage": "Preferred Language",
+      "preferredLanguage": "Preferred Interface Language",
       "selectLanguage": "Select language",
       "timeZone": "Time Zone",
       "selectTimeZone": "Select time zone",

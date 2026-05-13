@@ -572,18 +572,18 @@ export class AttendanceService {
     employee: { firstName: string; lastName: string; employeeNumber?: string | null },
     month: number, year: number,
     dayMap: Map<number, any>,
+    companyProfile?: any,
   ) {
     const MONTH_SK = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
     const daysInMonth = new Date(year, month, 0).getDate();
     const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(' ');
     const monthLabel = `${MONTH_SK[month - 1]} ${year}`;
-    const sheetName = `${MONTH_SK[month - 1]} ${year}`.slice(0, 31);
+    const sheetName = (fullName || 'Timesheet').slice(0, 31);
 
     const sheet = workbook.addWorksheet(sheetName, {
       pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1 },
     });
 
-    // Column widths tuned to the reference template.
     sheet.columns = [
       { width: 5 }, { width: 9 }, { width: 9 },
       { width: 11 }, { width: 11 },
@@ -591,46 +591,90 @@ export class AttendanceService {
       { width: 10 },
     ];
 
-    // Row 1 — title.
-    sheet.mergeCells('A1:H1');
-    const title = sheet.getCell('A1');
+    // ── Optional company header (selected Company Export Profile) ──
+    let topOffset = 0;
+    if (companyProfile) {
+      let r = 1;
+      sheet.mergeCells(`A${r}:H${r}`);
+      const c = sheet.getCell(`A${r}`);
+      c.value = companyProfile.legalName || companyProfile.name;
+      c.alignment = { horizontal: 'left', vertical: 'middle' };
+      c.font = { bold: true, size: 14, color: { argb: 'FF0F172A' } };
+      sheet.getRow(r).height = 22;
+      r++;
+
+      const addrParts: string[] = [];
+      if (companyProfile.addressLine1) addrParts.push(companyProfile.addressLine1);
+      if (companyProfile.addressLine2) addrParts.push(companyProfile.addressLine2);
+      if (companyProfile.postalCode || companyProfile.city) {
+        addrParts.push([companyProfile.postalCode, companyProfile.city].filter(Boolean).join(' '));
+      }
+      if (companyProfile.country) addrParts.push(companyProfile.country);
+      if (addrParts.length > 0) {
+        sheet.mergeCells(`A${r}:H${r}`);
+        sheet.getCell(`A${r}`).value = addrParts.join(' · ');
+        sheet.getCell(`A${r}`).font  = { size: 9, color: { argb: 'FF475569' } };
+        r++;
+      }
+
+      const contactParts: string[] = [];
+      if (companyProfile.phone) contactParts.push(`Tel: ${companyProfile.phone}`);
+      if (companyProfile.email) contactParts.push(companyProfile.email);
+      if (companyProfile.vatNumber) contactParts.push(`VAT: ${companyProfile.vatNumber}`);
+      if (companyProfile.registrationNumber) contactParts.push(`Reg: ${companyProfile.registrationNumber}`);
+      if (contactParts.length > 0) {
+        sheet.mergeCells(`A${r}:H${r}`);
+        sheet.getCell(`A${r}`).value = contactParts.join(' · ');
+        sheet.getCell(`A${r}`).font  = { size: 9, color: { argb: 'FF475569' } };
+        r++;
+      }
+
+      r++; // blank line separator
+      topOffset = r - 1;
+    }
+
+    // Helper: shift any absolute row index by topOffset so the rest of
+    // the function keeps using the original 1-based layout while the
+    // company header pushes the whole sheet down.
+    const R = (n: number) => n + topOffset;
+
+    sheet.mergeCells(`A${R(1)}:H${R(1)}`);
+    const title = sheet.getCell(`A${R(1)}`);
     title.value     = 'Zeiterfassung';
     title.alignment = { horizontal: 'center', vertical: 'middle' };
     title.font      = { bold: true, size: 20, color: { argb: 'FF1E3A8A' } };
-    sheet.getRow(1).height = 28;
+    sheet.getRow(R(1)).height = 28;
 
-    // Row 2 — employee.
-    sheet.getCell('A2').value = 'Zamestnanec';
-    sheet.getCell('A2').font  = { bold: true, size: 9 };
-    sheet.mergeCells('B2:D2');
-    sheet.getCell('B2').value = fullName || '';
+    sheet.getCell(`A${R(2)}`).value = 'Zamestnanec';
+    sheet.getCell(`A${R(2)}`).font  = { bold: true, size: 9 };
+    sheet.mergeCells(`B${R(2)}:D${R(2)}`);
+    sheet.getCell(`B${R(2)}`).value = fullName || '';
 
-    // Row 3 — month/year label.
-    sheet.getCell('A3').value = 'Mitarbeiter, Monat/Jahr';
-    sheet.getCell('A3').font  = { bold: true, size: 9 };
-    sheet.mergeCells('B3:D3');
-    sheet.getCell('B3').value = monthLabel;
+    sheet.getCell(`A${R(3)}`).value = 'Mitarbeiter, Monat/Jahr';
+    sheet.getCell(`A${R(3)}`).font  = { bold: true, size: 9 };
+    sheet.mergeCells(`B${R(3)}:D${R(3)}`);
+    sheet.getCell(`B${R(3)}`).value = monthLabel;
 
     // Rows 4-5 — bilingual headers (Slovak / German stacked).
     const headerRow1 = ['den', 'zac', 'kon', 'zac pres', 'kon pres', 'zac prer', 'kon prer', 'total'];
     const headerRow2 = ['tag', 'beginn', 'ende', 'beginn pause', 'ende pause', 'beginn untrbr', 'ende untrbr', 'total'];
     headerRow1.forEach((t, i) => {
-      const cell = sheet.getCell(4, i + 1);
+      const cell = sheet.getCell(R(4), i + 1);
       cell.value = t;
       cell.font  = { bold: true, size: 9, color: { argb: 'FF1E40AF' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
     });
     headerRow2.forEach((t, i) => {
-      const cell = sheet.getCell(5, i + 1);
+      const cell = sheet.getCell(R(5), i + 1);
       cell.value = t;
       cell.font  = { italic: true, size: 8, color: { argb: 'FF64748B' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
     });
-    sheet.getRow(4).height = 18;
-    sheet.getRow(5).height = 14;
+    sheet.getRow(R(4)).height = 18;
+    sheet.getRow(R(5)).height = 14;
 
     // Rows 6..(5 + daysInMonth) — daily data.
-    const dailyStart = 6;
+    const dailyStart = R(6);
     const dailyEnd   = dailyStart + daysInMonth - 1;
     let totalWorked  = 0;   // PRESENT hours
     let totalHoliday = 0;   // HOLIDAY legacy hours (sviatok)
@@ -758,6 +802,33 @@ export class AttendanceService {
     sheet.getCell(sigRow, 2).font  = { size: 9, color: { argb: 'FF1E40AF' } };
     sheet.getCell(sigRow + 1, 2).value = 'Unterschrift';
     sheet.getCell(sigRow + 1, 2).font  = { italic: true, size: 8, color: { argb: 'FF64748B' } };
+
+    // Slovak labour-law note + optional company footer (matches the
+    // reference template's German legal block at the bottom).
+    const lawRow = sigRow + 4;
+    const labourNotes = [
+      'Bitte beachten Sie die arbeitsrechtlichen Regelungen in der Slowakei:',
+      'Die wöchentliche Arbeitszeit ist maximal 40 Stunden. Einschließlich der Überstunden',
+      'maximal 48 Stunden wöchentlich, für Führungskräfte maximal 56 Stunden wöchentlich.',
+      'Eine Pause ist nach 6 Stunden notwendig, in der Länge von 30 Minuten.',
+      'Urlaub ist vorgeschrieben 4 Wochen im Jahr (nach dem Alter 33 Jahren 5 Wochen im Jahr).',
+      'Mit der Unterschrift bestätigt der Mitarbeiter, dass die Angaben in der Zeiterfassung vollständig',
+      'sind und der Wahrheit entsprechen.',
+    ];
+    labourNotes.forEach((line, i) => {
+      const c = sheet.getCell(lawRow + i, 1);
+      c.value = line;
+      c.font  = { size: 8, color: { argb: 'FF475569' } };
+      sheet.mergeCells(lawRow + i, 1, lawRow + i, 8);
+    });
+
+    if (companyProfile?.footer) {
+      const fr = lawRow + labourNotes.length + 2;
+      const c = sheet.getCell(fr, 1);
+      c.value = companyProfile.footer;
+      c.font  = { size: 8, italic: true, color: { argb: 'FF64748B' } };
+      sheet.mergeCells(fr, 1, fr, 8);
+    }
   }
 
   /** Formats a decimal hours value as "H:MM" (e.g. 8.5 → "8:30"). */
@@ -779,15 +850,25 @@ export class AttendanceService {
     const { from, to } = this.computeDateRange(month, year);
     const daysInMonth  = new Date(year, month, 0).getDate();
 
-    // Build employee filter
+    // Build employee filter — explicit ID > selected list > driversOnly > everyone.
     const empWhere: any = { deletedAt: null };
     if (dto.employeeId) {
       empWhere.id = dto.employeeId;
+    } else if (dto.employeeIds && dto.employeeIds.length > 0) {
+      empWhere.id = { in: dto.employeeIds };
     } else if (dto.driversOnly) {
       empWhere.OR = [
         { licenseNumber:   { not: null } },
         { licenseCategory: { not: null } },
       ];
+    }
+
+    // Resolve selected company export profile (renders in the header).
+    let companyProfile: any = null;
+    if (dto.companyProfileId) {
+      companyProfile = await (this.prisma as any).companyExportProfile.findUnique({
+        where: { id: dto.companyProfileId },
+      });
     }
 
     const exportTenantWhere = this.scope().tenantWhere(); // @tenant-reviewed: phase248-attendance-export-scope
@@ -838,7 +919,7 @@ export class AttendanceService {
     //    see every driver at a glance.
     for (const emp of employees) {
       const dayMap = recordMap.get(emp.id) ?? new Map<number, any>();
-      this.buildZeiterfassungSheet(workbook, emp, month, year, dayMap);
+      this.buildZeiterfassungSheet(workbook, emp, month, year, dayMap, companyProfile);
     }
 
     // ── Secondary summary sheet — only when the caller asked for

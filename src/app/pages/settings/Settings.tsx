@@ -194,6 +194,27 @@ export function Settings() {
           </Link>
         )}
 
+        {/* Company Export Profiles — header info shown on exported timesheets */}
+        {canEditSettings && (
+          <Link to="/dashboard/settings/company-profiles">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-emerald-200 hover:border-emerald-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <Building2 className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-emerald-800">Company Export Profiles</CardTitle>
+                    <CardDescription>
+                      Manage the company-details blocks (name, address, VAT, contact) shown in the header of exported Excel timesheets.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
         {/* Skills List */}
         {canEditSettings && (
           <Link to="/dashboard/settings/skills">

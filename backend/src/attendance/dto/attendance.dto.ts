@@ -87,7 +87,15 @@ export class ExportAttendanceDto {
   @ApiProperty({ description: 'Month 1-12' }) @Type(() => Number) @IsInt() @Min(1) @Max(12) month: number;
   @ApiProperty({ description: 'Year e.g. 2024' }) @Type(() => Number) @IsInt() @Min(2000) @Max(2100) year: number;
   @ApiPropertyOptional({ description: 'Specific employee UUID for per-driver export' }) @IsOptional() @IsUUID() employeeId?: string;
+  /** Restrict export to the given employee UUIDs. Accepted both as
+   *  a real array and as a comma-separated string for GET requests. */
+  @ApiPropertyOptional({ description: 'CSV or array of employee UUIDs to include', type: [String] })
+  @IsOptional()
+  @Transform(({ value }) => Array.isArray(value) ? value : (typeof value === 'string' ? value.split(',').filter(Boolean) : value))
+  @IsArray() @IsString({ each: true }) employeeIds?: string[];
   @ApiPropertyOptional() @IsOptional() @Transform(({ obj, key }) => { const v = obj?.[key]; return v === true || v === 'true'; }) @IsBoolean() driversOnly?: boolean;
+  /** Company Export Profile to render in the workbook header. */
+  @ApiPropertyOptional() @IsOptional() @IsUUID() companyProfileId?: string;
 }
 
 export class LockPeriodDto {

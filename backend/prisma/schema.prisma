@@ -1608,6 +1608,39 @@ model AttendanceLockedPeriod {
   @@map("attendance_locked_periods")
 }
 
+/// Reusable company-details block used to stamp the Excel timesheet
+/// header. Tenants typically create one per legal entity / payroll
+/// destination (their own holding company, plus any client company
+/// that issues timesheets). The chosen profile's fields are written
+/// into the top-left of the exported workbook.
+model CompanyExportProfile {
+  id                 String   @id @default(uuid())
+  name               String
+  legalName          String?
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  postalCode         String?
+  country            String?
+  phone              String?
+  email              String?
+  vatNumber          String?
+  registrationNumber String?
+  logoUrl            String?
+  /// Free-form footer line(s). Useful for bank details, IBAN, or
+  /// extra disclaimers that should appear under the daily grid.
+  footer             String?
+  isDefault          Boolean  @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tenantId           String?
+
+  @@index([tenantId])
+  @@index([deletedAt])
+  @@map("company_export_profiles")
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // EMPLOYEE WORK HISTORY (Contracts tab — post-hire business timeline)
 // ═══════════════════════════════════════════════════════════════════════════════

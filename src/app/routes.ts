@@ -85,6 +85,7 @@ import { DatabaseCleanup }  from './pages/settings/DatabaseCleanup';
 import { DatabaseBackup }   from './pages/settings/DatabaseBackup';
 import { SystemInformation } from './pages/settings/SystemInformation';
 import { BrandingSettings } from './pages/settings/BrandingSettings';
+import { CompanyProfiles } from './pages/settings/CompanyProfiles';
 import { SkillsSettings } from './pages/settings/SkillsSettings';
 import { TransportTypesSettings } from './pages/settings/TransportTypesSettings';
 import { TruckBrandsSettings } from './pages/settings/TruckBrandsSettings';
@@ -276,6 +277,7 @@ export const router = createBrowserRouter([
       { path: 'settings/database-backup',  Component: DatabaseBackup  },
       { path: 'settings/system-information', Component: SystemInformation },
       { path: 'settings/branding', Component: BrandingSettings },
+      { path: 'settings/company-profiles', Component: CompanyProfiles },
       { path: 'settings/skills', Component: SkillsSettings },
       { path: 'settings/transport-types', Component: TransportTypesSettings },
       { path: 'settings/truck-brands', Component: TruckBrandsSettings },

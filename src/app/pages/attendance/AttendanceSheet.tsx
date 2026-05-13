@@ -60,34 +60,36 @@ const MONTH_NAMES = [
 const YEARS = Array.from({ length: 11 }, (_, i) => 2020 + i);
 
 const STATUS_OPTIONS = [
-  { value: 'PRESENT',      label: 'Present' },
-  { value: 'ABSENT',       label: 'Absent' },
-  { value: 'VACATION',     label: 'Vacation' },
-  { value: 'HOLIDAY',      label: 'Public Holiday' },
-  { value: 'SICK',         label: 'Sick' },
-  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave' },
-  { value: 'OFF',          label: 'Off' },
+  { value: 'PRESENT',      label: 'Present (Odpracované)' },
+  { value: 'ABSENT',       label: 'Absent (absencia)' },
+  { value: 'VACATION',     label: 'Vacation (dovolenka)' },
+  { value: 'HOLIDAY',      label: 'Public Holiday (sviatok)' },
+  { value: 'SICK',         label: 'Sick Leave (platené voľno / lekár)' },
+  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave (neplatené voľno)' },
 ];
 
+// Statuses available when picking which leave bucket an in-day
+// interruption rolls up into — same list minus PRESENT.
+const INTERRUPTION_STATUS_OPTIONS = STATUS_OPTIONS.filter((o) => o.value !== 'PRESENT');
+
 const STATUS_LEGEND: { value: string; label: string; description: string }[] = [
-  { value: 'PRESENT',      label: 'Present',        description: 'Day worked' },
-  { value: 'ABSENT',       label: 'Absent',         description: 'No-show, not approved' },
-  { value: 'VACATION',     label: 'Vacation',       description: 'Planned day off (paid)' },
-  { value: 'HOLIDAY',      label: 'Public Holiday', description: 'Official leave per the Slovak Annual Holiday Calendar' },
-  { value: 'SICK',         label: 'Sick',           description: 'Sick leave' },
-  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave',   description: 'Unpaid leave / absence' },
-  { value: 'OFF',          label: 'Off',            description: 'Non-working day (weekend etc.)' },
+  { value: 'PRESENT',      label: 'Present (Odpracované)',           description: 'Day worked.' },
+  { value: 'ABSENT',       label: 'Absent (absencia)',               description: 'No-show — employee did not come to work when expected.' },
+  { value: 'VACATION',     label: 'Vacation (dovolenka)',            description: 'Paid leave taken by the employee.' },
+  { value: 'HOLIDAY',      label: 'Public Holiday (sviatok)',        description: 'Official Slovak public holiday — counts towards the monthly working hours when it falls on a weekday.' },
+  { value: 'SICK',         label: 'Sick Leave (platené voľno / lekár)', description: 'Paid sick leave / doctor visit.' },
+  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave (neplatené voľno)',  description: 'Unpaid absence — employee not currently willing to work.' },
 ];
 
 const statusColors: Record<string, string> = {
   PRESENT:      'bg-green-100 text-green-700 border-green-200',
-  ABSENT:       'bg-red-100 text-red-700 border-red-200',
-  VACATION:     'bg-blue-100 text-blue-700 border-blue-200',
-  HOLIDAY:      'bg-amber-100 text-amber-700 border-amber-200',
-  SICK:         'bg-purple-100 text-purple-700 border-purple-200',
-  UNPAID_LEAVE: 'bg-slate-100 text-slate-700 border-slate-200',
-  OFF:          'bg-gray-100 text-gray-600 border-gray-200',
-  // Legacy
+  ABSENT:       'bg-orange-100 text-orange-700 border-orange-200',
+  VACATION:     'bg-cyan-100 text-cyan-700 border-cyan-200',
+  HOLIDAY:      'bg-purple-100 text-purple-700 border-purple-200',
+  SICK:         'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',
+  UNPAID_LEAVE: 'bg-red-100 text-red-700 border-red-200',
+  // Legacy fallbacks
+  OFF:          'bg-orange-100 text-orange-700 border-orange-200',
   LATE:         'bg-amber-100 text-amber-700 border-amber-200',
   ON_LEAVE:     'bg-blue-100 text-blue-700 border-blue-200',
   HALF_DAY:     'bg-purple-100 text-purple-700 border-purple-200',
@@ -95,17 +97,28 @@ const statusColors: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
   PRESENT: 'Present', ABSENT: 'Absent', VACATION: 'Vacation', HOLIDAY: 'Public Holiday',
-  SICK: 'Sick', UNPAID_LEAVE: 'Unpaid Leave', OFF: 'Off',
+  SICK: 'Sick Leave', UNPAID_LEAVE: 'Unpaid Leave',
   // Legacy values still rendered when stored
-  LATE: 'Late', ON_LEAVE: 'On Leave', HALF_DAY: 'Half Day',
+  OFF: 'Absent', LATE: 'Late', ON_LEAVE: 'On Leave', HALF_DAY: 'Half Day',
 };
+
+const LEAVE_STATUSES = new Set(['ABSENT', 'VACATION', 'HOLIDAY', 'SICK', 'UNPAID_LEAVE', 'OFF']);
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Returns decimal hours: (out-in) - (breakOut-breakIn). Empty string when inputs missing. */
-function calcHours(checkIn: string, checkOut: string, breakIn: string, breakOut: string): string {
+/**
+ * Decimal hours = (checkOut - checkIn) - (breakOut - breakIn)
+ *               - (interruptionOut - interruptionIn).
+ * Returns '' when check-in / check-out are missing.
+ */
+function calcHours(
+  checkIn: string, checkOut: string,
+  breakIn: string, breakOut: string,
+  interruptionIn: string = '', interruptionOut: string = '',
+): string {
   if (!checkIn || !checkOut) return '';
   const toMin = (s: string) => {
+    if (!s) return NaN;
     const [h, m] = s.split(':').map(Number);
     return isNaN(h) ? NaN : h * 60 + (m || 0);
   };
@@ -118,11 +131,140 @@ function calcHours(checkIn: string, checkOut: string, breakIn: string, breakOut:
     const bOut = toMin(breakOut);
     if (!isNaN(bIn) && !isNaN(bOut) && bOut > bIn) work -= (bOut - bIn);
   }
+  if (interruptionIn && interruptionOut) {
+    const iIn = toMin(interruptionIn);
+    const iOut = toMin(interruptionOut);
+    if (!isNaN(iIn) && !isNaN(iOut) && iOut > iIn) work -= (iOut - iIn);
+  }
   if (work <= 0) return '';
   const h = Math.floor(work / 60);
   const m = work % 60;
   return m > 0 ? (h + m / 60).toFixed(2).replace(/\.?0+$/, '') : String(h);
 }
+
+// ─── Slovak public holidays calendar ───────────────────────────────────────────
+//
+// Pre-populated for 2024-2030 so the UI can highlight known holidays
+// and pre-select PUBLIC_HOLIDAY status when the user adds a record on
+// one of these dates. Easter-dependent dates (Good Friday + Easter
+// Monday) included; the rest are fixed-date.
+const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
+  // 2024
+  '2024-01-01': 'Day of the Establishment of the Slovak Republic',
+  '2024-01-06': 'Epiphany',
+  '2024-03-29': 'Good Friday',
+  '2024-04-01': 'Easter Monday',
+  '2024-05-01': 'Labour Day',
+  '2024-05-08': 'Day of Victory over Fascism',
+  '2024-07-05': 'St. Cyril and Methodius Day',
+  '2024-08-29': 'Slovak National Uprising Anniversary',
+  '2024-09-01': 'Constitution Day',
+  '2024-09-15': 'Day of Our Lady of Sorrows',
+  '2024-11-01': 'All Saints\' Day',
+  '2024-11-17': 'Struggle for Freedom and Democracy Day',
+  '2024-12-24': 'Christmas Eve',
+  '2024-12-25': 'Christmas Day',
+  '2024-12-26': 'St. Stephen\'s Day',
+  // 2025
+  '2025-01-01': 'Day of the Establishment of the Slovak Republic',
+  '2025-01-06': 'Epiphany',
+  '2025-04-18': 'Good Friday',
+  '2025-04-21': 'Easter Monday',
+  '2025-05-01': 'Labour Day',
+  '2025-05-08': 'Day of Victory over Fascism',
+  '2025-07-05': 'St. Cyril and Methodius Day',
+  '2025-08-29': 'Slovak National Uprising Anniversary',
+  '2025-09-01': 'Constitution Day',
+  '2025-09-15': 'Day of Our Lady of Sorrows',
+  '2025-11-01': 'All Saints\' Day',
+  '2025-11-17': 'Struggle for Freedom and Democracy Day',
+  '2025-12-24': 'Christmas Eve',
+  '2025-12-25': 'Christmas Day',
+  '2025-12-26': 'St. Stephen\'s Day',
+  // 2026
+  '2026-01-01': 'Day of the Establishment of the Slovak Republic',
+  '2026-01-06': 'Epiphany',
+  '2026-04-03': 'Good Friday',
+  '2026-04-06': 'Easter Monday',
+  '2026-05-01': 'Labour Day',
+  '2026-05-08': 'Day of Victory over Fascism',
+  '2026-07-05': 'St. Cyril and Methodius Day',
+  '2026-08-29': 'Slovak National Uprising Anniversary',
+  '2026-09-01': 'Constitution Day',
+  '2026-09-15': 'Day of Our Lady of Sorrows',
+  '2026-11-01': 'All Saints\' Day',
+  '2026-11-17': 'Struggle for Freedom and Democracy Day',
+  '2026-12-24': 'Christmas Eve',
+  '2026-12-25': 'Christmas Day',
+  '2026-12-26': 'St. Stephen\'s Day',
+  // 2027
+  '2027-01-01': 'Day of the Establishment of the Slovak Republic',
+  '2027-01-06': 'Epiphany',
+  '2027-03-26': 'Good Friday',
+  '2027-03-29': 'Easter Monday',
+  '2027-05-01': 'Labour Day',
+  '2027-05-08': 'Day of Victory over Fascism',
+  '2027-07-05': 'St. Cyril and Methodius Day',
+  '2027-08-29': 'Slovak National Uprising Anniversary',
+  '2027-09-01': 'Constitution Day',
+  '2027-09-15': 'Day of Our Lady of Sorrows',
+  '2027-11-01': 'All Saints\' Day',
+  '2027-11-17': 'Struggle for Freedom and Democracy Day',
+  '2027-12-24': 'Christmas Eve',
+  '2027-12-25': 'Christmas Day',
+  '2027-12-26': 'St. Stephen\'s Day',
+  // 2028
+  '2028-01-01': 'Day of the Establishment of the Slovak Republic',
+  '2028-01-06': 'Epiphany',
+  '2028-04-14': 'Good Friday',
+  '2028-04-17': 'Easter Monday',
+  '2028-05-01': 'Labour Day',
+  '2028-05-08': 'Day of Victory over Fascism',
+  '2028-07-05': 'St. Cyril and Methodius Day',
+  '2028-08-29': 'Slovak National Uprising Anniversary',
+  '2028-09-01': 'Constitution Day',
+  '2028-09-15': 'Day of Our Lady of Sorrows',
+  '2028-11-01': 'All Saints\' Day',
+  '2028-11-17': 'Struggle for Freedom and Democracy Day',
+  '2028-12-24': 'Christmas Eve',
+  '2028-12-25': 'Christmas Day',
+  '2028-12-26': 'St. Stephen\'s Day',
+  // 2029
+  '2029-01-01': 'Day of the Establishment of the Slovak Republic',
+  '2029-01-06': 'Epiphany',
+  '2029-03-30': 'Good Friday',
+  '2029-04-02': 'Easter Monday',
+  '2029-05-01': 'Labour Day',
+  '2029-05-08': 'Day of Victory over Fascism',
+  '2029-07-05': 'St. Cyril and Methodius Day',
+  '2029-08-29': 'Slovak National Uprising Anniversary',
+  '2029-09-01': 'Constitution Day',
+  '2029-09-15': 'Day of Our Lady of Sorrows',
+  '2029-11-01': 'All Saints\' Day',
+  '2029-11-17': 'Struggle for Freedom and Democracy Day',
+  '2029-12-24': 'Christmas Eve',
+  '2029-12-25': 'Christmas Day',
+  '2029-12-26': 'St. Stephen\'s Day',
+  // 2030
+  '2030-01-01': 'Day of the Establishment of the Slovak Republic',
+  '2030-01-06': 'Epiphany',
+  '2030-04-19': 'Good Friday',
+  '2030-04-22': 'Easter Monday',
+  '2030-05-01': 'Labour Day',
+  '2030-05-08': 'Day of Victory over Fascism',
+  '2030-07-05': 'St. Cyril and Methodius Day',
+  '2030-08-29': 'Slovak National Uprising Anniversary',
+  '2030-09-01': 'Constitution Day',
+  '2030-09-15': 'Day of Our Lady of Sorrows',
+  '2030-11-01': 'All Saints\' Day',
+  '2030-11-17': 'Struggle for Freedom and Democracy Day',
+  '2030-12-24': 'Christmas Eve',
+  '2030-12-25': 'Christmas Day',
+  '2030-12-26': 'St. Stephen\'s Day',
+};
+
+const isSlovakPublicHoliday = (date: string): boolean => date in SLOVAK_PUBLIC_HOLIDAYS;
+const slovakPublicHolidayName = (date: string): string => SLOVAK_PUBLIC_HOLIDAYS[date] ?? '';
 
 // ─── Bulk Fill Modal ───────────────────────────────────────────────────────────
 
@@ -150,6 +292,8 @@ function BulkFillModal({
   const [skipWeekends, setSkipWeekends] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Only PRESENT carries times; every leave status posts with zero
+  // times so the Excel export's leave rows stay at 0:00 per spec.
   const isWorkStatus = status === 'PRESENT';
   const autoHours = isWorkStatus ? calcHours(checkIn, checkOut, breakIn, breakOut) : '';
 
@@ -453,6 +597,9 @@ interface EditForm {
   checkOut: string;
   breakIn: string;
   breakOut: string;
+  interruptionIn: string;
+  interruptionOut: string;
+  interruptionStatus: string;
   workingHours: string;
   notes: string;
 }
@@ -487,6 +634,9 @@ export function AttendanceSheet() {
     checkOut: '',
     breakIn: '',
     breakOut: '',
+    interruptionIn: '',
+    interruptionOut: '',
+    interruptionStatus: '',
     workingHours: '',
     notes: '',
   });
@@ -544,12 +694,19 @@ export function AttendanceSheet() {
   const openEditModal = (record: any, date: string) => {
     setEditRecord(record ?? null);
     setEditDate(date);
+    // Auto-pre-select Public Holiday for blank cells that fall on a
+    // known Slovak public holiday date — user can override.
+    const fallbackStatus =
+      !record && isSlovakPublicHoliday(date) ? 'HOLIDAY' : 'PRESENT';
     setEditForm({
-      status: record?.status ?? 'PRESENT',
+      status: record?.status ?? fallbackStatus,
       checkIn:  record?.checkIn  ?? '',
       checkOut: record?.checkOut ?? '',
       breakIn:  record?.breakIn  ?? '',
       breakOut: record?.breakOut ?? '',
+      interruptionIn:     record?.interruptionIn     ?? '',
+      interruptionOut:    record?.interruptionOut    ?? '',
+      interruptionStatus: record?.interruptionStatus ?? '',
       workingHours: record?.workingHours != null ? String(record.workingHours) : '',
       notes: record?.notes ?? '',
     });
@@ -558,11 +715,29 @@ export function AttendanceSheet() {
 
   const handleFormChange = (field: keyof EditForm, value: string) => {
     setEditForm((prev) => {
-      const updated = { ...prev, [field]: value };
-      // Auto-calculate working hours when any time input changes.
-      if (['checkIn', 'checkOut', 'breakIn', 'breakOut'].includes(field)) {
+      const updated: EditForm = { ...prev, [field]: value };
+
+      // Switching to a non-Present status: per spec, all the time
+      // fields go to 00:00 / empty and total becomes 0.
+      if (field === 'status') {
+        if (LEAVE_STATUSES.has(value)) {
+          updated.checkIn = '';
+          updated.checkOut = '';
+          updated.breakIn = '';
+          updated.breakOut = '';
+          updated.interruptionIn = '';
+          updated.interruptionOut = '';
+          updated.interruptionStatus = '';
+          updated.workingHours = '0';
+          return updated;
+        }
+      }
+
+      // Time-field edits — recompute total. Interruption deducts.
+      if (['checkIn', 'checkOut', 'breakIn', 'breakOut', 'interruptionIn', 'interruptionOut'].includes(field)) {
         const calculated = calcHours(
           updated.checkIn, updated.checkOut, updated.breakIn, updated.breakOut,
+          updated.interruptionIn, updated.interruptionOut,
         );
         if (calculated) updated.workingHours = calculated;
       }
@@ -573,12 +748,19 @@ export function AttendanceSheet() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = {
+      const isLeave = LEAVE_STATUSES.has(editForm.status);
+      const payload: any = {
         status: editForm.status,
-        checkIn:  editForm.checkIn  || undefined,
-        checkOut: editForm.checkOut || undefined,
-        breakIn:  editForm.breakIn  || undefined,
-        breakOut: editForm.breakOut || undefined,
+        // Leave statuses post empty times so the record stays at 0:00
+        // across the board, matching the spec's "absent/vacation/etc.
+        // print zero" rule.
+        checkIn:  isLeave ? null : (editForm.checkIn  || null),
+        checkOut: isLeave ? null : (editForm.checkOut || null),
+        breakIn:  isLeave ? null : (editForm.breakIn  || null),
+        breakOut: isLeave ? null : (editForm.breakOut || null),
+        interruptionIn:     isLeave ? null : (editForm.interruptionIn     || null),
+        interruptionOut:    isLeave ? null : (editForm.interruptionOut    || null),
+        interruptionStatus: isLeave ? null : (editForm.interruptionStatus || null),
         workingHours: editForm.workingHours ? Number(editForm.workingHours) : undefined,
         notes: editForm.notes || undefined,
       };
@@ -631,11 +813,6 @@ export function AttendanceSheet() {
 
   const recordByDate = (date: string) =>
     records.find((r) => r.date?.slice(0, 10) === date);
-
-  const totalHoursDisplay =
-    summary?.totalWorkingHours != null
-      ? `${Number(summary.totalWorkingHours).toFixed(1)}h`
-      : '—';
 
   const currentLock = lockedPeriods.find((p) => p.year === year && p.month === month);
   const isLocked = !!currentLock;
@@ -801,30 +978,44 @@ export function AttendanceSheet() {
         </div>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      {/* Summary stats: day counts × hour totals per status + the
+          monthly grand total. The grand total equals Present + Holiday
+          + Vacation + Sick + Unpaid + Absent hours, which is what the
+          Excel "Spolu" row reports. */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         {[
-          { key: 'presentCount', label: 'Present', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-          { key: 'absentCount', label: 'Absent', color: 'bg-red-100 text-red-700', icon: XCircle },
-          { key: 'vacationCount', label: 'Vacation', color: 'bg-blue-100 text-blue-700', icon: Calendar },
-          { key: 'holidayCount', label: 'Public Holiday', color: 'bg-amber-100 text-amber-700', icon: AlertCircle },
-          { key: 'sickCount', label: 'Sick', color: 'bg-purple-100 text-purple-700', icon: AlertCircle },
-          { key: 'totalWorkingHours', label: 'Total Hours', color: 'bg-slate-100 text-slate-700', icon: Clock },
-        ].map(({ key, label, color, icon: Icon }) => (
-          <Card key={key} className="border">
-            <CardContent className="p-3">
-              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${color}`}>
-                <Icon className="w-3 h-3" />
-                {label}
-              </div>
-              <p className="text-2xl font-bold text-[#0F172A]">
-                {key === 'totalWorkingHours'
-                  ? totalHoursDisplay
-                  : (summary?.[key] ?? 0)}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+          { countKey: 'presentCount',      hoursKey: 'presentHours',      label: 'Present (Odpracované)',          color: 'bg-green-100 text-green-700',     icon: CheckCircle },
+          { countKey: 'holidayCount',      hoursKey: 'holidayHours',      label: 'Public Holiday (sviatok)',       color: 'bg-purple-100 text-purple-700',   icon: AlertCircle },
+          { countKey: 'vacationCount',     hoursKey: 'vacationHours',     label: 'Vacation (dovolenka)',           color: 'bg-cyan-100 text-cyan-700',       icon: Calendar    },
+          { countKey: 'sickCount',         hoursKey: 'sickHours',         label: 'Sick (platené voľno)',           color: 'bg-fuchsia-100 text-fuchsia-700', icon: AlertCircle },
+          { countKey: 'unpaidLeaveCount',  hoursKey: 'unpaidLeaveHours',  label: 'Unpaid (neplatené voľno)',       color: 'bg-red-100 text-red-700',         icon: AlertCircle },
+          { countKey: 'absentCount',       hoursKey: 'absentHours',       label: 'Absent (absencia)',              color: 'bg-orange-100 text-orange-700',   icon: XCircle     },
+          { countKey: null,                hoursKey: 'presentHours',      label: 'Worked Hours',                   color: 'bg-blue-100 text-blue-700',       icon: Clock       },
+          { countKey: null,                hoursKey: 'monthlyTotalHours', label: 'Monthly Total (Spolu)',          color: 'bg-slate-900 text-white',         icon: Clock       },
+        ].map(({ countKey, hoursKey, label, color, icon: Icon }) => {
+          const count = countKey ? (summary?.[countKey] ?? 0) : null;
+          const hours = summary?.[hoursKey] != null
+            ? `${Number(summary[hoursKey]).toFixed(1).replace(/\.0$/, '')}h`
+            : '—';
+          return (
+            <Card key={label} className="border">
+              <CardContent className="p-3">
+                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${color}`}>
+                  <Icon className="w-3 h-3" />
+                  {label}
+                </div>
+                {count !== null ? (
+                  <>
+                    <p className="text-2xl font-bold text-[#0F172A]">{count}<span className="text-xs text-muted-foreground ms-1">days</span></p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{hours}</p>
+                  </>
+                ) : (
+                  <p className="text-2xl font-bold text-[#0F172A]">{hours}</p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Attendance table */}
@@ -848,11 +1039,13 @@ export function AttendanceSheet() {
                   <TableRow className="bg-muted/40">
                     <TableHead className="w-24">Date</TableHead>
                     <TableHead className="w-16">Day</TableHead>
-                    <TableHead className="w-32">Status</TableHead>
-                    <TableHead className="w-24">Check In</TableHead>
-                    <TableHead className="w-24">Check Out</TableHead>
-                    <TableHead className="w-24">Break In</TableHead>
-                    <TableHead className="w-24">Break Out</TableHead>
+                    <TableHead className="w-36">Status</TableHead>
+                    <TableHead className="w-20">Check In</TableHead>
+                    <TableHead className="w-20">Check Out</TableHead>
+                    <TableHead className="w-20">Break In</TableHead>
+                    <TableHead className="w-20">Break Out</TableHead>
+                    <TableHead className="w-20">Interr. In</TableHead>
+                    <TableHead className="w-20">Interr. Out</TableHead>
                     <TableHead className="w-20">Total Hours</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead className="text-end w-24">Actions</TableHead>
@@ -862,18 +1055,28 @@ export function AttendanceSheet() {
                   {days.map((day) => {
                     const record = recordByDate(day.date);
                     const isWeekend = day.isWeekend;
+                    const isHoliday = isSlovakPublicHoliday(day.date);
 
                     return (
                       <TableRow
                         key={day.date}
                         className={
-                          isWeekend
+                          isHoliday
+                            ? 'bg-purple-50/40 hover:bg-purple-50/60'
+                            : isWeekend
                             ? 'bg-muted/20 hover:bg-muted/30'
                             : 'hover:bg-muted/10'
                         }
                       >
                         <TableCell className="font-medium text-sm text-[#0F172A]">
-                          {day.date}
+                          <div className="flex flex-col">
+                            <span>{day.date}</span>
+                            {isHoliday && (
+                              <span className="text-[10px] text-purple-700 italic" title={slovakPublicHolidayName(day.date)}>
+                                sviatok
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <span className={`text-xs font-medium ${isWeekend ? 'text-muted-foreground' : 'text-foreground'}`}>
@@ -896,6 +1099,23 @@ export function AttendanceSheet() {
                         <TableCell className="text-sm font-mono">{record?.checkOut || <span className="text-muted-foreground">—</span>}</TableCell>
                         <TableCell className="text-sm font-mono">{record?.breakIn  || <span className="text-muted-foreground">—</span>}</TableCell>
                         <TableCell className="text-sm font-mono">{record?.breakOut || <span className="text-muted-foreground">—</span>}</TableCell>
+                        <TableCell className="text-sm font-mono">
+                          {record?.interruptionIn || <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="text-sm font-mono">
+                          {record?.interruptionOut ? (
+                            <div className="flex flex-col leading-tight">
+                              <span>{record.interruptionOut}</span>
+                              {record?.interruptionStatus && (
+                                <span className="text-[10px] text-muted-foreground italic">
+                                  → {statusLabels[record.interruptionStatus] ?? record.interruptionStatus}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm">
                           {record?.workingHours != null ? (
                             <span className="inline-flex items-center gap-1 text-slate-700">
@@ -998,6 +1218,11 @@ export function AttendanceSheet() {
               <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/30 text-sm font-medium">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 {editDate}
+                {isSlovakPublicHoliday(editDate) && (
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
+                    sviatok · {slovakPublicHolidayName(editDate)}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -1020,47 +1245,114 @@ export function AttendanceSheet() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-checkin">Check In</Label>
-                <Input
-                  id="edit-checkin"
-                  type="time"
-                  value={editForm.checkIn}
-                  onChange={(e) => handleFormChange('checkIn', e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-checkout">Check Out</Label>
-                <Input
-                  id="edit-checkout"
-                  type="time"
-                  value={editForm.checkOut}
-                  onChange={(e) => handleFormChange('checkOut', e.target.value)}
-                />
-              </div>
-            </div>
+            {/* Time fields — only meaningful when the day is Present.
+                For any leave status the spec wants 0:00 across the row,
+                so the inputs are hidden. */}
+            {editForm.status === 'PRESENT' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-checkin">Check In</Label>
+                    <Input
+                      id="edit-checkin"
+                      type="time"
+                      value={editForm.checkIn}
+                      onChange={(e) => handleFormChange('checkIn', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-checkout">Check Out</Label>
+                    <Input
+                      id="edit-checkout"
+                      type="time"
+                      value={editForm.checkOut}
+                      onChange={(e) => handleFormChange('checkOut', e.target.value)}
+                    />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-breakin">Break In</Label>
-                <Input
-                  id="edit-breakin"
-                  type="time"
-                  value={editForm.breakIn}
-                  onChange={(e) => handleFormChange('breakIn', e.target.value)}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-breakin">Break In (zac pres)</Label>
+                    <Input
+                      id="edit-breakin"
+                      type="time"
+                      value={editForm.breakIn}
+                      onChange={(e) => handleFormChange('breakIn', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-breakout">Break Out (kon pres)</Label>
+                    <Input
+                      id="edit-breakout"
+                      type="time"
+                      value={editForm.breakOut}
+                      onChange={(e) => handleFormChange('breakOut', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Interruption (zac prer / kon prer) — used when the
+                    employee leaves mid-day and the missing hours roll
+                    up into another leave status (e.g. doctor's visit
+                    → Sick). */}
+                <div className="space-y-2 rounded-md border border-dashed border-amber-300 bg-amber-50/40 p-3">
+                  <p className="text-xs font-semibold text-amber-800">
+                    In-day interruption (zac prer / kon prer)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Optional. Records hours the employee was away during the day (e.g. doctor's visit).
+                    The duration is deducted from the daily total and added to the selected leave status's monthly total.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-interruption-in" className="text-xs">Interruption In (zac prer)</Label>
+                      <Input
+                        id="edit-interruption-in"
+                        type="time"
+                        value={editForm.interruptionIn}
+                        onChange={(e) => handleFormChange('interruptionIn', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-interruption-out" className="text-xs">Interruption Out (kon prer)</Label>
+                      <Input
+                        id="edit-interruption-out"
+                        type="time"
+                        value={editForm.interruptionOut}
+                        onChange={(e) => handleFormChange('interruptionOut', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {(editForm.interruptionIn || editForm.interruptionOut) && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Attribute interruption to</Label>
+                      <Select
+                        value={editForm.interruptionStatus || ''}
+                        onValueChange={(v) => handleFormChange('interruptionStatus', v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a leave status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INTERRUPTION_STATUS_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {editForm.status !== 'PRESENT' && (
+              <div className="rounded-md bg-muted/40 border p-3 text-xs text-muted-foreground">
+                On non-Present statuses, all time fields are recorded as <strong>0:00</strong>. The day counts as
+                <strong> 8 hours</strong> towards the monthly total for the selected status — Check-in / Check-out /
+                Break inputs are intentionally hidden.
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-breakout">Break Out</Label>
-                <Input
-                  id="edit-breakout"
-                  type="time"
-                  value={editForm.breakOut}
-                  onChange={(e) => handleFormChange('breakOut', e.target.value)}
-                />
-              </div>
-            </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="edit-hours">

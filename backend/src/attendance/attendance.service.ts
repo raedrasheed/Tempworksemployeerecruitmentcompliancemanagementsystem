@@ -374,11 +374,14 @@ export class AttendanceService {
     // caller explicitly passed workingHours.
     let workingHours = dto.workingHours ?? null;
     if (workingHours == null) {
-      workingHours = this.calcWorkingHours(dto.checkIn, dto.checkOut, dto.breakIn, dto.breakOut);
+      workingHours = this.calcWorkingHours(
+        dto.checkIn, dto.checkOut, dto.breakIn, dto.breakOut,
+        (dto as any).interruptionIn, (dto as any).interruptionOut,
+      );
     }
     // Statuses with no expected work hours force the total to 0 so
     // monthly totals don't accidentally count vacation/sick as worked.
-    if (['OFF', 'VACATION', 'SICK', 'ABSENT', 'HOLIDAY', 'ON_LEAVE'].includes(dto.status)) {
+    if (['OFF', 'VACATION', 'SICK', 'ABSENT', 'HOLIDAY', 'ON_LEAVE', 'UNPAID_LEAVE'].includes(dto.status)) {
       workingHours = 0;
     }
 
@@ -398,6 +401,9 @@ export class AttendanceService {
         checkOut:     dto.checkOut     ?? null,
         breakIn:      (dto as any).breakIn  ?? null,
         breakOut:     (dto as any).breakOut ?? null,
+        interruptionIn:     (dto as any).interruptionIn     ?? null,
+        interruptionOut:    (dto as any).interruptionOut    ?? null,
+        interruptionStatus: (dto as any).interruptionStatus ?? null,
         workingHours: workingHours     ?? null,
         notes:        dto.notes        ?? null,
         createdById:  actorId          ?? null,
@@ -410,6 +416,9 @@ export class AttendanceService {
         checkOut:     dto.checkOut     ?? null,
         breakIn:      (dto as any).breakIn  ?? null,
         breakOut:     (dto as any).breakOut ?? null,
+        interruptionIn:     (dto as any).interruptionIn     ?? null,
+        interruptionOut:    (dto as any).interruptionOut    ?? null,
+        interruptionStatus: (dto as any).interruptionStatus ?? null,
         workingHours: workingHours     ?? null,
         notes:        dto.notes        ?? null,
         updatedById:  actorId          ?? null,
@@ -486,6 +495,9 @@ export class AttendanceService {
     const newCheckOut = dto.checkOut !== undefined ? dto.checkOut : existing.checkOut;
     const newBreakIn  = (dto as any).breakIn  !== undefined ? (dto as any).breakIn  : existing.breakIn;
     const newBreakOut = (dto as any).breakOut !== undefined ? (dto as any).breakOut : existing.breakOut;
+    const newInterruptionIn     = (dto as any).interruptionIn     !== undefined ? (dto as any).interruptionIn     : (existing as any).interruptionIn;
+    const newInterruptionOut    = (dto as any).interruptionOut    !== undefined ? (dto as any).interruptionOut    : (existing as any).interruptionOut;
+    const newInterruptionStatus = (dto as any).interruptionStatus !== undefined ? (dto as any).interruptionStatus : (existing as any).interruptionStatus;
     const newStatus   = dto.status   !== undefined ? dto.status   : existing.status;
 
     // Re-validate ordering with the merged values.
@@ -504,9 +516,12 @@ export class AttendanceService {
 
     let workingHours = dto.workingHours;
     if (workingHours === undefined) {
-      workingHours = this.calcWorkingHours(newCheckIn, newCheckOut, newBreakIn, newBreakOut) ?? undefined;
+      workingHours = this.calcWorkingHours(
+        newCheckIn, newCheckOut, newBreakIn, newBreakOut,
+        newInterruptionIn, newInterruptionOut,
+      ) ?? undefined;
     }
-    if (['OFF', 'VACATION', 'SICK', 'ABSENT', 'HOLIDAY', 'ON_LEAVE'].includes(newStatus)) {
+    if (['OFF', 'VACATION', 'SICK', 'ABSENT', 'HOLIDAY', 'ON_LEAVE', 'UNPAID_LEAVE'].includes(newStatus)) {
       workingHours = 0;
     }
 
@@ -516,6 +531,9 @@ export class AttendanceService {
     if (dto.checkOut     !== undefined) data.checkOut     = dto.checkOut;
     if ((dto as any).breakIn  !== undefined) data.breakIn  = (dto as any).breakIn;
     if ((dto as any).breakOut !== undefined) data.breakOut = (dto as any).breakOut;
+    if ((dto as any).interruptionIn     !== undefined) data.interruptionIn     = (dto as any).interruptionIn;
+    if ((dto as any).interruptionOut    !== undefined) data.interruptionOut    = (dto as any).interruptionOut;
+    if ((dto as any).interruptionStatus !== undefined) data.interruptionStatus = (dto as any).interruptionStatus;
     if (workingHours     !== undefined) data.workingHours = workingHours;
     if (dto.notes        !== undefined) data.notes        = dto.notes;
 
@@ -676,11 +694,34 @@ export class AttendanceService {
     // Rows 6..(5 + daysInMonth) — daily data.
     const dailyStart = R(6);
     const dailyEnd   = dailyStart + daysInMonth - 1;
-    let totalWorked  = 0;   // PRESENT hours
-    let totalHoliday = 0;   // HOLIDAY legacy hours (sviatok)
-    let totalVacation = 0;  // VACATION days × 8h
-    let totalAbsent   = 0;  // ABSENT days × 8h
-    let totalSick     = 0;  // SICK days × 8h
+    const WORK_HOURS_PER_DAY = 8;
+
+    // Per-status totals (in hours).
+    let totalPresent      = 0; // Odpracované
+    let totalHoliday      = 0; // sviatok
+    let totalVacation     = 0; // dovolenka
+    let totalUnpaidLeave  = 0; // neplatené voľno
+    let totalSick         = 0; // platené voľno / lekár
+    let totalAbsent       = 0; // absencia
+
+    const interruptionDurationHrs = (rec: any): number => {
+      const i = this.toMin(rec?.interruptionIn);
+      const o = this.toMin(rec?.interruptionOut);
+      if (i == null || o == null || o <= i) return 0;
+      return Math.round(((o - i) / 60) * 100) / 100;
+    };
+
+    const bumpStatusTotal = (st: string, hrs: number) => {
+      if (hrs <= 0) return;
+      switch (st) {
+        case 'HOLIDAY':       totalHoliday     += hrs; break;
+        case 'VACATION':      totalVacation    += hrs; break;
+        case 'UNPAID_LEAVE':  totalUnpaidLeave += hrs; break;
+        case 'SICK':          totalSick        += hrs; break;
+        case 'ABSENT':
+        case 'OFF':           totalAbsent      += hrs; break;
+      }
+    };
 
     for (let d = 1; d <= daysInMonth; d++) {
       const rec = dayMap.get(d);
@@ -690,33 +731,42 @@ export class AttendanceService {
       sheet.getCell(r, 1).font = { size: 9 };
 
       if (rec && rec.status === 'PRESENT') {
+        // Present day — B/C/D/E are the real times. Interruption (if
+        // any) goes into F/G and its duration rolls up into whatever
+        // status the user attributed it to. The total in H is the
+        // working-hours figure the service already deducted.
         sheet.getCell(r, 2).value = rec.checkIn  ?? '';
         sheet.getCell(r, 3).value = rec.checkOut ?? '';
         sheet.getCell(r, 4).value = rec.breakIn  ?? '';
         sheet.getCell(r, 5).value = rec.breakOut ?? '';
+        sheet.getCell(r, 6).value = rec.interruptionIn  ?? '';
+        sheet.getCell(r, 7).value = rec.interruptionOut ?? '';
+
         const hours = Number(rec.workingHours ?? 0);
-        if (hours > 0) {
-          sheet.getCell(r, 8).value = this.hoursAsClock(hours);
-          totalWorked += hours;
-        } else {
-          sheet.getCell(r, 8).value = '0:00';
+        sheet.getCell(r, 8).value = this.hoursAsClock(hours);
+        totalPresent += hours;
+
+        const interruptHrs = interruptionDurationHrs(rec);
+        if (interruptHrs > 0 && rec.interruptionStatus) {
+          bumpStatusTotal(rec.interruptionStatus, interruptHrs);
         }
-      } else if (rec && rec.status === 'HOLIDAY') {
-        sheet.getCell(r, 8).value = '8:00';
-        totalHoliday += 8;
-      } else if (rec && rec.status === 'VACATION') {
-        sheet.getCell(r, 8).value = '8:00';
-        totalVacation += 8;
-      } else if (rec && rec.status === 'ABSENT') {
-        sheet.getCell(r, 8).value = '8:00';
-        totalAbsent += 8;
-      } else if (rec && rec.status === 'SICK') {
-        sheet.getCell(r, 8).value = '8:00';
-        totalSick += 8;
+      } else if (rec && ['ABSENT', 'OFF', 'VACATION', 'SICK', 'UNPAID_LEAVE', 'HOLIDAY'].includes(rec.status)) {
+        // Full-day leave / absence — actual times stay 0:00 (per the
+        // updated reference template's red-line note). Columns F/G are
+        // filled with the standard work window (08:00–16:00) so the
+        // printed sheet still shows the worked-hours window the leave
+        // covered. The row's total in H stays 0; the status total below
+        // gets +8h.
+        sheet.getCell(r, 2).value = '0:00';
+        sheet.getCell(r, 3).value = '0:00';
+        sheet.getCell(r, 4).value = '0:00';
+        sheet.getCell(r, 5).value = '0:00';
+        sheet.getCell(r, 6).value = '08:00';
+        sheet.getCell(r, 7).value = '16:00';
+        sheet.getCell(r, 8).value = '0:00';
+        bumpStatusTotal(rec.status, WORK_HOURS_PER_DAY);
       } else {
-        // Off / no record — show zero times so the grid matches the
-        // reference template where weekends render as 0:00 rather
-        // than blank.
+        // No record — show 0:00 grid (matches the reference template).
         sheet.getCell(r, 2).value = '0:00';
         sheet.getCell(r, 3).value = '0:00';
         sheet.getCell(r, 4).value = '0:00';
@@ -724,7 +774,7 @@ export class AttendanceService {
         sheet.getCell(r, 8).value = '0:00';
       }
 
-      // Formatting — small monospaced font, light row separators.
+      // Formatting — small font, centred.
       for (let c = 2; c <= 8; c++) {
         const cell = sheet.getCell(r, c);
         cell.font      = { size: 9 };
@@ -733,71 +783,34 @@ export class AttendanceService {
       sheet.getRow(r).height = 15;
     }
 
-    // Totals block — two rows below the daily grid.
+    // Totals block — placed two rows below the daily grid. Layout
+    // mirrors the reference template (label in G, value in H).
     const totalsStart = dailyEnd + 4;
-    const setTotal = (row: number, label: string, value: string, tone?: 'blue' | 'red') => {
-      const labelCell = sheet.getCell(row, 2);
-      labelCell.value = label;
-      labelCell.font  = { bold: true, size: 9 };
-      const valueCell = sheet.getCell(row, 6);
-      valueCell.value = 'Odpracované';
-      valueCell.font  = { bold: true, size: 9 };
-      const totalCell = sheet.getCell(row, 8);
-      totalCell.value = value;
-      totalCell.alignment = { horizontal: 'right' };
-      totalCell.font      = {
-        bold: true, size: 10,
-        color: tone === 'blue' ? { argb: 'FF1E40AF' } : tone === 'red' ? { argb: 'FFB91C1C' } : undefined,
-      };
-    };
-    // Row: Odpracované (worked)
-    sheet.getCell(totalsStart, 2).value = 'Odpracované';
-    sheet.getCell(totalsStart, 2).font = { bold: true, size: 9 };
-    sheet.getCell(totalsStart, 8).value = this.hoursAsClock(totalWorked);
-    sheet.getCell(totalsStart, 8).font = { bold: true };
-    sheet.getCell(totalsStart, 8).alignment = { horizontal: 'right' };
-    // Row: sviatok (holiday)
-    sheet.getCell(totalsStart + 1, 6).value = 'sviatok';
-    sheet.getCell(totalsStart + 1, 6).font = { size: 9 };
-    sheet.getCell(totalsStart + 1, 8).value = this.hoursAsClock(totalHoliday);
-    sheet.getCell(totalsStart + 1, 8).font = { color: { argb: 'FF7C3AED' } };
-    sheet.getCell(totalsStart + 1, 8).alignment = { horizontal: 'right' };
-    // Row: Spolu Odpracovan (working + holiday)
-    sheet.getCell(totalsStart + 2, 6).value = 'Spolu Odpracovan';
-    sheet.getCell(totalsStart + 2, 6).font = { bold: true, size: 9 };
-    sheet.getCell(totalsStart + 2, 8).value = this.hoursAsClock(totalWorked + totalHoliday);
-    sheet.getCell(totalsStart + 2, 8).font = { bold: true };
-    sheet.getCell(totalsStart + 2, 8).alignment = { horizontal: 'right' };
-    // Row: dovolenka (vacation)
-    sheet.getCell(totalsStart + 3, 6).value = 'dovolenka';
-    sheet.getCell(totalsStart + 3, 6).font = { size: 9 };
-    sheet.getCell(totalsStart + 3, 8).value = this.hoursAsClock(totalVacation);
-    sheet.getCell(totalsStart + 3, 8).font = { color: { argb: 'FFB91C1C' } };
-    sheet.getCell(totalsStart + 3, 8).alignment = { horizontal: 'right' };
-    // Row: absencia (absence)
-    sheet.getCell(totalsStart + 4, 6).value = 'absencia';
-    sheet.getCell(totalsStart + 4, 6).font = { size: 9 };
-    sheet.getCell(totalsStart + 4, 8).value = this.hoursAsClock(totalAbsent);
-    sheet.getCell(totalsStart + 4, 8).font = { color: { argb: 'FFB91C1C' } };
-    sheet.getCell(totalsStart + 4, 8).alignment = { horizontal: 'right' };
-    // Row: choroba (sick)
-    sheet.getCell(totalsStart + 5, 6).value = 'choroba';
-    sheet.getCell(totalsStart + 5, 6).font = { size: 9 };
-    sheet.getCell(totalsStart + 5, 8).value = this.hoursAsClock(totalSick);
-    sheet.getCell(totalsStart + 5, 8).font = { color: { argb: 'FFB91C1C' } };
-    sheet.getCell(totalsStart + 5, 8).alignment = { horizontal: 'right' };
-    // Row: Spolu (grand total — working + holiday + vacation + absence + sick)
-    sheet.getCell(totalsStart + 6, 6).value = 'Spolu';
-    sheet.getCell(totalsStart + 6, 6).font = { bold: true, size: 10 };
-    sheet.getCell(totalsStart + 6, 8).value = this.hoursAsClock(
-      totalWorked + totalHoliday + totalVacation + totalAbsent + totalSick,
-    );
-    sheet.getCell(totalsStart + 6, 8).font = { bold: true, size: 10 };
-    sheet.getCell(totalsStart + 6, 8).alignment = { horizontal: 'right' };
+    const totalsRows: Array<{ label: string; hours: number; tone?: string; bold?: boolean }> = [
+      { label: 'Odpracované',          hours: totalPresent,                              tone: 'FF1E40AF', bold: true  }, // worked (blue)
+      { label: 'sviatok',              hours: totalHoliday,                              tone: 'FF7C3AED'              }, // public holiday (purple)
+      { label: 'Spolu Odpracované',    hours: totalPresent + totalHoliday,               tone: 'FF1E40AF', bold: true  }, // present + holiday
+      { label: 'dovolenka',            hours: totalVacation,                             tone: 'FF0891B2'              }, // vacation (cyan)
+      { label: 'neplatené voľno',      hours: totalUnpaidLeave,                          tone: 'FFB91C1C'              }, // unpaid (red)
+      { label: 'platené voľno / lekár', hours: totalSick,                                 tone: 'FFC026D3'             }, // sick (magenta)
+      { label: 'absencia',             hours: totalAbsent,                               tone: 'FFEA580C'              }, // absent (orange)
+      { label: 'Spolu',                hours: totalPresent + totalHoliday + totalVacation + totalUnpaidLeave + totalSick + totalAbsent, tone: 'FF0F172A', bold: true }, // monthly grand total
+    ];
+
+    totalsRows.forEach((t, i) => {
+      const row = totalsStart + i;
+      const labelCell = sheet.getCell(row, 7);
+      labelCell.value = t.label;
+      labelCell.font  = { bold: !!t.bold, size: 9, color: t.tone ? { argb: t.tone } : undefined };
+      const valueCell = sheet.getCell(row, 8);
+      valueCell.value = this.hoursAsClock(t.hours);
+      valueCell.alignment = { horizontal: 'right' };
+      valueCell.font = { bold: !!t.bold, size: 9, color: t.tone ? { argb: t.tone } : undefined };
+    });
 
     // Signature label at the bottom so the printed sheet looks like
     // the reference template's "podpis / Unterschrift" section.
-    const sigRow = totalsStart + 9;
+    const sigRow = totalsStart + totalsRows.length + 2;
     sheet.getCell(sigRow, 2).value = 'podpis';
     sheet.getCell(sigRow, 2).font  = { size: 9, color: { argb: 'FF1E40AF' } };
     sheet.getCell(sigRow + 1, 2).value = 'Unterschrift';
@@ -1186,29 +1199,70 @@ export class AttendanceService {
   }
 
   private buildSummaryFromRecords(records: any[]): Record<string, any> {
-    const stats = {
-      presentDays: 0,
-      absentDays:  0,
-      lateDays:    0,
-      onLeaveDays: 0,
-      halfDayDays: 0,
-      holidayDays: 0,
+    // Day counts + per-status hour totals so the UI can show both the
+    // raw number of days and the hour figure that rolls into payroll.
+    const stats: Record<string, number> = {
+      // counts
+      presentCount: 0, absentCount: 0, vacationCount: 0, sickCount: 0,
+      unpaidLeaveCount: 0, holidayCount: 0,
+      // legacy counts kept for any UI still using them
+      lateCount: 0, onLeaveCount: 0, halfDayCount: 0,
+      // hour totals (after interruption deduction for PRESENT)
+      presentHours: 0, absentHours: 0, vacationHours: 0, sickHours: 0,
+      unpaidLeaveHours: 0, holidayHours: 0,
+      // grand totals
       totalWorkingHours: 0,
+      monthlyTotalHours: 0,
     };
+
+    const WORK_HOURS_PER_DAY = 8;
+    const toMin = (t?: string | null) => this.toMin(t);
 
     for (const rec of records) {
       switch (rec.status) {
-        case 'PRESENT':  stats.presentDays++;  break;
-        case 'ABSENT':   stats.absentDays++;   break;
-        case 'LATE':     stats.lateDays++;     break;
-        case 'ON_LEAVE': stats.onLeaveDays++;  break;
-        case 'HALF_DAY': stats.halfDayDays++;  break;
-        case 'HOLIDAY':  stats.holidayDays++;  break;
+        case 'PRESENT': {
+          stats.presentCount++;
+          const hours = Number(rec.workingHours ?? 0);
+          stats.presentHours += hours;
+          // Interruption: deducted from working hours by the upsert, so
+          // we just need to roll the duration into the chosen status.
+          const i = toMin(rec.interruptionIn);
+          const o = toMin(rec.interruptionOut);
+          if (i != null && o != null && o > i && rec.interruptionStatus) {
+            const ih = Math.round(((o - i) / 60) * 100) / 100;
+            switch (rec.interruptionStatus) {
+              case 'VACATION':     stats.vacationHours    += ih; break;
+              case 'SICK':         stats.sickHours        += ih; break;
+              case 'UNPAID_LEAVE': stats.unpaidLeaveHours += ih; break;
+              case 'HOLIDAY':      stats.holidayHours     += ih; break;
+              case 'ABSENT':
+              case 'OFF':          stats.absentHours      += ih; break;
+            }
+          }
+          break;
+        }
+        case 'ABSENT':
+        case 'OFF':           stats.absentCount++;      stats.absentHours      += WORK_HOURS_PER_DAY; break;
+        case 'VACATION':      stats.vacationCount++;    stats.vacationHours    += WORK_HOURS_PER_DAY; break;
+        case 'SICK':          stats.sickCount++;        stats.sickHours        += WORK_HOURS_PER_DAY; break;
+        case 'UNPAID_LEAVE':  stats.unpaidLeaveCount++; stats.unpaidLeaveHours += WORK_HOURS_PER_DAY; break;
+        case 'HOLIDAY':       stats.holidayCount++;     stats.holidayHours     += WORK_HOURS_PER_DAY; break;
+        // Legacy values still surfaced as counts only.
+        case 'LATE':     stats.lateCount++;     break;
+        case 'ON_LEAVE': stats.onLeaveCount++;  break;
+        case 'HALF_DAY': stats.halfDayCount++;  break;
       }
-      if (rec.workingHours) stats.totalWorkingHours += Number(rec.workingHours);
     }
 
-    stats.totalWorkingHours = Math.round(stats.totalWorkingHours * 100) / 100;
+    // Round all hour figures + compute the monthly grand total.
+    for (const k of ['presentHours','absentHours','vacationHours','sickHours','unpaidLeaveHours','holidayHours']) {
+      stats[k] = Math.round(stats[k] * 100) / 100;
+    }
+    stats.totalWorkingHours = stats.presentHours;
+    stats.monthlyTotalHours = Math.round(
+      (stats.presentHours + stats.absentHours + stats.vacationHours +
+       stats.sickHours + stats.unpaidLeaveHours + stats.holidayHours) * 100,
+    ) / 100;
     return stats;
   }
 
@@ -1245,6 +1299,8 @@ export class AttendanceService {
     checkOut?: string | null,
     breakIn?: string | null,
     breakOut?: string | null,
+    interruptionIn?: string | null,
+    interruptionOut?: string | null,
   ): number | null {
     const toMin = (t?: string | null) => this.toMin(t);
     const ci = toMin(checkIn);
@@ -1258,6 +1314,15 @@ export class AttendanceService {
     const bo = toMin(breakOut);
     if (bi != null && bo != null && bo > bi) {
       shiftMin -= (bo - bi);
+    }
+
+    // In-day interruption (Slovak: prerušenie) deducted from the
+    // shift on PRESENT days so the difference rolls up into whatever
+    // leave status the user attributed the interruption to.
+    const ii = toMin(interruptionIn);
+    const io = toMin(interruptionOut);
+    if (ii != null && io != null && io > ii) {
+      shiftMin -= (io - ii);
     }
 
     if (shiftMin < 0) shiftMin = 0;

@@ -122,6 +122,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       { label: 'job_types.deletionReason',  sql: `ALTER TABLE "job_types"     ADD COLUMN IF NOT EXISTS "deletionReason" TEXT;` },
       { label: 'job_types.deletedAt idx',   sql: `CREATE INDEX IF NOT EXISTS "job_types_deletedAt_idx" ON "job_types"("deletedAt");` },
 
+      // Phase 3.21 — Attendance interruption + UNPAID_LEAVE status.
+      { label: 'attendance_records.interruptionIn',     sql: `ALTER TABLE "attendance_records" ADD COLUMN IF NOT EXISTS "interruptionIn" TEXT;` },
+      { label: 'attendance_records.interruptionOut',    sql: `ALTER TABLE "attendance_records" ADD COLUMN IF NOT EXISTS "interruptionOut" TEXT;` },
+      { label: 'attendance_records.interruptionStatus', sql: `ALTER TABLE "attendance_records" ADD COLUMN IF NOT EXISTS "interruptionStatus" "AttendanceStatus";` },
+      { label: 'AttendanceStatus.UNPAID_LEAVE',         sql: `ALTER TYPE "AttendanceStatus" ADD VALUE IF NOT EXISTS 'UNPAID_LEAVE';` },
+
       // Phase 3.20 — Company Export Profiles for the Excel timesheet header.
       { label: 'company_export_profiles table', sql: `
         CREATE TABLE IF NOT EXISTS "company_export_profiles" (

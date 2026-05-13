@@ -1696,10 +1696,13 @@ export const attendanceApi = {
     employeeId: string | undefined;
     date: string;
     status: string;
-    checkIn?: string;
-    checkOut?: string;
-    breakIn?: string;
-    breakOut?: string;
+    checkIn?: string | null;
+    checkOut?: string | null;
+    breakIn?: string | null;
+    breakOut?: string | null;
+    interruptionIn?: string | null;
+    interruptionOut?: string | null;
+    interruptionStatus?: string | null;
     workingHours?: number | string;
     notes?: string;
   }) => apiFetch<any>('/attendance', { method: 'POST', body: JSON.stringify(data) }),
@@ -1709,10 +1712,13 @@ export const attendanceApi = {
    */
   update: (recordId: string, data: {
     status?: string;
-    checkIn?: string;
-    checkOut?: string;
-    breakIn?: string;
-    breakOut?: string;
+    checkIn?: string | null;
+    checkOut?: string | null;
+    breakIn?: string | null;
+    breakOut?: string | null;
+    interruptionIn?: string | null;
+    interruptionOut?: string | null;
+    interruptionStatus?: string | null;
     workingHours?: number | string;
     notes?: string;
   }) => apiFetch<any>(`/attendance/${recordId}`, { method: 'PATCH', body: JSON.stringify(data) }),

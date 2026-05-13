@@ -563,10 +563,20 @@ interface EditForm {
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
-export function AttendanceSheet() {
+interface AttendanceSheetProps {
+  /** Optional override; when omitted, the employee id comes from the
+   *  route param. Lets the same screen render inside Employee Profile
+   *  → Attendance & Time Sheets tab without the back button. */
+  employeeId?: string;
+  /** Hide the "Back to Attendance Sheets" header (used when embedded). */
+  hideBackButton?: boolean;
+}
+
+export function AttendanceSheet({ employeeId: propEmployeeId, hideBackButton = false }: AttendanceSheetProps = {}) {
   const { t } = useTranslation('pages');
   const { t: tc } = useTranslation('common');
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = propEmployeeId ?? params.id;
   const navigate = useNavigate();
 
   const [employee, setEmployee] = useState<any>(null);
@@ -749,18 +759,20 @@ export function AttendanceSheet() {
 
   return (
     <div className="space-y-6">
-      {/* Back button */}
-      <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/dashboard/attendance')}
-          className="text-muted-foreground hover:text-foreground -ms-2"
-        >
-          <ArrowLeft className="w-4 h-4 me-1" />
-          Back to Attendance Sheets
-        </Button>
-      </div>
+      {/* Back button — hidden when embedded inside Employee Profile. */}
+      {!hideBackButton && (
+        <div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/dashboard/attendance')}
+            className="text-muted-foreground hover:text-foreground -ms-2"
+          >
+            <ArrowLeft className="w-4 h-4 me-1" />
+            Back to Attendance Sheets
+          </Button>
+        </div>
+      )}
 
       {/* Toolbar card — matches AttendanceTab layout */}
       <Card>

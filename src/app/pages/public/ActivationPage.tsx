@@ -29,7 +29,7 @@ function PasswordRule({ met, text }: { met: boolean; text: string }) {
   return (
     <div className={`flex items-center gap-1.5 text-xs ${met ? 'text-green-600' : 'text-muted-foreground'}`}>
       {met ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-      {text}
+      <span>{text}</span>
     </div>
   );
 }

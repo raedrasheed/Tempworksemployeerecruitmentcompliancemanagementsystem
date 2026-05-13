@@ -11,6 +11,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { settingsApi, resolveAssetUrl } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
 import { invalidateBrandingCache, BRANDING_DEFAULTS } from '../../hooks/useBranding';
+import { cn } from '../../components/ui/utils';
 
 interface BrandingForm {
   companyName: string;
@@ -150,9 +151,12 @@ export function BrandingSettings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-lg bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className={cn(
+              "w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0",
+              resolvedLogoUrl ? "bg-transparent" : "bg-primary"
+            )}>
               {resolvedLogoUrl ? (
-                <img src={resolvedLogoUrl} alt={t('settings.branding.logoPreviewAlt')} className="w-full h-full object-cover" />
+                <img src={resolvedLogoUrl} alt={t('settings.branding.logoPreviewAlt')} className="w-full h-full object-contain" />
               ) : (
                 <Building2 className="w-8 h-8 text-primary-foreground" />
               )}

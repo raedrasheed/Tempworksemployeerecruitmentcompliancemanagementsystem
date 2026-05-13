@@ -183,12 +183,15 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           "flex items-center gap-3 mb-2",
           isCollapsed && "justify-center"
         )}>
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden",
+            branding.logoUrl ? "bg-transparent" : "bg-primary"
+          )}>
             {branding.logoUrl ? (
               <img
                 src={resolveAssetUrl(branding.logoUrl)}
                 alt="Logo"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             ) : (
               <Briefcase className="w-6 h-6 text-primary-foreground" />

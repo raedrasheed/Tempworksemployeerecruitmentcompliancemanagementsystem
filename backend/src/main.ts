@@ -9,9 +9,27 @@ import { join } from 'path';
 import { mkdirSync } from 'fs';
 import { Client } from 'pg';
 
+function resolveStartupSsl(databaseUrl: string | undefined) {
+  if (!databaseUrl) return false;
+  try {
+    const url = new URL(databaseUrl);
+    const mode = url.searchParams.get('sslmode');
+    if (mode === 'disable' || mode === 'allow') return false;
+    if (mode === 'verify-full') return { rejectUnauthorized: true };
+    if (mode === 'verify-ca') return { rejectUnauthorized: true, checkServerIdentity: () => undefined as any };
+    if (mode === 'require' || mode === 'prefer') return { rejectUnauthorized: false };
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 async function runStartupMigrations() {
   const logger = new Logger('StartupMigrations');
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: resolveStartupSsl(process.env.DATABASE_URL),
+  });
   try {
     await client.connect();
 

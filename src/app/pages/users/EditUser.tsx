@@ -23,7 +23,14 @@ const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
 const GENDER_KEYS: Record<string, string> = {
   MALE: 'male', FEMALE: 'female', OTHER: 'other', PREFER_NOT_TO_SAY: 'preferNotToSay',
 };
-const LANGUAGES = ['English', 'Arabic', 'Polish', 'German', 'French', 'Spanish', 'Italian', 'Romanian', 'Ukrainian'];
+const LANGUAGES: { code: string; label: string }[] = [
+  { code: 'English',    label: 'English' },
+  { code: 'Slovenčina', label: 'Slovenčina' },
+  { code: 'Deutsch',    label: 'Deutsch' },
+  { code: 'Русский',    label: 'Русский' },
+  { code: 'العربية',    label: 'العربية' },
+  { code: 'Türkçe',     label: 'Türkçe' },
+];
 const TIMEZONES = [
   'UTC', 'Europe/London', 'Europe/Warsaw', 'Europe/Berlin', 'Europe/Paris',
   'Europe/Madrid', 'Europe/Rome', 'Europe/Bucharest', 'Europe/Kiev',
@@ -467,7 +474,7 @@ export function EditUser() {
                 <>
                   <div className="space-y-2">
                     <Label>{t('users.form.role')}</Label>
-                    <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)}>
+                    <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)} required>
                       <SelectTrigger>
                         <SelectValue placeholder={t('users.form.selectRole')} />
                       </SelectTrigger>
@@ -480,7 +487,7 @@ export function EditUser() {
                   </div>
                   <div className="space-y-2">
                     <Label>{t('users.form.agency')}</Label>
-                    <Select value={form.agencyId} onValueChange={val => handleSelect('agencyId', val)}>
+                    <Select value={form.agencyId} onValueChange={val => handleSelect('agencyId', val)} required>
                       <SelectTrigger>
                         <SelectValue placeholder={t('users.form.selectAgency')} />
                       </SelectTrigger>
@@ -511,27 +518,36 @@ export function EditUser() {
                 <div className="space-y-2">
                   <Label htmlFor="jobTitle">{t('users.form.jobTitle')}</Label>
                   {isAdminOrHR ? (
-                    <Input id="jobTitle" value={form.jobTitle} onChange={handleChange} />
+                    <Input id="jobTitle" value={form.jobTitle} onChange={handleChange} required
+                      aria-invalid={!!fieldErrs.jobTitle}
+                      className={fieldErrs.jobTitle ? 'border-red-500 focus-visible:ring-red-500' : ''} />
                   ) : (
                     <Input value={form.jobTitle} disabled className="bg-muted" />
                   )}
+                  <FieldError errors={fieldErrs} name="jobTitle" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">{t('users.form.department')}</Label>
                   {isAdminOrHR ? (
-                    <Input id="department" value={form.department} onChange={handleChange} />
+                    <Input id="department" value={form.department} onChange={handleChange} required
+                      aria-invalid={!!fieldErrs.department}
+                      className={fieldErrs.department ? 'border-red-500 focus-visible:ring-red-500' : ''} />
                   ) : (
                     <Input value={form.department} disabled className="bg-muted" />
                   )}
+                  <FieldError errors={fieldErrs} name="department" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="startDate">{t('users.form.startDate')}</Label>
                 {isAdminOrHR ? (
-                  <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} />
+                  <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} required
+                    aria-invalid={!!fieldErrs.startDate}
+                    className={fieldErrs.startDate ? 'border-red-500 focus-visible:ring-red-500' : ''} />
                 ) : (
                   <Input value={form.startDate} disabled className="bg-muted" />
                 )}
+                <FieldError errors={fieldErrs} name="startDate" />
               </div>
             </CardContent>
           </Card>
@@ -631,7 +647,7 @@ export function EditUser() {
                     </SelectTrigger>
                     <SelectContent>
                       {LANGUAGES.map(l => (
-                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                        <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

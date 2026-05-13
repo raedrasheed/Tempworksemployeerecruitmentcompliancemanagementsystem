@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Checkbox } from '../../components/ui/checkbox';
+import { Badge } from '../../components/ui/badge';
 import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
@@ -22,7 +23,30 @@ const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
 const GENDER_KEYS: Record<string, string> = {
   MALE: 'male', FEMALE: 'female', OTHER: 'other', PREFER_NOT_TO_SAY: 'preferNotToSay',
 };
-const LANGUAGES = ['English', 'Arabic', 'Polish', 'German', 'French', 'Spanish', 'Italian', 'Romanian', 'Ukrainian'];
+const LANGUAGES: { code: string; label: string }[] = [
+  { code: 'English',    label: 'English' },
+  { code: 'Slovenčina', label: 'Slovenčina' },
+  { code: 'Deutsch',    label: 'Deutsch' },
+  { code: 'Русский',    label: 'Русский' },
+  { code: 'العربية',    label: 'العربية' },
+  { code: 'Türkçe',     label: 'Türkçe' },
+];
+const STATUS_VALUES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING', 'TERMINATED'];
+
+type StatusStyle = { badge: string; card: string; dot: string };
+
+const STATUS_STYLES: Record<string, StatusStyle> = {
+  ACTIVE:     { badge: 'bg-emerald-500 text-white border-emerald-500', card: 'border-emerald-300 bg-emerald-50/60', dot: 'bg-emerald-500' },
+  PENDING:    { badge: 'bg-amber-500 text-white border-amber-500',     card: 'border-amber-300 bg-amber-50/60',     dot: 'bg-amber-500' },
+  INACTIVE:   { badge: 'bg-slate-500 text-white border-slate-500',     card: 'border-slate-300 bg-slate-50',        dot: 'bg-slate-500' },
+  SUSPENDED:  { badge: 'bg-red-500 text-white border-red-500',         card: 'border-red-300 bg-red-50/60',         dot: 'bg-red-500' },
+  TERMINATED: { badge: 'bg-rose-700 text-white border-rose-700',       card: 'border-rose-300 bg-rose-50/60',       dot: 'bg-rose-700' },
+};
+
+function getStatusStyle(s: string): StatusStyle {
+  return STATUS_STYLES[s] ?? STATUS_STYLES.INACTIVE;
+}
+
 const TIMEZONES = [
   'UTC', 'Europe/London', 'Europe/Warsaw', 'Europe/Berlin', 'Europe/Paris',
   'Europe/Madrid', 'Europe/Rome', 'Europe/Bucharest', 'Europe/Kiev',
@@ -211,6 +235,49 @@ export function AddUser() {
         </div>
       </div>
 
+      {/* Account Status — top, matches Edit User layout */}
+      {(() => {
+        const status = form.status || 'PENDING';
+        const style = getStatusStyle(status);
+        const label = status === 'PENDING'
+          ? t('users.form.statusDesc.PENDING_LABEL', { defaultValue: t(`users.form.statusOptions.${status}`) })
+          : t(`users.form.statusOptions.${status}`, { defaultValue: status });
+        const description = t(`users.form.statusDesc.${status}`, { defaultValue: '' });
+        return (
+          <div className={`max-w-2xl rounded-lg border ${style.card} p-4 flex flex-wrap items-center gap-4`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <span className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('users.edit.accountStatus', { defaultValue: 'Account Status' })}</p>
+                <Badge className={`${style.badge} mt-1`}>{label}</Badge>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">{description}</p>
+            <div className="space-y-1">
+              <Label htmlFor="status-select" className="text-xs">{t('users.edit.changeStatus', { defaultValue: 'Change status' })}</Label>
+              <Select value={form.status} onValueChange={val => handleSelect('status', val)}>
+                <SelectTrigger id="status-select" className={`w-44 font-medium ${style.badge} hover:opacity-90`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_VALUES.map(v => {
+                    const s = getStatusStyle(v);
+                    return (
+                      <SelectItem key={v} value={v}>
+                        <span className="inline-flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+                          {t(`users.form.statusOptions.${v}`)}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+      })()}
+
       {isAgencyManager && maxUsersLimit !== null && agencyUserCount !== null && (
         <div className={`max-w-2xl rounded-lg border px-4 py-3 text-sm flex items-center gap-2 ${
           agencyUserCount >= maxUsersLimit
@@ -368,33 +435,25 @@ export function AddUser() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="jobTitle">{t('users.form.jobTitle')}</Label>
-                  <Input id="jobTitle" placeholder={t('users.form.jobTitlePh')} value={form.jobTitle} onChange={handleChange} />
+                  <Input id="jobTitle" placeholder={t('users.form.jobTitlePh')} value={form.jobTitle} onChange={handleChange} required
+                    aria-invalid={!!fieldErrs.jobTitle}
+                    className={fieldErrs.jobTitle ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="jobTitle" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">{t('users.form.department')}</Label>
-                  <Input id="department" placeholder={t('users.form.departmentPh')} value={form.department} onChange={handleChange} />
+                  <Input id="department" placeholder={t('users.form.departmentPh')} value={form.department} onChange={handleChange} required
+                    aria-invalid={!!fieldErrs.department}
+                    className={fieldErrs.department ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="department" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">{t('users.form.startDate')}</Label>
-                  <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('users.form.status')}</Label>
-                  <Select value={form.status} onValueChange={val => handleSelect('status', val)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">{t('users.form.statusOptions.ACTIVE')}</SelectItem>
-                      <SelectItem value="INACTIVE">{t('users.form.statusOptions.INACTIVE')}</SelectItem>
-                      <SelectItem value="SUSPENDED">{t('users.form.statusOptions.SUSPENDED')}</SelectItem>
-                      <SelectItem value="PENDING">{t('users.form.statusOptions.PENDING')}</SelectItem>
-                      <SelectItem value="TERMINATED">{t('users.form.statusOptions.TERMINATED')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="startDate">{t('users.form.startDate')}</Label>
+                <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} required
+                  aria-invalid={!!fieldErrs.startDate}
+                  className={fieldErrs.startDate ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                <FieldError errors={fieldErrs} name="startDate" />
               </div>
             </CardContent>
           </Card>
@@ -494,7 +553,7 @@ export function AddUser() {
                     </SelectTrigger>
                     <SelectContent>
                       {LANGUAGES.map(l => (
-                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                        <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

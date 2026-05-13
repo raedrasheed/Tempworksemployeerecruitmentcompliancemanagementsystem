@@ -1278,6 +1278,8 @@ enum AttendanceStatus {
   OFF
   VACATION
   SICK
+  // New unpaid-leave status (Slovak: neplatené voľno).
+  UNPAID_LEAVE
   // Legacy values kept so existing rows keep validating — map to
   // the closest new status in the UI on read.
   LATE
@@ -1556,9 +1558,17 @@ model AttendanceRecord {
   checkIn      String?
   checkOut     String?
   // Single mid-shift break. Total Hours on the row is
-  // (checkOut - checkIn) - (breakOut - breakIn) when both pairs are set.
+  // (checkOut - checkIn) - (breakOut - breakIn) - (interruptionOut - interruptionIn).
   breakIn      String?
   breakOut     String?
+  // Optional in-day interruption (Slovak: prerušenie). Used when a
+  // PRESENT employee leaves for a few hours and those hours should be
+  // attributed to another status (e.g. doctor's visit → SICK). The
+  // chosen status totals up the interruption length so the monthly
+  // breakdown still adds to the full work-month.
+  interruptionIn     String?
+  interruptionOut    String?
+  interruptionStatus AttendanceStatus?
   workingHours Float?
   notes        String?
   createdById  String?
@@ -1606,6 +1616,39 @@ model AttendanceLockedPeriod {
   @@index([tenantId])
   @@index([year, month])
   @@map("attendance_locked_periods")
+}
+
+/// Reusable company-details block used to stamp the Excel timesheet
+/// header. Tenants typically create one per legal entity / payroll
+/// destination (their own holding company, plus any client company
+/// that issues timesheets). The chosen profile's fields are written
+/// into the top-left of the exported workbook.
+model CompanyExportProfile {
+  id                 String   @id @default(uuid())
+  name               String
+  legalName          String?
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  postalCode         String?
+  country            String?
+  phone              String?
+  email              String?
+  vatNumber          String?
+  registrationNumber String?
+  logoUrl            String?
+  /// Free-form footer line(s). Useful for bank details, IBAN, or
+  /// extra disclaimers that should appear under the daily grid.
+  footer             String?
+  isDefault          Boolean  @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tenantId           String?
+
+  @@index([tenantId])
+  @@index([deletedAt])
+  @@map("company_export_profiles")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

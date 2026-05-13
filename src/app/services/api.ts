@@ -1696,10 +1696,13 @@ export const attendanceApi = {
     employeeId: string | undefined;
     date: string;
     status: string;
-    checkIn?: string;
-    checkOut?: string;
-    breakIn?: string;
-    breakOut?: string;
+    checkIn?: string | null;
+    checkOut?: string | null;
+    breakIn?: string | null;
+    breakOut?: string | null;
+    interruptionIn?: string | null;
+    interruptionOut?: string | null;
+    interruptionStatus?: string | null;
     workingHours?: number | string;
     notes?: string;
   }) => apiFetch<any>('/attendance', { method: 'POST', body: JSON.stringify(data) }),
@@ -1709,10 +1712,13 @@ export const attendanceApi = {
    */
   update: (recordId: string, data: {
     status?: string;
-    checkIn?: string;
-    checkOut?: string;
-    breakIn?: string;
-    breakOut?: string;
+    checkIn?: string | null;
+    checkOut?: string | null;
+    breakIn?: string | null;
+    breakOut?: string | null;
+    interruptionIn?: string | null;
+    interruptionOut?: string | null;
+    interruptionStatus?: string | null;
     workingHours?: number | string;
     notes?: string;
   }) => apiFetch<any>(`/attendance/${recordId}`, { method: 'PATCH', body: JSON.stringify(data) }),
@@ -1755,7 +1761,14 @@ export const attendanceApi = {
    * Export the attendance sheet as an Excel file.
    * Returns a Blob suitable for createObjectURL.
    */
-  exportExcel: async (params: { month: number; year: number; driversOnly?: boolean; employeeId?: string }): Promise<Blob> => {
+  exportExcel: async (params: {
+    month: number;
+    year: number;
+    driversOnly?: boolean;
+    employeeId?: string;
+    employeeIds?: string[];
+    companyProfileId?: string;
+  }): Promise<Blob> => {
     const token = getAccessToken();
     const qs = new URLSearchParams({
       month: String(params.month),
@@ -1763,12 +1776,47 @@ export const attendanceApi = {
       driversOnly: String(params.driversOnly ?? false),
     });
     if (params.employeeId) qs.set('employeeId', params.employeeId);
+    if (params.employeeIds && params.employeeIds.length > 0) {
+      qs.set('employeeIds', params.employeeIds.join(','));
+    }
+    if (params.companyProfileId) qs.set('companyProfileId', params.companyProfileId);
     const res = await fetch(`${API_URL}/attendance/export/excel?${qs.toString()}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error('Export failed');
     return res.blob();
   },
+};
+
+// ─── Company Export Profiles API ──────────────────────────────────────────────
+
+export interface CompanyExportProfile {
+  id: string;
+  name: string;
+  legalName?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  vatNumber?: string | null;
+  registrationNumber?: string | null;
+  logoUrl?: string | null;
+  footer?: string | null;
+  isDefault?: boolean;
+}
+
+export const companyProfilesApi = {
+  list: () => apiFetch<CompanyExportProfile[]>('/company-profiles'),
+  get: (id: string) => apiFetch<CompanyExportProfile>(`/company-profiles/${id}`),
+  create: (data: Partial<CompanyExportProfile>) =>
+    apiFetch<CompanyExportProfile>('/company-profiles', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<CompanyExportProfile>) =>
+    apiFetch<CompanyExportProfile>(`/company-profiles/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    apiFetch<{ ok: true }>(`/company-profiles/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Vehicles API ─────────────────────────────────────────────────────────────

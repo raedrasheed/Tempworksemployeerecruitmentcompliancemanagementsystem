@@ -7,8 +7,9 @@ import { PaginationDto } from '../../common/dto/pagination.dto';
 // (LATE / ON_LEAVE / HALF_DAY / HOLIDAY) are accepted on read for
 // backward compatibility with old rows but are not offered in the
 // status dropdown any more.
-export const ATTENDANCE_STATUSES = ['PRESENT', 'ABSENT', 'OFF', 'VACATION', 'SICK'] as const;
-export const LEGACY_ATTENDANCE_STATUSES = ['LATE', 'ON_LEAVE', 'HALF_DAY', 'HOLIDAY'] as const;
+export const ATTENDANCE_STATUSES = ['PRESENT', 'ABSENT', 'VACATION', 'SICK', 'UNPAID_LEAVE', 'HOLIDAY'] as const;
+// OFF kept as legacy alias for ABSENT on read; LATE/ON_LEAVE/HALF_DAY are pre-2.x.
+export const LEGACY_ATTENDANCE_STATUSES = ['OFF', 'LATE', 'ON_LEAVE', 'HALF_DAY'] as const;
 export const ALL_ATTENDANCE_STATUSES = [...ATTENDANCE_STATUSES, ...LEGACY_ATTENDANCE_STATUSES] as const;
 export type AttendanceStatusType = typeof ATTENDANCE_STATUSES[number];
 
@@ -39,7 +40,11 @@ export class UpsertAttendanceDto {
   @ApiPropertyOptional({ description: 'HH:MM' }) @IsOptional() @IsString() checkOut?: string;
   @ApiPropertyOptional({ description: 'HH:MM — start of mid-shift break' }) @IsOptional() @IsString() breakIn?: string;
   @ApiPropertyOptional({ description: 'HH:MM — end of mid-shift break'   }) @IsOptional() @IsString() breakOut?: string;
-  /** Optional override. When null / omitted the service recomputes from checkIn/Out - breakIn/Out. */
+  @ApiPropertyOptional({ description: 'HH:MM — start of in-day interruption (Present only)' }) @IsOptional() @IsString() interruptionIn?: string;
+  @ApiPropertyOptional({ description: 'HH:MM — end of in-day interruption (Present only)' })   @IsOptional() @IsString() interruptionOut?: string;
+  @ApiPropertyOptional({ description: 'Status the interruption hours roll up into (VACATION/SICK/UNPAID_LEAVE/HOLIDAY/ABSENT)', enum: ALL_ATTENDANCE_STATUSES })
+  @IsOptional() @IsIn(ALL_ATTENDANCE_STATUSES as unknown as string[]) interruptionStatus?: string;
+  /** Optional override. When null / omitted the service recomputes from checkIn/Out - breakIn/Out - interruptionIn/Out. */
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) workingHours?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
 }
@@ -50,6 +55,9 @@ export class UpdateAttendanceDto {
   @ApiPropertyOptional() @IsOptional() @IsString() checkOut?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() breakIn?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() breakOut?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() interruptionIn?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() interruptionOut?: string;
+  @ApiPropertyOptional({ enum: ALL_ATTENDANCE_STATUSES }) @IsOptional() @IsIn(ALL_ATTENDANCE_STATUSES as unknown as string[]) interruptionStatus?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) workingHours?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
 }
@@ -87,7 +95,15 @@ export class ExportAttendanceDto {
   @ApiProperty({ description: 'Month 1-12' }) @Type(() => Number) @IsInt() @Min(1) @Max(12) month: number;
   @ApiProperty({ description: 'Year e.g. 2024' }) @Type(() => Number) @IsInt() @Min(2000) @Max(2100) year: number;
   @ApiPropertyOptional({ description: 'Specific employee UUID for per-driver export' }) @IsOptional() @IsUUID() employeeId?: string;
+  /** Restrict export to the given employee UUIDs. Accepted both as
+   *  a real array and as a comma-separated string for GET requests. */
+  @ApiPropertyOptional({ description: 'CSV or array of employee UUIDs to include', type: [String] })
+  @IsOptional()
+  @Transform(({ value }) => Array.isArray(value) ? value : (typeof value === 'string' ? value.split(',').filter(Boolean) : value))
+  @IsArray() @IsString({ each: true }) employeeIds?: string[];
   @ApiPropertyOptional() @IsOptional() @Transform(({ obj, key }) => { const v = obj?.[key]; return v === true || v === 'true'; }) @IsBoolean() driversOnly?: boolean;
+  /** Company Export Profile to render in the workbook header. */
+  @ApiPropertyOptional() @IsOptional() @IsUUID() companyProfileId?: string;
 }
 
 export class LockPeriodDto {

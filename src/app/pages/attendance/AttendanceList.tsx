@@ -46,7 +46,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { attendanceApi } from '../../services/api';
+import { attendanceApi, companyProfilesApi, type CompanyExportProfile } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -198,6 +198,39 @@ export function AttendanceList() {
   const [exportDriversOnly, setExportDriversOnly] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  // Selection state — checked rows are the only ones exported when ≥1 is checked.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Company export profile (for the Excel header)
+  const [profiles, setProfiles] = useState<CompanyExportProfile[]>([]);
+  const [exportProfileId, setExportProfileId] = useState<string>('');
+
+  useEffect(() => {
+    companyProfilesApi.list()
+      .then((r) => {
+        setProfiles(r ?? []);
+        const def = (r ?? []).find((p) => p.isDefault);
+        if (def) setExportProfileId(def.id);
+      })
+      .catch(() => setProfiles([]));
+  }, []);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === employees.length && employees.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(employees.map((e) => e.id)));
+    }
+  };
+
   // ── Fetch ──────────────────────────────────────────────────────────────────────
 
   const fetchEmployees = useCallback(async () => {
@@ -323,13 +356,17 @@ export function AttendanceList() {
         month: exportMonth,
         year: exportYear,
         driversOnly: exportDriversOnly,
+        // Selected rows take precedence — when any are checked we
+        // export ONLY those, ignoring driversOnly. When nothing is
+        // checked we fall back to the existing filter set.
+        employeeIds: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
+        companyProfileId: exportProfileId || undefined,
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      // Filename stays in English (canonical month key) so it sorts
-      // predictably and isn't affected by the user's UI locale.
-      a.download = `attendance-${MONTH_KEYS[exportMonth - 1]}-${exportYear}.xlsx`;
+      const tag = selectedIds.size > 0 ? `selected-${selectedIds.size}` : (exportDriversOnly ? 'drivers' : 'all');
+      a.download = `attendance-${tag}-${MONTH_KEYS[exportMonth - 1]}-${exportYear}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(t('attendance.toast.sheetExported'));
@@ -600,6 +637,15 @@ export function AttendanceList() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">
+                    <TableHead className="w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size > 0 && selectedIds.size === employees.length}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all"
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                    </TableHead>
                     <TableHead className="w-10 text-center">#</TableHead>
                     <SortHead col="name"       label={t('attendance.list.employeeHeader')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                     {col('employeeId') && <SortHead col="employeeId" label={t('attendance.list.cols.employeeId')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -626,7 +672,16 @@ export function AttendanceList() {
                       (emp.holidayCount ?? 0);
 
                     return (
-                      <TableRow key={emp.id} className="hover:bg-muted/20">
+                      <TableRow key={emp.id} className={`hover:bg-muted/20 ${selectedIds.has(emp.id) ? 'bg-blue-50/40' : ''}`}>
+                        <TableCell className="text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(emp.id)}
+                            onChange={() => toggleSelect(emp.id)}
+                            aria-label={`Select ${emp.firstName} ${emp.lastName}`}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                        </TableCell>
                         <TableCell className="text-center text-muted-foreground text-sm">
                           {(page - 1) * 20 + idx + 1}
                         </TableCell>
@@ -820,25 +875,55 @@ export function AttendanceList() {
               </Select>
             </div>
 
+            <div className="space-y-1.5">
+              <Label>Company Header</Label>
+              <Select
+                value={exportProfileId || '__none__'}
+                onValueChange={(v) => setExportProfileId(v === '__none__' ? '' : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select company details" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No company header</SelectItem>
+                  {profiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}{p.isDefault ? ' (default)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                The selected company's details will appear in the Excel header. Manage profiles under Settings → Company Profiles.
+              </p>
+            </div>
+
             <div className="flex items-center gap-3 pt-1">
               <Switch
                 id="export-drivers-only"
                 checked={exportDriversOnly}
                 onCheckedChange={setExportDriversOnly}
+                disabled={selectedIds.size > 0}
               />
               <Label htmlFor="export-drivers-only" className="cursor-pointer">
                 {t('attendance.list.exportDialog.driversOnlyLabel')}
               </Label>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              {t(
-                exportDriversOnly
-                  ? 'attendance.list.exportDialog.summaryDriversOnly'
-                  : 'attendance.list.exportDialog.summaryAllEmployees',
-                { period: `${t(`attendance.list.months.${MONTH_KEYS[exportMonth - 1]}`)} ${exportYear}` }
-              )}
-            </p>
+            {selectedIds.size > 0 ? (
+              <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md p-2">
+                Exporting <strong>{selectedIds.size}</strong> selected employee(s). Uncheck rows to export everyone matching the filter set.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  exportDriversOnly
+                    ? 'attendance.list.exportDialog.summaryDriversOnly'
+                    : 'attendance.list.exportDialog.summaryAllEmployees',
+                  { period: `${t(`attendance.list.months.${MONTH_KEYS[exportMonth - 1]}`)} ${exportYear}` }
+                )}
+              </p>
+            )}
           </div>
 
           <DialogFooter>

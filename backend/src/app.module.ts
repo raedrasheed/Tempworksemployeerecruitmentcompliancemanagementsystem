@@ -31,6 +31,7 @@ import { BackupModule }   from './backup/backup.module';
 import { EmailModule } from './email/email.module';
 import { TenancyModule } from './saas/tenancy/tenancy.module';
 import { TenantsModule } from './tenants/tenants.module';
+import { CompanyProfilesModule } from './company-profiles/company-profiles.module';
 
 @Module({
   imports: [
@@ -71,6 +72,8 @@ import { TenantsModule } from './tenants/tenants.module';
     TenancyModule,
     // Phase 3.15 — Tenant Management module (PlatformAdmin only).
     TenantsModule,
+    // Phase 3.20 — Company Export Profiles for the timesheet header.
+    CompanyProfilesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

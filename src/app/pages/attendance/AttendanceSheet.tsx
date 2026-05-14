@@ -119,6 +119,21 @@ function fmtHours(h: number | null | undefined): string {
   return `${n.toFixed(1).replace(/\.0$/, '')}h`;
 }
 
+/**
+ * Day count derived from hours, since interruptions add partial-day
+ * leave time that the integer status counter doesn't see. 1 day = 8h.
+ * Returns `undefined` for zero/missing values so the tile sub-label
+ * hides cleanly. Two-decimal precision drops trailing zeros so 1.25,
+ * 1.5, 2 all render naturally.
+ */
+function fmtDays(hours: number | null | undefined): string | undefined {
+  if (hours == null || !Number.isFinite(Number(hours))) return undefined;
+  const h = Number(hours);
+  if (h <= 0) return undefined;
+  const days = Math.round((h / 8) * 100) / 100;
+  return `${days} days`;
+}
+
 // ─── Slovak public holidays calendar ───────────────────────────────────────────
 const SLOVAK_PUBLIC_HOLIDAYS: Record<string, string> = {
   '2024-01-01': 'Day of the Establishment of the Slovak Republic',
@@ -894,37 +909,37 @@ export function AttendanceSheet({ employeeId: propEmployeeId, hideBackButton = f
         <SummaryTile
           label="Present"
           value={fmtHours(summary?.presentHours)}
-          subValue={summary?.presentCount ? `${summary.presentCount} days` : undefined}
+          subValue={fmtDays(summary?.presentHours)}
           tone="emerald"
         />
         <SummaryTile
           label="Public Holiday"
           value={fmtHours(summary?.holidayHours)}
-          subValue={summary?.holidayCount ? `${summary.holidayCount} days` : undefined}
+          subValue={fmtDays(summary?.holidayHours)}
           tone="purple"
         />
         <SummaryTile
           label="Vacation"
           value={fmtHours(summary?.vacationHours)}
-          subValue={summary?.vacationCount ? `${summary.vacationCount} days` : undefined}
+          subValue={fmtDays(summary?.vacationHours)}
           tone="blue"
         />
         <SummaryTile
           label="Sick Leave"
           value={fmtHours(summary?.sickHours)}
-          subValue={summary?.sickCount ? `${summary.sickCount} days` : undefined}
+          subValue={fmtDays(summary?.sickHours)}
           tone="violet"
         />
         <SummaryTile
           label="Unpaid Leave"
           value={fmtHours(summary?.unpaidLeaveHours)}
-          subValue={summary?.unpaidLeaveCount ? `${summary.unpaidLeaveCount} days` : undefined}
+          subValue={fmtDays(summary?.unpaidLeaveHours)}
           tone="orange"
         />
         <SummaryTile
           label="Absent"
           value={fmtHours(summary?.absentHours)}
-          subValue={summary?.absentCount ? `${summary.absentCount} days` : undefined}
+          subValue={fmtDays(summary?.absentHours)}
           tone="red"
         />
         <SummaryTile

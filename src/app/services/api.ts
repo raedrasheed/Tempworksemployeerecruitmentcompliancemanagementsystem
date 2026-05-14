@@ -239,10 +239,27 @@ export async function apiFetch<T = any>(
     }
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (networkErr: any) {
+    // fetch() throws a TypeError on raw network failures (DNS, SSL,
+    // CORS preflight, offline, server unreachable). Surface a clearer
+    // message so callers don't fall back to the generic "operation
+    // failed" toast — typical symptom for users behind strict proxies
+    // or when the API host is down.
+    const error: ApiError = {
+      message: navigator?.onLine === false
+        ? 'You appear to be offline. Check your network connection and try again.'
+        : `Cannot reach the server (${networkErr?.message ?? 'network error'}). Please retry in a moment or contact support if the problem persists.`,
+      statusCode: 0,
+      error: 'NetworkError',
+    };
+    throw error;
+  }
 
   // Handle 401 with token refresh (skip for auth endpoints to surface real errors)
   if (response.status === 401 && !isRetry && !path.startsWith('/auth/')) {

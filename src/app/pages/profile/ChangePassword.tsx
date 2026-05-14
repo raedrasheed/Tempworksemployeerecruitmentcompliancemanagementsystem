@@ -27,9 +27,9 @@ export function ChangePassword() {
     let strength = 0;
     if (password.length >= 8) strength += 25;
     if (password.length >= 12) strength += 25;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25;
-    if (/[0-9]/.test(password)) strength += 12.5;
-    if (/[^a-zA-Z0-9]/.test(password)) strength += 12.5;
+    if (/[\p{Ll}\p{Lo}]/u.test(password) && /[\p{Lu}\p{Lo}]/u.test(password)) strength += 25;
+    if (/\p{N}/u.test(password)) strength += 12.5;
+    if (/[^\p{L}\p{N}]/u.test(password)) strength += 12.5;
     return Math.min(strength, 100);
   };
 
@@ -47,10 +47,10 @@ export function ChangePassword() {
   // Password validation rules
   const validationRules = [
     { label: t('profile.changePassword.rules.length'), test: (pwd: string) => pwd.length >= 8 },
-    { label: t('profile.changePassword.rules.upper'), test: (pwd: string) => /[A-Z]/.test(pwd) },
-    { label: t('profile.changePassword.rules.lower'), test: (pwd: string) => /[a-z]/.test(pwd) },
-    { label: t('profile.changePassword.rules.number'), test: (pwd: string) => /[0-9]/.test(pwd) },
-    { label: t('profile.changePassword.rules.special'), test: (pwd: string) => /[^a-zA-Z0-9]/.test(pwd) },
+    { label: t('profile.changePassword.rules.upper'), test: (pwd: string) => /[\p{Lu}\p{Lo}]/u.test(pwd) },
+    { label: t('profile.changePassword.rules.lower'), test: (pwd: string) => /[\p{Ll}\p{Lo}]/u.test(pwd) },
+    { label: t('profile.changePassword.rules.number'), test: (pwd: string) => /\p{N}/u.test(pwd) },
+    { label: t('profile.changePassword.rules.special'), test: (pwd: string) => /[^\p{L}\p{N}]/u.test(pwd) },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {

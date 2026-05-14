@@ -1040,19 +1040,25 @@ export class AuthService {
     if (password.length < 8) {
       throw new BadRequestException({ code: 'AUTH.PASSWORD_TOO_SHORT', message: 'Password must be at least 8 characters long', params: { min: 8 } });
     }
-    if (!/[A-Z]/.test(password)) {
+    // Unicode-aware checks so passwords written in Arabic, Slovak,
+    // German, Cyrillic, CJK, etc. are accepted. `\p{Lo}` covers
+    // caseless scripts (Arabic, Hebrew, CJK) and counts toward both
+    // the uppercase and lowercase requirements.
+    if (!/[\p{Lu}\p{Lo}]/u.test(password)) {
       throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_UPPERCASE', message: 'Password must contain at least one uppercase letter' });
     }
-    if (!/[a-z]/.test(password)) {
+    if (!/[\p{Ll}\p{Lo}]/u.test(password)) {
       throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_LOWERCASE', message: 'Password must contain at least one lowercase letter' });
     }
-    if (!/[0-9]/.test(password)) {
+    if (!/\p{N}/u.test(password)) {
       throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_DIGIT', message: 'Password must contain at least one digit' });
     }
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(password)) {
+    // Anything that isn't a letter or digit counts as a special
+    // character — covers ASCII punctuation as well as Unicode symbols.
+    if (!/[^\p{L}\p{N}]/u.test(password)) {
       throw new BadRequestException({
         code: 'AUTH.PASSWORD_NEEDS_SPECIAL',
-        message: "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;':\",./<>?)",
+        message: 'Password must contain at least one special character',
       });
     }
   }

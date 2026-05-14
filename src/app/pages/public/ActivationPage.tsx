@@ -15,10 +15,10 @@ type StrengthLabel = 'weak' | 'medium' | 'strong';
 function getPasswordStrength(password: string): { score: number; label: StrengthLabel; color: string } {
   let score = 0;
   if (password.length >= 8) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[a-z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
+  if (/[\p{Lu}\p{Lo}]/u.test(password)) score++;
+  if (/[\p{Ll}\p{Lo}]/u.test(password)) score++;
+  if (/\p{N}/u.test(password)) score++;
+  if (/[^\p{L}\p{N}]/u.test(password)) score++;
 
   if (score <= 2) return { score, label: 'weak', color: 'bg-red-500' };
   if (score <= 3) return { score, label: 'medium', color: 'bg-yellow-500' };
@@ -48,10 +48,10 @@ export function ActivationPage() {
 
   const rules = {
     minLength: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
+    uppercase: /[\p{Lu}\p{Lo}]/u.test(password),
+    lowercase: /[\p{Ll}\p{Lo}]/u.test(password),
+    number: /\p{N}/u.test(password),
+    special: /[^\p{L}\p{N}]/u.test(password),
   };
 
   const allRulesMet = Object.values(rules).every(Boolean);

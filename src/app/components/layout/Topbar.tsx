@@ -255,9 +255,9 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
     let s = 0;
     if (newPassword.length >= 8) s += 25;
     if (newPassword.length >= 12) s += 25;
-    if (/[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword)) s += 25;
-    if (/[0-9]/.test(newPassword)) s += 12.5;
-    if (/[^a-zA-Z0-9]/.test(newPassword)) s += 12.5;
+    if (/[\p{Ll}\p{Lo}]/u.test(newPassword) && /[\p{Lu}\p{Lo}]/u.test(newPassword)) s += 25;
+    if (/\p{N}/u.test(newPassword)) s += 12.5;
+    if (/[^\p{L}\p{N}]/u.test(newPassword)) s += 12.5;
     return Math.min(s, 100);
   })();
 

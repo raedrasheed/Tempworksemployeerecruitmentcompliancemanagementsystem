@@ -145,9 +145,9 @@ export function Profile() {
     }
   };
 
-  const avatarSrc = photoPreview
-    ?? (userData?.photoUrl ? resolveAssetUrl(userData.photoUrl) : null)
-    ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.firstName || 'User'}`;
+  const avatarSrc: string | null = photoPreview
+    ?? (userData?.photoUrl ? resolveAssetUrl(userData.photoUrl) : null);
+  const avatarInitials = `${userData?.firstName?.[0] ?? ''}${userData?.lastName?.[0] ?? ''}`.toUpperCase() || '?';
   const displayName = userData ? `${userData.firstName} ${userData.lastName}` : '';
   const roleName = (typeof userData?.role === 'string' ? userData.role : userData?.role?.name) || '';
   const agencyName = userData?.agency ? `${userData.agency.name}${userData.agency.country ? ` — ${userData.agency.country}` : ''}` : 'N/A';
@@ -238,7 +238,16 @@ export function Profile() {
               {/* Avatar */}
               <div className="flex items-center gap-6">
                 <div className="relative">
-                  <img src={avatarSrc} alt={displayName} className="w-24 h-24 rounded-full object-cover border border-gray-200" />
+                  {avatarSrc ? (
+                    <img src={avatarSrc} alt={displayName} className="w-24 h-24 rounded-full object-cover border border-gray-200" />
+                  ) : (
+                    <div
+                      className="w-24 h-24 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-3xl font-bold border border-gray-200"
+                      aria-label={displayName}
+                    >
+                      {avatarInitials}
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => photoInputRef.current?.click()}

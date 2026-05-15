@@ -497,11 +497,20 @@ export function UsersList() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img
-                          src={user.photoUrl ? resolveAssetUrl(user.photoUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName}`}
-                          alt={`${user.firstName} ${user.lastName}`}
-                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                        />
+                        {user.photoUrl ? (
+                          <img
+                            src={resolveAssetUrl(user.photoUrl)}
+                            alt={`${user.firstName} ${user.lastName}`}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-xs font-bold flex-shrink-0"
+                            aria-label={`${user.firstName} ${user.lastName}`}
+                          >
+                            {`${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '?'}
+                          </div>
+                        )}
                         <div>
                           <div className="font-medium">{user.firstName} {user.lastName}</div>
                           <div className="text-xs text-muted-foreground">{user.email}</div>

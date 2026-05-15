@@ -272,7 +272,11 @@ export class EmployeesService {
     return { message: 'Access revoked' };
   }
 
-  async create(dto: CreateEmployeeDto, actorId?: string) {
+  async create(
+    dto: CreateEmployeeDto,
+    actorId?: string,
+    actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean },
+  ) {
     const existing = await this.legacyPrisma.employee.findFirst({ where: { email: dto.email, deletedAt: null } }); // @tenant-reviewed: phase233-global (Employee.email globally unique — Phase 3)
     if (existing) throw new ConflictException('Employee with this email already exists');
 
@@ -280,7 +284,22 @@ export class EmployeesService {
     const stages = await this.legacyPrisma.stageTemplate.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } }); // @tenant-reviewed: phase233-global (StageTemplate is a global catalog)
 
     const employeeNumber = await this.generateEmployeeNumber();
-    const { agencyId, ...rest } = dto;
+    const { agencyId: dtoAgencyId, ...rest } = dto;
+
+    // Server-authoritative agency assignment.
+    //   • External actor (Agency User/Manager): pin to caller's agency,
+    //     ignoring any value submitted in the body.
+    //   • Internal actor (System Admin / HR Manager / etc.): may pick
+    //     any agency, but it MUST belong to the active tenant —
+    //     findAgencyOrFail() raises 404 for cross-tenant ids and so
+    //     the bad assignment never reaches the database.
+    let resolvedAgencyId: string | undefined = dtoAgencyId ?? undefined;
+    if (actor && this.isExternalActor(actor) && actor.agencyId) {
+      resolvedAgencyId = actor.agencyId;
+    } else if (resolvedAgencyId) {
+      await this.findAgencyOrFail(resolvedAgencyId);
+    }
+
     const tdata = this.scope().tenantData();
     const employee = await this.legacyPrisma.employee.create({ // @tenant-reviewed: phase234-pilot-scope (writes tenantId via scope.tenantData)
       data: {
@@ -288,7 +307,7 @@ export class EmployeesService {
         employeeNumber,
         dateOfBirth: new Date(dto.dateOfBirth),
         status: (dto.status as any) || 'PENDING',
-        ...(agencyId ? { agencyId } : {}),
+        ...(resolvedAgencyId ? { agencyId: resolvedAgencyId } : {}),
         // Employees created directly from the dashboard are always
         // staff-initiated — the public /apply flow produces an
         // applicant, not an employee.

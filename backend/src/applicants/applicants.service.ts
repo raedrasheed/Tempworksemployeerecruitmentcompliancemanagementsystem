@@ -298,6 +298,12 @@ export class ApplicantsService {
     // the Tempworks approval workflow below.
     if (isExternal && actor!.agencyId) {
       (dto as any).agencyId = actor!.agencyId;
+    } else if ((dto as any).agencyId) {
+      // Internal actor (System Admin / HR Manager / Recruiter) supplied
+      // an explicit agency: it MUST belong to the active tenant.
+      // findAgencyOrFail() raises 404 on cross-tenant ids so the bad
+      // assignment never reaches the database.
+      await this.findAgencyOrFail((dto as any).agencyId);
     }
 
     // Always generate a Lead identifier. Records that are born as a
@@ -619,6 +625,16 @@ export class ApplicantsService {
     }
 
     const prevAgencyId = applicant.agencyId;
+
+    // Phase 2.34 — validate target agency BEFORE the update so a
+    // cross-tenant id (DTO-supplied or systemSetting fallback) fails
+    // closed and never persists. Pre-2.34 the check ran AFTER the
+    // update, so an invalid id left the applicant pointing at a
+    // foreign agency before the 404 surfaced. Skip the gate when the
+    // value is unchanged — prevAgencyId is already in-tenant.
+    if (targetAgencyId && targetAgencyId !== prevAgencyId) {
+      await this.findAgencyOrFail(targetAgencyId);
+    }
     const prevAgencyName = (applicant.agency as any)?.name ?? 'None';
     const prevLeadNumber = (applicant as any).leadNumber ?? null;
 
@@ -778,6 +794,20 @@ export class ApplicantsService {
     const allowedIds = new Set(allowed.map((a: any) => a.id));
     const filtered = ids.filter((id: string) => allowedIds.has(id));
 
+    // Phase 2.34 — pre-validate the target agency once for
+    // ASSIGN_AGENCY so a cross-tenant id is rejected for the whole
+    // batch instead of silently corrupting every row in the loop.
+    if (action === BulkActionType.ASSIGN_AGENCY) {
+      const targetAgencyId = agencyId ?? value;
+      if (!targetAgencyId) {
+        throw new BadRequestException({
+          code: 'APPLICANT.BULK_ASSIGN_AGENCY_REQUIRED',
+          message: 'agencyId is required for ASSIGN_AGENCY',
+        });
+      }
+      await this.findAgencyOrFail(String(targetAgencyId));
+    }
+
     for (const id of filtered) {
       try {
         switch (action) {
@@ -813,8 +843,9 @@ export class ApplicantsService {
             break;
 
           case BulkActionType.ASSIGN_AGENCY: {
-            const targetAgencyId = agencyId ?? value;
-            if (!targetAgencyId) throw new Error('agencyId is required for ASSIGN_AGENCY');
+            // Target agency already validated above against the active
+            // tenant — safe to use directly here.
+            const targetAgencyId = String((agencyId ?? value)!);
             await this.legacyPrisma.applicant.update({ where: { id }, data: { agencyId: targetAgencyId } }); // @tenant-reviewed: phase229-pilot-scope-precheck
             await this.auditLog(actorId, 'BULK_ASSIGN_AGENCY', id, { agencyId: targetAgencyId });
             results.push({ id, success: true });

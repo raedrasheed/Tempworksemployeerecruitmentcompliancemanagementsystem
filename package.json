@@ -11,7 +11,8 @@
     "i18n:check-literals": "node scripts/i18n-check-literals.mjs",
     "i18n:check-backend": "node scripts/i18n-check-backend-keys.mjs",
     "i18n:check": "npm run i18n:check-keys && npm run i18n:check-literals && npm run i18n:check-backend",
-    "rbac:check": "node scripts/rbac-check.mjs"
+    "rbac:check": "node scripts/rbac-check.mjs",
+    "tenant:check": "node scripts/tenant-ownership-check.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

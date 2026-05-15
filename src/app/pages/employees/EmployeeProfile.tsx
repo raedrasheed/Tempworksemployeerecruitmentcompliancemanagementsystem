@@ -27,11 +27,14 @@ const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 export function EmployeeProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { canEdit, canDelete } = usePermissions();
+  const { canEdit, canDelete, canView, can } = usePermissions();
   const { t, i18n } = useTranslation(['pages', 'common']);
   const dir = i18n.dir();
   const currentUser = getCurrentUser();
-  const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
+  // Permission-based: matches the `finance:read` permission seeded on
+  // Finance/HR Manager roles and ticked in the Roles UI for custom
+  // roles. System Admin bypasses via usePermissions.
+  const isFinanceOrAdmin = canView('finance');
   const [employee, setEmployee] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const scrollToAppSection = (sectionId: string) => {
@@ -839,7 +842,7 @@ export function EmployeeProfile() {
               entityId={id!}
               entityName={[employee?.firstName, employee?.lastName].filter(Boolean).join(' ')}
               canWrite={canEdit('employees')}
-              canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
+              canChangeStatus={can('finance', 'status')}
             />
           </TabsContent>
         )}

@@ -53,6 +53,7 @@ export class VehiclesController {
   @Get()
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'List all vehicles with filters' })
   list(@Query() dto: FilterVehiclesDto, @Request() req: any) {
     return this.vehiclesService.listVehicles(dto, req.user);
@@ -61,6 +62,7 @@ export class VehiclesController {
   @Get('stats')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'Get vehicle dashboard statistics' })
   getStats() {
     return this.vehiclesService.getDashboardStats();
@@ -69,6 +71,7 @@ export class VehiclesController {
   @Get('export/excel')
   @RequirePermission('vehicles:export', 'vehicles:read')
   @Roles(...EXPORT_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'Export vehicle list as Excel' })
   async exportExcel(
     @Query() dto: ExportVehiclesDto,
@@ -89,6 +92,7 @@ export class VehiclesController {
   @Get('maintenance/types')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'List all maintenance types' })
   listMaintenanceTypes() {
     return this.vehiclesService.listMaintenanceTypes();
@@ -97,6 +101,7 @@ export class VehiclesController {
   @Post('maintenance/types')
   @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:create')
   @ApiOperation({ summary: 'Create a maintenance type' })
   createMaintenanceType(@Body() dto: CreateMaintenanceTypeDto) {
     return this.vehiclesService.createMaintenanceType(dto);
@@ -105,6 +110,7 @@ export class VehiclesController {
   @Patch('maintenance/types/:id')
   @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:update')
   @ApiOperation({ summary: 'Update a maintenance type' })
   updateMaintenanceType(@Param('id') id: string, @Body() dto: UpdateMaintenanceTypeDto) {
     return this.vehiclesService.updateMaintenanceType(id, dto);
@@ -113,6 +119,7 @@ export class VehiclesController {
   @Delete('maintenance/types/:id')
   @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a maintenance type' })
   deleteMaintenanceType(@Param('id') id: string, @Request() req: any) {
@@ -122,6 +129,7 @@ export class VehiclesController {
   @Get('maintenance/records')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'List maintenance records with filters' })
   listMaintenance(@Query() dto: FilterMaintenanceDto, @Request() req: any) {
     return this.vehiclesService.listMaintenanceRecords(dto, req.user);
@@ -130,6 +138,7 @@ export class VehiclesController {
   @Get('maintenance/records/export/excel')
   @RequirePermission('vehicles:export', 'vehicles:read')
   @Roles(...EXPORT_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'Export maintenance records as Excel' })
   async exportMaintenanceExcel(
     @Query() dto: FilterMaintenanceDto,
@@ -150,6 +159,7 @@ export class VehiclesController {
   @Get('maintenance/records/export/pdf')
   @RequirePermission('vehicles:export', 'vehicles:read')
   @Roles(...EXPORT_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'Export maintenance records as PDF' })
   async exportMaintenancePdf(
     @Query() dto: FilterMaintenanceDto,
@@ -170,6 +180,7 @@ export class VehiclesController {
   @Get('maintenance/records/:id')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'Get a single maintenance record' })
   getMaintenance(@Param('id') id: string) {
     return this.vehiclesService.getMaintenanceRecord(id);
@@ -178,6 +189,7 @@ export class VehiclesController {
   @Post('maintenance/records')
   @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:create')
   @ApiOperation({ summary: 'Create a maintenance record' })
   createMaintenance(@Body() dto: CreateMaintenanceRecordDto, @Request() req: any) {
     return this.vehiclesService.createMaintenanceRecord(dto, req.user?.id, req.user);
@@ -186,6 +198,7 @@ export class VehiclesController {
   @Patch('maintenance/records/:id')
   @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:update')
   @ApiOperation({ summary: 'Update a maintenance record' })
   updateMaintenance(@Param('id') id: string, @Body() dto: UpdateMaintenanceRecordDto, @Request() req: any) {
     return this.vehiclesService.updateMaintenanceRecord(id, dto, req.user?.id, req.user);
@@ -194,6 +207,7 @@ export class VehiclesController {
   @Delete('maintenance/records/:id')
   @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a maintenance record' })
   deleteMaintenance(@Param('id') id: string, @Request() req: any) {
@@ -203,6 +217,7 @@ export class VehiclesController {
   @Post('maintenance/records/:id/attachments')
   @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:create')
   // SECURITY-FIX: previously had no fileFilter and no limits.
   @UseInterceptors(FileInterceptor('file', memoryUpload({
     mimeTypes: DOCUMENT_MIME,
@@ -227,6 +242,7 @@ export class VehiclesController {
   @Get('maintenance/records/:id/attachments')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'List all attachments for a maintenance record' })
   getMaintenanceAttachments(@Param('id') recordId: string) {
     return this.vehiclesService.getMaintenanceAttachments(recordId);
@@ -235,6 +251,7 @@ export class VehiclesController {
   @Delete('maintenance/attachments/:id')
   @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete an attachment' })
   deleteMaintenanceAttachment(@Param('id') id: string) {
@@ -246,6 +263,7 @@ export class VehiclesController {
   @Get('workshops')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'List all workshops' })
   listWorkshops(@Request() req: any) {
     return this.vehiclesService.listWorkshops(req.user);
@@ -254,6 +272,7 @@ export class VehiclesController {
   @Post('workshops')
   @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:create')
   @ApiOperation({ summary: 'Create a workshop' })
   createWorkshop(@Body() dto: CreateWorkshopDto, @Request() req: any) {
     return this.vehiclesService.createWorkshop(dto, req.user);
@@ -262,6 +281,7 @@ export class VehiclesController {
   @Get('workshops/:id')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'Get a workshop' })
   getWorkshop(@Param('id') id: string, @Request() req: any) {
     return this.vehiclesService.getWorkshop(id, req.user);
@@ -270,6 +290,7 @@ export class VehiclesController {
   @Patch('workshops/:id')
   @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:update')
   @ApiOperation({ summary: 'Update a workshop' })
   updateWorkshop(@Param('id') id: string, @Body() dto: UpdateWorkshopDto, @Request() req: any) {
     return this.vehiclesService.updateWorkshop(id, dto, req.user);
@@ -278,6 +299,7 @@ export class VehiclesController {
   @Delete('workshops/:id')
   @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a workshop' })
   deleteWorkshop(@Param('id') id: string, @Request() req: any) {
@@ -289,6 +311,7 @@ export class VehiclesController {
   @Get(':id')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'Get a single vehicle with full details' })
   getOne(@Param('id') id: string, @Request() req: any) {
     return this.vehiclesService.getVehicle(id, req.user);
@@ -297,6 +320,7 @@ export class VehiclesController {
   @Post()
   @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:create')
   @ApiOperation({ summary: 'Create a new vehicle' })
   create(@Body() dto: CreateVehicleDto, @Request() req: any) {
     return this.vehiclesService.createVehicle(dto, req.user?.id, req.user);
@@ -305,6 +329,7 @@ export class VehiclesController {
   @Patch(':id')
   @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:update')
   @ApiOperation({ summary: 'Update a vehicle' })
   update(@Param('id') id: string, @Body() dto: UpdateVehicleDto, @Request() req: any) {
     return this.vehiclesService.updateVehicle(id, dto, req.user?.id, req.user);
@@ -313,6 +338,7 @@ export class VehiclesController {
   @Delete(':id')
   @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a vehicle' })
   remove(@Param('id') id: string, @Request() req: any) {
@@ -324,6 +350,7 @@ export class VehiclesController {
   @Get(':vehicleId/drivers')
   @RequirePermission('vehicles:read')
   @Roles(...READ_ROLES)
+  @RequirePermission('vehicles:read')
   @ApiOperation({ summary: 'Get driver assignment history for a vehicle' })
   getDriverHistory(@Param('vehicleId') vehicleId: string) {
     return this.vehiclesService.getDriverHistory(vehicleId);
@@ -332,6 +359,7 @@ export class VehiclesController {
   @Post(':vehicleId/drivers')
   @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:create')
   @ApiOperation({ summary: 'Assign a driver to a vehicle (replaces current active driver)' })
   assignDriver(@Param('vehicleId') vehicleId: string, @Body() dto: AssignDriverDto, @Request() req: any) {
     return this.vehiclesService.assignDriver(vehicleId, dto, req.user?.id);
@@ -340,6 +368,7 @@ export class VehiclesController {
   @Delete(':vehicleId/drivers/:assignmentId')
   @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'End a driver assignment' })
   unassignDriver(@Param('vehicleId') vehicleId: string, @Param('assignmentId') assignmentId: string) {
@@ -349,6 +378,7 @@ export class VehiclesController {
   @Post(':vehicleId/documents')
   @RequirePermission('vehicles:create')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:create')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Add a document (with optional file upload) to a vehicle' })
   @UseInterceptors(FileInterceptor('file', memoryUpload({
@@ -367,6 +397,7 @@ export class VehiclesController {
   @Patch(':vehicleId/documents/:docId')
   @RequirePermission('vehicles:update')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:update')
   @ApiOperation({ summary: 'Update a vehicle document' })
   updateDocument(
     @Param('vehicleId') vehicleId: string,
@@ -379,6 +410,7 @@ export class VehiclesController {
   @Delete(':vehicleId/documents/:docId')
   @RequirePermission('vehicles:delete')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('vehicles:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a vehicle document' })
   deleteDocument(@Param('vehicleId') vehicleId: string, @Param('docId') docId: string, @Request() req: any) {

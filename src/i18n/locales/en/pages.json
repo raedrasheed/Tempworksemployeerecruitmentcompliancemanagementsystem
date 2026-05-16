@@ -3900,6 +3900,7 @@
       "filterAllRoles": "All Roles",
       "filterAllStatuses": "All Statuses",
       "filterAllAgencies": "All Agencies",
+      "filterAllTenants": "All Tenants",
       "filterAllDepts": "All Departments",
       "filterAllCountries": "All Countries",
       "clearFilters": "Clear filters",

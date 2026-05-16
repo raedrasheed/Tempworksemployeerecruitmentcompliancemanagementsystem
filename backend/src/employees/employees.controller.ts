@@ -81,6 +81,7 @@ export class EmployeesController {
 
   @Get(':id/agency-access')
   @Roles(...ADMIN_ROLES)
+  @RequirePermission('employees:manage-agency-access')
   @ApiOperation({ summary: 'List agencies that have been granted access to this employee' })
   listAgencyAccess(@Param('id') id: string) {
     return this.employeesService.listAgencyAccess(id);
@@ -88,6 +89,7 @@ export class EmployeesController {
 
   @Post(':id/agency-access')
   @Roles(...ADMIN_ROLES)
+  @RequirePermission('employees:manage-agency-access')
   @ApiOperation({ summary: 'Grant or update an agency\'s access to this employee. Body: { agencyId, notes?, canView?, canEdit? }. Defaults: canView=true, canEdit=true.' })
   grantAgencyAccess(
     @Param('id') id: string,
@@ -104,6 +106,7 @@ export class EmployeesController {
 
   @Patch(':id/agency-access/:agencyId')
   @Roles(...ADMIN_ROLES)
+  @RequirePermission('employees:manage-agency-access')
   @ApiOperation({ summary: 'Update an existing agency-access grant. Body: { canView?, canEdit?, notes? }. If both flags end up false the grant row is deleted.' })
   updateAgencyAccess(
     @Param('id') id: string,
@@ -116,6 +119,7 @@ export class EmployeesController {
 
   @Delete(':id/agency-access/:agencyId')
   @Roles(...ADMIN_ROLES)
+  @RequirePermission('employees:manage-agency-access')
   @ApiOperation({ summary: 'Revoke a specific agency\'s access to this employee (deletes the grant row).' })
   revokeAgencyAccess(
     @Param('id') id: string,
@@ -156,11 +160,13 @@ export class EmployeesController {
 
   @Get(':id/performance')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Read Only')
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'Get employee performance metrics' })
   getPerformance(@Param('id') id: string) { return this.employeesService.getPerformance(id); }
 
   @Get(':id/financial-profile')
   @Roles('System Admin', 'HR Manager', 'Finance', 'Compliance Officer', 'Read Only')
+  @RequirePermission('finance:read')
   @ApiOperation({ summary: 'Get the banking/salary profile for an employee (from applicant financial profile via employeeId link)' })
   getFinancialProfile(@Param('id') id: string) { return this.employeesService.getFinancialProfile(id); }
 
@@ -168,8 +174,12 @@ export class EmployeesController {
   @Roles(...WRITE_ROLES)
   @RequirePermission('employees:create')
   @ApiOperation({ summary: 'Create new employee' })
-  create(@Body() dto: CreateEmployeeDto, @CurrentUser('id') actorId: string) {
-    return this.employeesService.create(dto, actorId);
+  create(@Body() dto: CreateEmployeeDto, @CurrentUser() user: any) {
+    return this.employeesService.create(dto, user?.id, {
+      role: user?.role,
+      agencyId: user?.agencyId,
+      agencyIsSystem: user?.agencyIsSystem,
+    });
   }
 
   @Patch(':id')

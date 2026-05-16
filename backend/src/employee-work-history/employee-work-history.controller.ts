@@ -8,6 +8,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiBody, ApiConsumes } 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { EmployeeWorkHistoryService } from './employee-work-history.service';
 import { CreateWorkHistoryDto, UpdateWorkHistoryDto } from './dto/work-history.dto';
 
@@ -23,6 +24,7 @@ export class EmployeeWorkHistoryController {
 
   @Get()
   @Roles(...READ_ROLES)
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'List an employee\'s post-hire work history entries (newest first)' })
   @ApiParam({ name: 'employeeId' })
   list(@Param('employeeId') employeeId: string) {
@@ -31,6 +33,7 @@ export class EmployeeWorkHistoryController {
 
   @Post()
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:update')
   @ApiOperation({ summary: 'Add a new work history entry for an employee' })
   @ApiParam({ name: 'employeeId' })
   create(@Param('employeeId') employeeId: string, @Body() dto: CreateWorkHistoryDto, @Request() req: any) {
@@ -39,6 +42,7 @@ export class EmployeeWorkHistoryController {
 
   @Patch(':entryId')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:update')
   @ApiOperation({ summary: 'Update an existing work history entry' })
   update(
     @Param('employeeId') employeeId: string,
@@ -51,6 +55,7 @@ export class EmployeeWorkHistoryController {
 
   @Delete(':entryId')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a work history entry' })
   remove(
@@ -63,6 +68,7 @@ export class EmployeeWorkHistoryController {
 
   @Post(':entryId/attachments')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:update')
   @ApiOperation({ summary: 'Upload an attachment for a work history entry' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
@@ -81,6 +87,7 @@ export class EmployeeWorkHistoryController {
 
   @Delete(':entryId/attachments/:attachmentId')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete an attachment on a work history entry' })
   removeAttachment(

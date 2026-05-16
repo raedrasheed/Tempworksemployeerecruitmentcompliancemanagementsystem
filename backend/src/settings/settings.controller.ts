@@ -16,6 +16,7 @@ import { CreateNotificationRuleDto } from './dto/create-notification-rule.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -39,6 +40,7 @@ export class SettingsController {
 
   @Patch()
   @Roles('System Admin')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Batch update settings' })
   batchUpdate(@Body() dto: BatchUpdateSettingsDto, @CurrentUser() user: any) {
     // Phase 3.17 — branding.* keys are routed to the active tenant.
@@ -62,6 +64,7 @@ export class SettingsController {
 
   @Patch('vehicle/:key')
   @Roles('System Admin')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Update one vehicle lookup list (e.g. statuses, fuelTypes, bodyTypes)' })
   @ApiParam({ name: 'key' })
   updateVehicleSetting(
@@ -91,6 +94,7 @@ export class SettingsController {
 
   @Post('job-types')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('settings:create')
   @ApiOperation({ summary: 'Create a job type' })
   createJobType(@Body() dto: CreateJobTypeDto, @CurrentUser() user: any) {
     return this.settingsService.createJobType(dto, user?.id);
@@ -98,6 +102,7 @@ export class SettingsController {
 
   @Patch('job-types/:id')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Update a job type' })
   @ApiParam({ name: 'id' })
   updateJobType(@Param('id') id: string, @Body() dto: Partial<CreateJobTypeDto>, @CurrentUser() user: any) {
@@ -106,6 +111,7 @@ export class SettingsController {
 
   @Delete('job-types/:id')
   @Roles('System Admin')
+  @RequirePermission('settings:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Deactivate a job type' })
   @ApiParam({ name: 'id' })
@@ -125,6 +131,7 @@ export class SettingsController {
 
   @Post('transaction-types')
   @Roles('System Admin', 'HR Manager', 'Finance')
+  @RequirePermission('settings:create')
   @ApiOperation({ summary: 'Create a transaction type' })
   createTransactionType(
     @Body() dto: { name: string; sortOrder?: number; isActive?: boolean },
@@ -135,6 +142,7 @@ export class SettingsController {
 
   @Patch('transaction-types/:id')
   @Roles('System Admin', 'HR Manager', 'Finance')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Update a transaction type' })
   @ApiParam({ name: 'id' })
   updateTransactionType(
@@ -157,6 +165,7 @@ export class SettingsController {
 
   @Post('work-history-event-types')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('settings:create')
   @ApiOperation({ summary: 'Create a Work History event type' })
   createWorkHistoryEventType(
     @Body() dto: { value: string; label: string; sortOrder?: number; isActive?: boolean },
@@ -167,6 +176,7 @@ export class SettingsController {
 
   @Patch('work-history-event-types/:id')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Update a Work History event type' })
   @ApiParam({ name: 'id' })
   updateWorkHistoryEventType(
@@ -179,6 +189,7 @@ export class SettingsController {
 
   @Delete('work-history-event-types/:id')
   @Roles('System Admin')
+  @RequirePermission('settings:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Deactivate a Work History event type' })
   @ApiParam({ name: 'id' })
@@ -188,6 +199,7 @@ export class SettingsController {
 
   @Delete('transaction-types/:id')
   @Roles('System Admin', 'Finance')
+  @RequirePermission('settings:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Deactivate a transaction type' })
   @ApiParam({ name: 'id' })
@@ -217,6 +229,7 @@ export class SettingsController {
 
   @Post('document-types')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('settings:create')
   @ApiOperation({ summary: 'Create a document type' })
   createDocumentType(@Body() dto: CreateDocumentTypeDto, @CurrentUser() user: any) {
     return this.settingsService.createDocumentType(dto, user?.id);
@@ -224,6 +237,7 @@ export class SettingsController {
 
   @Patch('document-types/:id')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Update a document type' })
   @ApiParam({ name: 'id' })
   updateDocumentType(@Param('id') id: string, @Body() dto: Partial<CreateDocumentTypeDto>, @CurrentUser() user: any) {
@@ -232,6 +246,7 @@ export class SettingsController {
 
   @Delete('document-types/:id')
   @Roles('System Admin')
+  @RequirePermission('settings:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Deactivate a document type' })
   @ApiParam({ name: 'id' })
@@ -246,6 +261,7 @@ export class SettingsController {
 
   @Post('workflow-stages')
   @Roles('System Admin')
+  @RequirePermission('settings:create')
   @ApiOperation({ summary: 'Create a workflow stage' })
   createWorkflowStage(@Body() dto: any, @CurrentUser() user: any) {
     return this.settingsService.createWorkflowStage(dto, user?.id);
@@ -253,6 +269,7 @@ export class SettingsController {
 
   @Patch('workflow-stages/reorder')
   @Roles('System Admin')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Bulk reorder workflow stages' })
   reorderWorkflowStages(@Body() body: { orders: { id: string; order: number }[] }, @CurrentUser() user: any) {
     return this.settingsService.reorderWorkflowStages(body.orders, user?.id);
@@ -260,6 +277,7 @@ export class SettingsController {
 
   @Patch('workflow-stages/:id')
   @Roles('System Admin')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Update a workflow stage' })
   @ApiParam({ name: 'id' })
   updateWorkflowStage(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) {
@@ -268,6 +286,7 @@ export class SettingsController {
 
   @Delete('workflow-stages/:id')
   @Roles('System Admin')
+  @RequirePermission('settings:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a workflow stage' })
   @ApiParam({ name: 'id' })
@@ -307,6 +326,7 @@ export class SettingsController {
 
   @Post('branding/logo')
   @Roles('System Admin')
+  @RequirePermission('settings:create')
   @ApiOperation({ summary: 'Upload company logo' })
   @ApiConsumes('multipart/form-data')
   // SVG is excluded — see common/storage/multer.config.ts.
@@ -334,6 +354,7 @@ export class SettingsController {
 
   @Patch('system-info')
   @Roles('System Admin')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Update system information settings' })
   updateSystemInfo(@Body() data: Record<string, string>, @CurrentUser() user: any) {
     return this.settingsService.updateSystemInfo(data, user.id);
@@ -346,6 +367,7 @@ export class SettingsController {
 
   @Post('notification-rules')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('settings:create')
   @ApiOperation({ summary: 'Create a notification rule' })
   createNotificationRule(@Body() dto: CreateNotificationRuleDto, @CurrentUser() user: any) {
     return this.settingsService.createNotificationRule(dto, user?.id);
@@ -353,6 +375,7 @@ export class SettingsController {
 
   @Patch('notification-rules/:id')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('settings:update')
   @ApiOperation({ summary: 'Update a notification rule' })
   @ApiParam({ name: 'id' })
   updateNotificationRule(@Param('id') id: string, @Body() dto: Partial<CreateNotificationRuleDto>, @CurrentUser() user: any) {
@@ -361,6 +384,7 @@ export class SettingsController {
 
   @Delete('notification-rules/:id')
   @Roles('System Admin')
+  @RequirePermission('settings:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a notification rule' })
   @ApiParam({ name: 'id' })

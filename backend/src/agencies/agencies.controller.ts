@@ -12,6 +12,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Agencies')
@@ -23,6 +24,7 @@ export class AgenciesController {
 
   @Get()
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
+  @RequirePermission('agencies:read')
   @ApiOperation({ summary: 'Get all agencies (agency users see only their own)' })
   findAll(@Query() pagination: PaginationDto, @CurrentUser() user: any) {
     return this.agenciesService.findAll(pagination, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
@@ -30,6 +32,7 @@ export class AgenciesController {
 
   @Get(':id')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
+  @RequirePermission('agencies:read')
   @ApiOperation({ summary: 'Get agency by ID (agency users can only fetch their own)' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
@@ -38,6 +41,7 @@ export class AgenciesController {
 
   @Get(':id/users')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
+  @RequirePermission('agencies:read')
   @ApiOperation({ summary: 'Get users belonging to an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getUsers(@Param('id') id: string, @Query() pagination: PaginationDto, @CurrentUser() user: any) {
@@ -46,6 +50,7 @@ export class AgenciesController {
 
   @Get(':id/employees')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
+  @RequirePermission('agencies:read')
   @ApiOperation({ summary: 'Get employees belonging to an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getEmployees(@Param('id') id: string, @Query() pagination: PaginationDto, @CurrentUser() user: any) {
@@ -54,6 +59,7 @@ export class AgenciesController {
 
   @Get(':id/stats')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
+  @RequirePermission('agencies:read')
   @ApiOperation({ summary: 'Get agency statistics' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getStats(@Param('id') id: string, @CurrentUser() user: any) {
@@ -62,6 +68,7 @@ export class AgenciesController {
 
   @Post()
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('agencies:create')
   @ApiOperation({ summary: 'Create a new agency' })
   create(@Body() dto: CreateAgencyDto, @CurrentUser() user: any) {
     return this.agenciesService.create(dto, user?.id, user?.role);
@@ -69,6 +76,7 @@ export class AgenciesController {
 
   @Patch(':id')
   @Roles('System Admin', 'HR Manager', 'Agency Manager')
+  @RequirePermission('agencies:update')
   @ApiOperation({
     summary:
       'Update agency. Agency Managers can only edit their own agency, and the service strips ' +
@@ -82,6 +90,7 @@ export class AgenciesController {
 
   @Get(':id/permission-overrides')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('agencies:manage-permissions')
   @ApiOperation({ summary: 'List permission overrides applied to every user of this agency' })
   listPermissionOverrides(@Param('id') id: string) {
     return this.agenciesService.listPermissionOverrides(id);
@@ -89,6 +98,7 @@ export class AgenciesController {
 
   @Post(':id/permission-overrides')
   @Roles('System Admin')
+  @RequirePermission('agencies:manage-permissions')
   @ApiOperation({ summary: 'Grant or revoke a permission for every user of this agency. Body: { permission, allow }' })
   setPermissionOverride(
     @Param('id') id: string,
@@ -100,6 +110,7 @@ export class AgenciesController {
 
   @Delete(':id/permission-overrides/:permission')
   @Roles('System Admin')
+  @RequirePermission('agencies:manage-permissions')
   @ApiOperation({ summary: 'Remove an agency-wide permission override so the agency falls back to role defaults' })
   removePermissionOverride(
     @Param('id') id: string,
@@ -111,6 +122,7 @@ export class AgenciesController {
 
   @Patch(':id/logo')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('agencies:update')
   @ApiOperation({ summary: 'Upload or replace the agency logo' })
   @ApiConsumes('multipart/form-data')
   // SVG is excluded — see common/storage/multer.config.ts.
@@ -125,6 +137,7 @@ export class AgenciesController {
 
   @Delete(':id')
   @Roles('System Admin')
+  @RequirePermission('agencies:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete agency' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
@@ -133,6 +146,7 @@ export class AgenciesController {
 
   @Patch(':id/manager')
   @Roles('System Admin')
+  @RequirePermission('agencies:update')
   @ApiOperation({ summary: 'Set the manager for an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   setManager(@Param('id') id: string, @Body('userId') userId: string, @CurrentUser() user: any) {

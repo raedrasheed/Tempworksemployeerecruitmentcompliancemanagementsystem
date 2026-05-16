@@ -1,4 +1,9 @@
 {
+  "banner": {
+    "title": "Chyba",
+    "retry": "Skúsiť znova",
+    "dismiss": "Zatvoriť"
+  },
   "generic": {
     "UNEXPECTED": "Niečo sa pokazilo. Skúste to prosím znova.",
     "NETWORK": "Chyba siete. Skontrolujte pripojenie a skúste to znova.",

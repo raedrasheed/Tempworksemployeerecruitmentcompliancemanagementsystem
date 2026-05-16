@@ -92,11 +92,22 @@ export class AttendanceService {
    * the filter; everyone else sees only their own tenant's employees.
    * Falls back to `{}` when no tenant context is present so legacy
    * single-tenant deployments behave exactly like before.
+   *
+   * Phase 3.22 — also short-circuit to `{}` when the pilot scope is
+   * INACTIVE (MULTI_TENANT_ENABLED=false or the module isn't on the
+   * allow-list). Pilot-off employees are created with `tenantId=null`,
+   * and applying a strict `{ tenantId: caller.tenantId }` filter would
+   * exclude every one of them — making the Attendance Sheets page
+   * report "0 employees" while the /employees list (which uses only
+   * `scope().tenantWhere()`) shows them all. In pilot-off mode the
+   * legacy single-tenant deployment is implicitly tenant-isolated,
+   * so this extra filter adds no security and breaks the read.
    * @tenant-reviewed: phase318-tenant-public-jobs
    */
   private callerTenantWhere(caller: any): Record<string, any> {
     if (!caller) return {};
     if (caller.agencyIsSystem) return {};
+    if (!this.scope().active) return {};
     const t = caller.tenantId;
     if (!t) return {};
     return { tenantId: t };
@@ -148,6 +159,25 @@ export class AttendanceService {
     const tenantWhere = this.scope().tenantWhere();
     const where: any = { deletedAt: null, ...tenantWhere, ...this.callerTenantWhere(caller) }; // @tenant-reviewed: phase318-tenant-public-jobs
 
+    // Phase 3.22 — external actors (Agency User/Manager + any custom
+    // role tied to a non-system agency) must see only employees they
+    // have an EmployeeAgencyAccess grant for, mirroring
+    // EmployeesService.findAll. Without this, Officer's Attendance
+    // Sheets page listed every employee in the tenant — including
+    // ones never granted to TempWorks — and the /employees list
+    // (with the grant filter) showed only 2.
+    if (caller && caller.agencyId && caller.agencyIsSystem !== true) {
+      const grants = await this.prisma.employeeAgencyAccess.findMany({ // @tenant-reviewed: phase322-attendance-agency-access (relation by employeeId; gated parents are tenant-scoped)
+        where: { agencyId: caller.agencyId, canView: true },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map((g: any) => g.employeeId);
+      if (allowedIds.length === 0) {
+        return PaginatedResponse.create([], 0, page, limit);
+      }
+      where.id = { in: allowedIds };
+    }
+
     if (agencyId) where.agencyId = agencyId;
 
     if (driversOnly) {
@@ -191,6 +221,11 @@ export class AttendanceService {
           licenseCategory: true,
           status:          true,
           agencyId:        true,
+          // Phase 3.22 — include the agency relation so the frontend
+          // can render the agency name. Previously only agencyId (UUID)
+          // came back, and the AttendanceList table fell back to
+          // rendering "Direct" for every row.
+          agency: { select: { id: true, name: true } },
         },
       }),
       this.prisma.employee.count({ where }), // @tenant-reviewed: phase247-attendance-pilot-scope
@@ -273,6 +308,19 @@ export class AttendanceService {
 
   async getEmployeeAttendance(employeeId: string, dto: GetEmployeeAttendanceDto, caller?: any) {
     const tenantWhere = this.scope().tenantWhere();
+    // Phase 3.22 — external actors only see employees they hold an
+    // EmployeeAgencyAccess(canView=true) grant for. Mirrors the
+    // list endpoint above; without this an Officer could open the
+    // attendance tab on an employee they shouldn't see.
+    if (caller && caller.agencyId && caller.agencyIsSystem !== true) {
+      const grant = await this.prisma.employeeAgencyAccess.findUnique({ // @tenant-reviewed: phase322-attendance-agency-access
+        where: { employeeId_agencyId: { employeeId, agencyId: caller.agencyId } },
+        select: { canView: true },
+      });
+      if (!grant?.canView) {
+        throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: `Employee ${employeeId} not found`, params: { id: employeeId } });
+      }
+    }
     const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase318-tenant-public-jobs
       where: { id: employeeId, deletedAt: null, ...tenantWhere, ...this.callerTenantWhere(caller) },
       select: {

@@ -6,6 +6,8 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { CountrySelect } from '../../components/ui/CountrySelect';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
@@ -41,6 +43,12 @@ export function AddEmployee() {
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
+    if (fieldErrs[field]) clearError(field);
+  };
+  // Sibling helper for components that emit a raw string (CountrySelect,
+  // PhoneInput) instead of a synthetic ChangeEvent.
+  const setValue = (field: string) => (value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
     if (fieldErrs[field]) clearError(field);
   };
 
@@ -137,9 +145,13 @@ export function AddEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">{t('employees.add.phone')}</Label>
-                    <Input id="phone" type="tel" placeholder={t('employees.add.phonePh')} value={form.phone} onChange={set('phone')} required
-                      aria-invalid={!!fieldErrs.phone}
-                      className={fieldErrs.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <PhoneInput
+                      id="phone"
+                      value={form.phone}
+                      onChange={setValue('phone')}
+                      placeholder={t('employees.add.phonePh')}
+                      required
+                    />
                     <FieldError errors={fieldErrs} name="phone" />
                   </div>
                 </div>
@@ -150,7 +162,12 @@ export function AddEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="nationality">{t('employees.add.citizenship')}</Label>
-                    <Input id="nationality" placeholder={t('employees.add.citizenshipPh')} value={form.nationality} onChange={set('nationality')} required />
+                    <CountrySelect
+                      value={form.nationality}
+                      onChange={setValue('nationality')}
+                      placeholder={t('employees.add.citizenshipPh')}
+                      required
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -160,7 +177,12 @@ export function AddEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="emergencyPhone">{t('employees.add.emergencyPhone')}</Label>
-                    <Input id="emergencyPhone" type="tel" placeholder={t('employees.add.emergencyPhonePh')} value={form.emergencyPhone} onChange={set('emergencyPhone')} />
+                    <PhoneInput
+                      id="emergencyPhone"
+                      value={form.emergencyPhone}
+                      onChange={setValue('emergencyPhone')}
+                      placeholder={t('employees.add.emergencyPhonePh')}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -184,7 +206,12 @@ export function AddEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="country">{t('employees.add.country')}</Label>
-                    <Input id="country" placeholder={t('employees.add.countryPh')} value={form.country} onChange={set('country')} required />
+                    <CountrySelect
+                      value={form.country}
+                      onChange={setValue('country')}
+                      placeholder={t('employees.add.countryPh')}
+                      required
+                    />
                   </div>
                 </div>
               </CardContent>

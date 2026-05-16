@@ -40,6 +40,7 @@ export class DocumentsController {
 
   @Get()
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
+  @RequirePermission('documents:read')
   @ApiOperation({ summary: 'Get all documents (filterable, sortable, paginated)' })
   findAll(@Query() filter: FilterDocumentsDto) {
     return this.documentsService.findAll(filter);
@@ -47,6 +48,7 @@ export class DocumentsController {
 
   @Get('expiring')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
+  @RequirePermission('documents:read')
   @ApiOperation({ summary: 'Get documents expiring within N days' })
   getExpiring(@Query('days') days?: number) {
     return this.documentsService.getExpiringDocuments(days || 30);
@@ -54,6 +56,7 @@ export class DocumentsController {
 
   @Get('entity/:entityType/:entityId')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
+  @RequirePermission('documents:read')
   @ApiOperation({ summary: 'Get all documents for a specific entity (Candidate / Employee)' })
   @ApiParam({ name: 'entityType', description: 'EMPLOYEE | APPLICANT | AGENCY | USER' })
   @ApiParam({ name: 'entityId', description: 'Entity UUID' })
@@ -67,6 +70,7 @@ export class DocumentsController {
 
   @Get(':id')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
+  @RequirePermission('documents:read')
   @ApiOperation({ summary: 'Get document by internal UUID' })
   findOne(@Param('id') id: string) {
     return this.documentsService.findOne(id);
@@ -80,6 +84,7 @@ export class DocumentsController {
 
   @Get(':id/file')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
+  @RequirePermission('documents:read')
   @ApiOperation({ summary: 'Stream the document file bytes (CORS-safe proxy)' })
   async streamFile(@Param('id') id: string, @Res() res: Response) {
     const { buffer, mimeType, name } = await this.documentsService.readDocumentBytes(id);
@@ -93,6 +98,7 @@ export class DocumentsController {
 
   @Post('bulk-download')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
+  @RequirePermission('documents:create')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Download multiple documents as a structured ZIP archive' })
   async bulkDownload(@Body() dto: { ids: string[] }, @Res() res: Response) {
@@ -143,6 +149,7 @@ export class DocumentsController {
 
   @Post('upload')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter')
+  @RequirePermission('documents:create')
   @UseInterceptors(fileInterceptor())
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a document with file (authenticated)' })
@@ -177,6 +184,7 @@ export class DocumentsController {
 
   @Post(':id/renew')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter')
+  @RequirePermission('documents:create')
   @UseInterceptors(fileInterceptor(true))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
@@ -196,6 +204,7 @@ export class DocumentsController {
 
   @Post(':id/verify')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer')
+  @RequirePermission('documents:create')
   @ApiOperation({ summary: 'Verify (approve) or reject a document' })
   verify(@Param('id') id: string, @Body() dto: VerifyDocumentDto, @CurrentUser() user: any) {
     return this.documentsService.verify(id, dto, user.id);
@@ -215,6 +224,7 @@ export class DocumentsController {
 
   @Delete(':id')
   @Roles('System Admin')
+  @RequirePermission('documents:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a document (System Admin only)' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
@@ -225,6 +235,7 @@ export class DocumentsController {
 
   @Get('type-permissions/:documentTypeId')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('documents:read')
   @ApiOperation({ summary: 'Get per-role permissions for a document type' })
   getDocTypePermissions(@Param('documentTypeId') documentTypeId: string) {
     return this.documentsService.getDocTypePermissions(documentTypeId);
@@ -232,6 +243,7 @@ export class DocumentsController {
 
   @Post('type-permissions/:documentTypeId/:roleId')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('documents:create')
   @ApiOperation({ summary: 'Set permissions for a role on a specific document type' })
   upsertDocTypePermission(
     @Param('documentTypeId') documentTypeId: string,

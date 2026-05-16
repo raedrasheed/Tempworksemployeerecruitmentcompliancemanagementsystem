@@ -27,8 +27,9 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { financeApi, getCurrentUser } from '../../services/api';
+import { financeApi } from '../../services/api';
 import { formatCurrency, formatDate } from '../../../i18n/formatters';
+import { usePermissions } from '../../hooks/usePermissions';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -117,10 +118,15 @@ export function FinanceDashboard() {
   const { t } = useTranslation('pages');
   const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
 
-  const allowed = ['System Admin', 'HR Manager', 'Finance', 'Recruiter'].includes(currentUser?.role ?? '');
-  const canExport = ['System Admin', 'HR Manager', 'Finance'].includes(currentUser?.role ?? '');
+  // Permission-based gating (System Admin still bypasses everything via
+  // `usePermissions().can`). `finance:read` must match the permission
+  // string the sidebar checks (Sidebar.tsx) and the @RequirePermission
+  // declared on the FinanceController endpoints, so any custom role
+  // ticked for finance in the Roles UI gets consistent end-to-end access.
+  const { canView, can } = usePermissions();
+  const allowed = canView('finance');
+  const canExport = can('finance', 'export');
 
   const [records, setRecords] = useState<any[]>([]);
   const [meta, setMeta] = useState<any>(null);

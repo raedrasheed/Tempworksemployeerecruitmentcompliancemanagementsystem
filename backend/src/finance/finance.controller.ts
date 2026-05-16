@@ -39,6 +39,7 @@ export class FinanceController {
 
   @Get('constants')
   @Roles(...FINANCE_READ_ROLES)
+  @RequirePermission('finance:read')
   @ApiOperation({ summary: 'Get finance module constants (transaction types, payment methods, etc.)' })
   async getConstants() {
     // Transaction types are configurable in Settings → Finance →
@@ -57,6 +58,7 @@ export class FinanceController {
 
   @Get()
   @Roles(...FINANCE_READ_ROLES)
+  @RequirePermission('finance:read')
   @ApiOperation({ summary: 'List financial records (paginated + filtered)' })
   findAll(@Query() filter: FilterFinancialRecordsDto) {
     return this.financeService.findAll(filter);
@@ -66,6 +68,7 @@ export class FinanceController {
 
   @Get('export')
   @Roles(...FINANCE_EXPORT_ROLES)
+  @RequirePermission('finance:export')
   @ApiOperation({ summary: 'Export financial records as Excel (.xlsx)' })
   async exportExcel(
     @Query() filter: FilterFinancialRecordsDto,
@@ -86,6 +89,7 @@ export class FinanceController {
 
   @Get('totals/:entityType/:entityId')
   @Roles(...FINANCE_READ_ROLES)
+  @RequirePermission('finance:read')
   @ApiOperation({ summary: 'Get financial totals and current balance for a person' })
   @ApiParam({ name: 'entityType', description: "'APPLICANT' or 'EMPLOYEE'" })
   @ApiParam({ name: 'entityId', description: 'Entity UUID' })
@@ -100,6 +104,7 @@ export class FinanceController {
 
   @Get('person/:applicantId')
   @Roles(...FINANCE_READ_ROLES)
+  @RequirePermission('finance:read')
   @ApiOperation({
     summary: 'Get all financial records for a person across ALL lifecycle stages',
     description:
@@ -117,6 +122,7 @@ export class FinanceController {
 
   @Get(':id')
   @Roles(...FINANCE_READ_ROLES)
+  @RequirePermission('finance:read')
   @ApiOperation({ summary: 'Get a single financial record by ID' })
   @ApiParam({ name: 'id', description: 'Financial record UUID' })
   findOne(@Param('id') id: string) {
@@ -125,6 +131,7 @@ export class FinanceController {
 
   @Get(':id/history')
   @Roles(...FINANCE_READ_ROLES)
+  @RequirePermission('finance:read')
   @ApiOperation({ summary: 'Get the audit trail (who did what + when) for a financial record' })
   @ApiParam({ name: 'id', description: 'Financial record UUID' })
   getHistory(@Param('id') id: string) {
@@ -135,6 +142,7 @@ export class FinanceController {
 
   @Post()
   @Roles(...FINANCE_WRITE_ROLES)
+  @RequirePermission('finance:create')
   @ApiOperation({ summary: 'Create a financial record' })
   @ApiResponse({ status: 201, description: 'Record created' })
   create(
@@ -148,6 +156,7 @@ export class FinanceController {
 
   @Patch(':id')
   @Roles(...FINANCE_WRITE_ROLES)
+  @RequirePermission('finance:update')
   @ApiOperation({ summary: 'Update a financial record (partial)' })
   @ApiParam({ name: 'id', description: 'Financial record UUID' })
   update(
@@ -177,6 +186,7 @@ export class FinanceController {
 
   @Delete(':id')
   @Roles(...FINANCE_WRITE_ROLES)
+  @RequirePermission('finance:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a financial record' })
   @ApiParam({ name: 'id', description: 'Financial record UUID' })
@@ -212,6 +222,7 @@ export class FinanceController {
 
   @Post(':id/attachments')
   @Roles(...FINANCE_WRITE_ROLES)
+  @RequirePermission('finance:update')
   @ApiOperation({ summary: 'Upload an attachment to a financial record' })
   @ApiParam({ name: 'id', description: 'Financial record UUID' })
   @ApiConsumes('multipart/form-data')
@@ -236,6 +247,7 @@ export class FinanceController {
 
   @Delete(':id/attachments/:attachmentId')
   @Roles(...FINANCE_WRITE_ROLES)
+  @RequirePermission('finance:update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete an attachment from a financial record' })
   @ApiParam({ name: 'id', description: 'Financial record UUID' })

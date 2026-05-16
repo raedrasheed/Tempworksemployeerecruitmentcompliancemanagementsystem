@@ -53,11 +53,13 @@ const docStatusClass = (status: string) => {
 export function CandidateProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { canEdit, canDelete, can } = usePermissions();
+  const { canEdit, canDelete, canView, can } = usePermissions();
   const { t, i18n } = useTranslation(['pages', 'common']);
   const dir = i18n.dir();
   const currentUser = getCurrentUser();
-  const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
+  // Permission-based — `finance:read` is the seeded key for Finance,
+  // HR Manager, and any custom role granted finance view.
+  const isFinanceOrAdmin = canView('finance');
   const [applicantData, setApplicantData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -1716,7 +1718,7 @@ export function CandidateProfile() {
                   entityId={id!}
                   entityName={applicantData?.fullName}
                   canWrite={canEdit('applicants')}
-                  canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
+                  canChangeStatus={can('finance', 'status')}
                 />
               </div>
             )}

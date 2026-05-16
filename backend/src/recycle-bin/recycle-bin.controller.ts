@@ -5,6 +5,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RecycleBinService } from './recycle-bin.service';
 import { RestoreService } from './restore.service';
@@ -31,6 +32,7 @@ export class RecycleBinController {
 
   @Get()
   @Roles('System Admin', 'HR Manager', 'Compliance Officer')
+  @RequirePermission('recycle-bin:read')
   @ApiOperation({ summary: 'List soft-deleted records across all (or a single) entity type' })
   findAll(@Query() filter: ListDeletedDto) {
     return this.recycleBin.findAll(filter);
@@ -38,6 +40,7 @@ export class RecycleBinController {
 
   @Get('counts')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer')
+  @RequirePermission('recycle-bin:read')
   @ApiOperation({ summary: 'Return count of deleted records per entity type' })
   getCounts() {
     return this.recycleBin.getEntityCounts();
@@ -47,6 +50,7 @@ export class RecycleBinController {
 
   @Get(':entityType/:id/related')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer')
+  @RequirePermission('recycle-bin:read')
   @ApiOperation({ summary: 'Get related soft-deleted records for a deleted entity' })
   getRelated(@Param('entityType') entityType: string, @Param('id') id: string) {
     return this.recycleBin.getRelatedDeletedData(entityType.toUpperCase(), id);
@@ -54,6 +58,7 @@ export class RecycleBinController {
 
   @Get(':entityType/:id/preview-hard-delete')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer')
+  @RequirePermission('recycle-bin:read')
   @ApiOperation({ summary: 'Preview what will be permanently deleted' })
   previewHardDelete(@Param('entityType') entityType: string, @Param('id') id: string) {
     return this.recycleBin.previewHardDelete(entityType.toUpperCase(), id);
@@ -63,6 +68,7 @@ export class RecycleBinController {
 
   @Post(':entityType/:id/restore')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer')
+  @RequirePermission('recycle-bin:create')
   @ApiOperation({ summary: 'Restore a soft-deleted record (optionally with related records)' })
   restoreRecord(
     @Param('entityType') entityType: string,
@@ -77,6 +83,7 @@ export class RecycleBinController {
 
   @Delete(':entityType/:id')
   @Roles('System Admin')
+  @RequirePermission('recycle-bin:delete')
   @ApiOperation({ summary: 'Permanently hard-delete a record and its related data (System Admin only)' })
   hardDeleteRecord(
     @Param('entityType') entityType: string,
@@ -91,6 +98,7 @@ export class RecycleBinController {
 
   @Get('cleanup/preview')
   @Roles('System Admin')
+  @RequirePermission('recycle-bin:read')
   @ApiOperation({ summary: 'Preview the database cleanup — shows counts of records that will be removed' })
   cleanupPreview() {
     return this.cleanup.preview();
@@ -98,6 +106,7 @@ export class RecycleBinController {
 
   @Post('cleanup/execute')
   @Roles('System Admin')
+  @RequirePermission('recycle-bin:create')
   @ApiOperation({
     summary: 'Execute database cleanup/reset — removes all business data while preserving admin users',
     description: 'Requires confirmPhrase === "CLEAN DATABASE". Extremely destructive and irreversible.',

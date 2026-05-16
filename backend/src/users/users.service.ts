@@ -118,7 +118,7 @@ export class UsersService {
   // Find all
   // ---------------------------------------------------------------------------
   async findAll(
-    query: PaginationDto & { roleId?: string; agencyId?: string; status?: string },
+    query: PaginationDto & { roleId?: string; agencyId?: string; status?: string; tenantId?: string },
     callerRole?: string,
     callerAgencyId?: string,
     callerAgencyIsSystem?: boolean,
@@ -148,6 +148,34 @@ export class UsersService {
         where.AND = [{ role: { name: { not: 'System Admin' } } }];
       }
       if (query.agencyId) where.agencyId = query.agencyId;
+      // Phase 3.22 — tenant filter. Internal callers (System Admin /
+      // PlatformAdmin) get the global view by default but can narrow
+      // by tenant via the User Management screen's Tenant dropdown.
+      // Match users whose agency.tenantId resolves to the chosen
+      // tenant (primary attribution for tenant-scoped users) OR who
+      // hold an active TenantMembership for it (covers SUPER /
+      // multi-tenant members whose primary agency lives elsewhere).
+      // TenantMembership has no `user` back-relation in the schema,
+      // so we resolve the matching userIds in a separate query and
+      // OR them into the where clause. Wrapped in AND so a
+      // concurrent OR (search) composes cleanly.
+      if (query.tenantId) {
+        const memberRows = await this.prisma.tenantMembership.findMany({
+          where: { tenantId: query.tenantId, status: 'ACTIVE' as any },
+          select: { userId: true },
+        });
+        const memberUserIds = memberRows.map(r => r.userId);
+        const tenantOr = {
+          OR: [
+            { agency: { tenantId: query.tenantId } },
+            // Sentinel '__none__' keeps the IN clause non-empty when
+            // there are zero memberships — Prisma's `in: []` short-
+            // circuits to no match, which is the behaviour we want.
+            { id: { in: memberUserIds.length > 0 ? memberUserIds : ['__none__'] } },
+          ],
+        };
+        where.AND = [...(where.AND ?? []), tenantOr];
+      }
     }
 
     if (search) {

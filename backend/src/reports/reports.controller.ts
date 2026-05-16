@@ -11,6 +11,7 @@ import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateReportDto, UpdateReportDto, RunReportDto, ExportReportDto } from './dto/report.dto';
 
@@ -28,6 +29,7 @@ export class ReportsController {
 
   @Get('dashboard')
   @Roles(...ALL_REPORT_ROLES)
+  @RequirePermission('reports:read')
   @ApiOperation({ summary: 'Live dashboard KPIs (employee/applicant/compliance counts)' })
   getDashboard(@CurrentUser() user: any) {
     return this.reportsService.getDashboard({ role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
@@ -35,6 +37,7 @@ export class ReportsController {
 
   @Get('data-sources')
   @Roles(...ALL_REPORT_ROLES)
+  @RequirePermission('reports:read')
   @ApiOperation({ summary: 'List available data sources and their fields for the report builder' })
   getDataSources() {
     return this.reportsService.getDataSources();
@@ -44,6 +47,7 @@ export class ReportsController {
 
   @Get()
   @Roles(...ALL_REPORT_ROLES)
+  @RequirePermission('reports:read')
   @ApiOperation({ summary: 'List all saved report configurations' })
   findAll() {
     return this.reportsService.findAll();
@@ -51,6 +55,7 @@ export class ReportsController {
 
   @Post()
   @Roles(...EDIT_ROLES)
+  @RequirePermission('reports:create')
   @ApiOperation({ summary: 'Save a new report configuration' })
   create(@Body() dto: CreateReportDto, @CurrentUser() user: any) {
     return this.reportsService.create(dto, user?.id);
@@ -58,6 +63,7 @@ export class ReportsController {
 
   @Get(':id')
   @Roles(...ALL_REPORT_ROLES)
+  @RequirePermission('reports:read')
   @ApiOperation({ summary: 'Get a saved report configuration by ID' })
   @ApiParam({ name: 'id', description: 'Report UUID' })
   findOne(@Param('id') id: string) {
@@ -74,6 +80,7 @@ export class ReportsController {
 
   @Delete(':id')
   @Roles(...EDIT_ROLES)
+  @RequirePermission('reports:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a saved report configuration' })
   @ApiParam({ name: 'id', description: 'Report UUID' })
@@ -85,6 +92,7 @@ export class ReportsController {
 
   @Post(':id/run')
   @Roles(...ALL_REPORT_ROLES)
+  @RequirePermission('reports:create')
   @ApiOperation({ summary: 'Execute a saved report and return paginated rows + column metadata' })
   @ApiParam({ name: 'id', description: 'Report UUID' })
   run(@Param('id') id: string, @Body() dto: RunReportDto) {
@@ -95,6 +103,7 @@ export class ReportsController {
 
   @Post(':id/export')
   @Roles(...EDIT_ROLES, 'Compliance Officer')
+  @RequirePermission('reports:create')
   @ApiOperation({ summary: 'Export a report as Excel, PDF, or Word' })
   @ApiParam({ name: 'id', description: 'Report UUID' })
   @ApiBody({ type: ExportReportDto })

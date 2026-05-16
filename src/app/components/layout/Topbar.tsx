@@ -436,9 +436,8 @@ export function Topbar() {
   const displayName = liveUser ? `${liveUser.firstName} ${liveUser.lastName}` : t('topbar.profile');
   const displayRole = liveUser?.role || '';
   const displayEmail = liveUser?.email || '';
-  const avatar = liveUser?.photoUrl
-    ? resolveAssetUrl(liveUser.photoUrl)
-    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${liveUser?.firstName || 'User'}`;
+  const avatarUrl = liveUser?.photoUrl ? resolveAssetUrl(liveUser.photoUrl) : null;
+  const avatarInitials = `${liveUser?.firstName?.[0] ?? ''}${liveUser?.lastName?.[0] ?? ''}`.toUpperCase() || '?';
 
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center gap-4">
@@ -467,7 +466,13 @@ export function Topbar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 hover:bg-accent rounded-lg px-2 py-1.5 transition-colors">
-              <img src={avatar} alt={displayName} className="w-8 h-8 rounded-full" />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-xs font-bold" aria-label={displayName}>
+                  {avatarInitials}
+                </div>
+              )}
               <div className="text-start">
                 <p className="text-sm font-medium text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{displayRole}</p>
@@ -480,7 +485,13 @@ export function Topbar() {
             {/* User Info Header */}
             <div className="px-2 py-3">
               <div className="flex items-center gap-3">
-                <img src={avatar} alt={displayName} className="w-10 h-10 rounded-full" />
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-sm font-bold" aria-label={displayName}>
+                    {avatarInitials}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{displayName}</p>
                   <p className="text-xs text-muted-foreground truncate">{displayRole}</p>

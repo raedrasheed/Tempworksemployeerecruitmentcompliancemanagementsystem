@@ -10,6 +10,7 @@ import { authApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 import { apiError } from '../../../i18n/apiError';
+import { ErrorBanner } from '../../components/ui/error-banner';
 
 type StrengthLabel = 'weak' | 'medium' | 'strong';
 
@@ -151,13 +152,10 @@ export function ResetPasswordPage() {
             </div>
           ) : (
             <>
-              {!token && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                  {t('reset.noTokenError')}
-                </div>
-              )}
+              {!token && <ErrorBanner message={t('reset.noTokenError')} />}
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                <ErrorBanner message={error} />
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-medium">
                     {t('reset.newPasswordLabel')}
@@ -212,12 +210,6 @@ export function ResetPasswordPage() {
                     <p className="text-xs text-red-500">{t('reset.passwordMismatchHint')}</p>
                   )}
                 </div>
-
-                {error && (
-                  <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                    {error}
-                  </div>
-                )}
 
                 <Button
                   type="submit"

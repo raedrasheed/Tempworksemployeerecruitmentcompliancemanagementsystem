@@ -63,7 +63,7 @@ const AGENCY_ROLES = ['Agency User', 'Agency Manager'];
 // null means always visible to any authenticated user.
 // labelKey is resolved against the `nav` namespace at render time.
 const allNavigationItems: NavItem[] = [
-  { icon: LayoutDashboard, labelKey: 'dashboard',           path: '/dashboard',                  permission: null },
+  { icon: LayoutDashboard, labelKey: 'dashboard',           path: '/dashboard',                  permission: 'dashboard:read' },
   { icon: UserCheck,       labelKey: 'applicants',          path: '/dashboard/applicants',       permission: 'applicants:read' },
   { icon: UserCheck,       labelKey: 'candidates',          path: '/dashboard/candidates',       permission: 'applicants:read' },
   { icon: Users,           labelKey: 'employees',           path: '/dashboard/employees',        permission: 'employees:read' },
@@ -316,13 +316,20 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           "flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent",
           isCollapsed && "justify-center"
         )}>
-          <img
-            src={user?.photoUrl
-              ? resolveAssetUrl(user.photoUrl)
-              : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.firstName ?? 'User'}`}
-            alt="User"
-            className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
-          />
+          {user?.photoUrl ? (
+            <img
+              src={resolveAssetUrl(user.photoUrl)}
+              alt="User"
+              className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+            />
+          ) : (
+            <div
+              className="w-8 h-8 rounded-full flex-shrink-0 bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-xs font-bold"
+              aria-label={user ? `${user.firstName} ${user.lastName}` : 'User'}
+            >
+              {`${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase() || '?'}
+            </div>
+          )}
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">

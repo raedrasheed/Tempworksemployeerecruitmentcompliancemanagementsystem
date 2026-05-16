@@ -12,7 +12,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { usersApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
+import { usersApi, tenantsApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
@@ -108,15 +108,48 @@ export function UsersList() {
   const [users, setUsers]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ── Tenant filter (Phase 3.22) ────────────────────────────────────────────
+  // Defaults to the caller's active tenant so a Super Admin doesn't see
+  // every tenant's users mixed together. PlatformAdmin SUPER and users
+  // with multiple memberships get a dropdown to switch.
+  const initialTenantId =
+    (currentUser as any)?.activeTenantId
+    ?? (currentUser as any)?.primaryTenantId
+    ?? (currentUser?.memberships?.[0]?.tenantId)
+    ?? '';
+  const [tenantFilter, setTenantFilter] = useState<string>(initialTenantId);
+  // Tenants offered in the dropdown. Members get their own list; SUPER
+  // platform admins get every tenant via tenantsApi.list().
+  const [tenantOptions, setTenantOptions] = useState<Array<{ id: string; name: string }>>(
+    Array.isArray(currentUser?.memberships)
+      ? currentUser!.memberships!.map(m => ({ id: m.tenantId, name: m.name }))
+      : [],
+  );
+  const isPlatformSuper = (currentUser as any)?.platformAdmin?.level === 'SUPER';
+
+  useEffect(() => {
+    if (!isPlatformSuper) return;
+    // Pull every tenant for SUPER admins so they can scope the user
+    // list to a tenant they aren't a direct member of.
+    tenantsApi.list({ limit: 500 })
+      .then((res: any) => {
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        setTenantOptions(rows.map((r: any) => ({ id: r.id, name: r.name })));
+      })
+      .catch(() => { /* fall back to memberships */ });
+  }, [isPlatformSuper]);
+
   const reload = () => {
     setLoading(true);
-    usersApi.list({ limit: 500 })
+    const params: Record<string, any> = { limit: 500 };
+    if (tenantFilter) params.tenantId = tenantFilter;
+    usersApi.list(params)
       .then((res: any) => setUsers(Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []))
       .catch(() => setUsers([]))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => { reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tenantFilter]);
 
   // ── Filters ────────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery]         = useState('');
@@ -393,6 +426,31 @@ export function UsersList() {
               </SelectContent>
             </Select>
 
+            {/* Tenant filter — visible whenever the user has multiple
+                memberships or is a SUPER platform admin. Defaults to
+                the active tenant so a Super Admin doesn't open the
+                page to a global mash-up of every tenant's users. */}
+            {(tenantOptions.length > 1 || isPlatformSuper) && (
+              <Select
+                value={tenantFilter || '__all__'}
+                onValueChange={v => setTenantFilter(v === '__all__' ? '' : v)}
+              >
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder={t('users.list.filterAllTenants', { defaultValue: 'All tenants' })} />
+                </SelectTrigger>
+                <SelectContent>
+                  {isPlatformSuper && (
+                    <SelectItem value="__all__">
+                      {t('users.list.filterAllTenants', { defaultValue: 'All tenants' })}
+                    </SelectItem>
+                  )}
+                  {tenantOptions.map(opt => (
+                    <SelectItem key={opt.id} value={opt.id}>{opt.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             {agencyOptions.length > 0 && (
               <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
                 <SelectTrigger className="w-44"><SelectValue placeholder={t('users.list.filterAllAgencies')} /></SelectTrigger>
@@ -497,11 +555,20 @@ export function UsersList() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img
-                          src={user.photoUrl ? resolveAssetUrl(user.photoUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName}`}
-                          alt={`${user.firstName} ${user.lastName}`}
-                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                        />
+                        {user.photoUrl ? (
+                          <img
+                            src={resolveAssetUrl(user.photoUrl)}
+                            alt={`${user.firstName} ${user.lastName}`}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-xs font-bold flex-shrink-0"
+                            aria-label={`${user.firstName} ${user.lastName}`}
+                          >
+                            {`${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '?'}
+                          </div>
+                        )}
                         <div>
                           <div className="font-medium">{user.firstName} {user.lastName}</div>
                           <div className="text-xs text-muted-foreground">{user.email}</div>

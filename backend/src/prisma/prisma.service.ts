@@ -38,14 +38,31 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly logger = new Logger('PrismaService');
 
   constructor() {
+    // Bound the pool size so a hot-reloading dev server (or a few
+    // backend instances behind a load balancer) can't exhaust the
+    // database's max_connections quota. `pg`'s default is 10 per
+    // pool — but every nest hot-reload spins up a fresh Pool, and
+    // if the old one wasn't end()ed cleanly its sockets linger in
+    // pg's idle pool until the server reaps them. Cap connections,
+    // close idle ones aggressively, and fail fast when no slot is
+    // available so the request returns a clean 5xx instead of
+    // hanging.
+    //
+    // Allow override via PG_POOL_MAX / PG_POOL_IDLE_MS so a deploy
+    // can crank the numbers up if needed.
+    const max = Number(process.env.PG_POOL_MAX ?? 10);
+    const idleTimeoutMillis = Number(process.env.PG_POOL_IDLE_MS ?? 30_000);
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: resolvePoolSsl(process.env.DATABASE_URL),
+      max,
+      idleTimeoutMillis,
+      connectionTimeoutMillis: 10_000,
     });
     const adapter = new PrismaPg(pool as any);
     super({ adapter });
     this.pool = pool;
-    this.logger.log(`DATABASE_URL: ${process.env.DATABASE_URL?.replace(/:([^:@]+)@/, ':***@')}`);
+    this.logger.log(`DATABASE_URL: ${process.env.DATABASE_URL?.replace(/:([^:@]+)@/, ':***@')} (pool max=${max}, idleMs=${idleTimeoutMillis})`);
   }
 
   async onModuleInit() {

@@ -156,19 +156,32 @@ export function EmployeeProfile() {
   };
 
   useEffect(() => {
-    Promise.all([
-      employeesApi.get(id!),
-      employeesApi.getDocuments(id!),
-      employeesApi.getWorkflow(id!),
-      employeeWorkflowApi.getStages(),
-    ]).then(([emp, docs, wf, stages]) => {
-      setEmployee(emp);
-      setDocuments(Array.isArray(docs) ? docs : []);
-      setWorkflow(Array.isArray(wf) ? wf : []);
-      setAllStages(Array.isArray(stages) ? stages : []);
-      setNoteDraft(typeof emp?.notes === 'string' ? emp.notes : '');
-    }).catch((err) => toast.error(apiError(err, t('pages:employees.profile.toast.loadFailed'))))
+    // Required: the employee itself. Best-effort: documents and
+    // workflow data — these endpoints require their own permissions
+    // (documents:read, workflow:read) which custom roles may not
+    // hold. Pre-fix the four calls were Promise.all'd; one 403 on
+    // any aux call rejected the whole batch, blew away `setEmployee`,
+    // and the page rendered "Employee not found" + a "Forbidden
+    // resource" toast even when the user could legitimately view the
+    // employee. Now each aux call falls back to an empty default so a
+    // permission gap on a side feature can't hide the whole record.
+    employeesApi.get(id!)
+      .then((emp) => {
+        setEmployee(emp);
+        setNoteDraft(typeof emp?.notes === 'string' ? emp.notes : '');
+      })
+      .catch((err) => toast.error(apiError(err, t('pages:employees.profile.toast.loadFailed'))))
       .finally(() => setLoading(false));
+
+    employeesApi.getDocuments(id!)
+      .then((docs) => setDocuments(Array.isArray(docs) ? docs : []))
+      .catch(() => setDocuments([]));
+    employeesApi.getWorkflow(id!)
+      .then((wf) => setWorkflow(Array.isArray(wf) ? wf : []))
+      .catch(() => setWorkflow([]));
+    employeeWorkflowApi.getStages()
+      .then((stages) => setAllStages(Array.isArray(stages) ? stages : []))
+      .catch(() => setAllStages([]));
   }, [id, t]);
 
   useEffect(() => {

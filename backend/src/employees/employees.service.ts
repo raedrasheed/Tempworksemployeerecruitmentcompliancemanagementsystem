@@ -324,6 +324,21 @@ export class EmployeesService {
       include: { agency: { select: { id: true, name: true } } },
     });
 
+    // Auto-grant the owning agency view + edit access on the new
+    // employee. Without this row the agency's users wouldn't see the
+    // record they just created (the per-employee Agency Access list
+    // would render empty), even though the Employee.agencyId column
+    // points at them. Mirrors the convertToEmployee path so the two
+    // creation routes behave identically.
+    if (resolvedAgencyId) {
+      await this.grantAgencyAccess(
+        employee.id,
+        resolvedAgencyId,
+        { canView: true, canEdit: true, notes: 'Auto-granted on employee creation' },
+        actorId,
+      );
+    }
+
     return employee;
   }
 

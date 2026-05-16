@@ -1183,6 +1183,28 @@ export class ApplicantsService {
       include: { agency: { select: { id: true, name: true } } },
     });
 
+    // Auto-grant the owning agency view + edit access on the new
+    // Employee row. Mirrors EmployeesService.create — without this
+    // row the agency's users see an empty "Agency Access" list on
+    // the employee profile even though Employee.agencyId points at
+    // them. Inlined here (rather than calling EmployeesService) to
+    // avoid module-circular-dependency between Applicants and
+    // Employees.
+    if (applicant.agencyId) {
+      await this.legacyPrisma.employeeAgencyAccess.upsert({ // @tenant-reviewed: phase234-agency-gate (employee + agency tenant-gated upstream)
+        where:  { employeeId_agencyId: { employeeId: employee.id, agencyId: applicant.agencyId } },
+        create: {
+          employeeId: employee.id,
+          agencyId: applicant.agencyId,
+          canView: true,
+          canEdit: true,
+          grantedById: actorId ?? null,
+          notes: 'Auto-granted on candidate→employee conversion',
+        },
+        update: { canView: true, canEdit: true, grantedById: actorId ?? null, grantedAt: new Date() },
+      });
+    }
+
     // Phase 2.32 — cross-module conversion gate. The applicant is
     // tenant-gated above; the new where-clause additionally narrows
     // by `tenantId` so a foreign-tenant Document or FinancialRecord

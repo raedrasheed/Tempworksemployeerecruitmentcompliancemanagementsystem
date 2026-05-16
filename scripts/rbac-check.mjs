@@ -153,6 +153,33 @@ for (const rel of ROLE_GATE_FILES) {
   }
 }
 
+// ── 7. Advisory: controllers gating on @Roles without @RequirePermission ─────
+// These endpoints reject any custom role (e.g. "Officer") even when the
+// user holds the matching seeded permission — the same bug that hid
+// applicants from Officer accounts. Reported as a warning so the team
+// can see the inventory without breaking CI on every commit.
+const rolesOnly = [];
+for (const f of backendFiles) {
+  if (!f.endsWith('.controller.ts')) continue;
+  const lines = readFileSync(f, 'utf8').split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (!/@Roles\(/.test(lines[i])) continue;
+    // Look ahead a few lines for @RequirePermission attached to the same
+    // method. Stop at the next handler signature.
+    let hasPerm = false;
+    for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
+      if (/@RequirePermission\(/.test(lines[j])) { hasPerm = true; break; }
+      if (/^\s+[a-zA-Z_]\w*\s*\(/.test(lines[j])) break;
+    }
+    if (!hasPerm) rolesOnly.push(`${f.replace(ROOT + '/', '')}:${i + 1}`);
+  }
+}
+if (rolesOnly.length > 0) {
+  console.log(`\nℹ ${rolesOnly.length} endpoint(s) still gate on @Roles only — custom roles cannot reach them even with the matching permission. Add @RequirePermission alongside:`);
+  for (const loc of rolesOnly.slice(0, 20)) console.log(`    ${loc}`);
+  if (rolesOnly.length > 20) console.log(`    … (${rolesOnly.length - 20} more)`);
+}
+
 if (problems > 0) {
   console.log(`\n${problems} RBAC issue(s) found.`);
   process.exit(1);

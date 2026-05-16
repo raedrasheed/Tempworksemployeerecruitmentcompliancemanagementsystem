@@ -32,6 +32,7 @@ export class ApplicantsController {
 
   @Get()
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @RequirePermission('applicants:read')
   @ApiOperation({ summary: 'Get all applicants (tier/status/agency filters; agency users see only Candidates in their agency)' })
   findAll(@Query() filter: FilterApplicantsDto, @CurrentUser() user: any) {
     return this.applicantsService.findAll(filter, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
@@ -41,6 +42,7 @@ export class ApplicantsController {
 
   @Get(':id')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @RequirePermission('applicants:read')
   @ApiOperation({ summary: 'Get applicant by ID (includes financialProfile + agencyHistory)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
@@ -60,6 +62,7 @@ export class ApplicantsController {
 
   @Post()
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User')
+  @RequirePermission('applicants:create')
   @ApiOperation({ summary: 'Create a new applicant (defaults tier=LEAD; agency users forced into own agency)' })
   create(@Body() dto: CreateApplicantDto & { tier?: string }, @CurrentUser() user: any) {
     return this.applicantsService.create(dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
@@ -69,6 +72,7 @@ export class ApplicantsController {
 
   @Patch(':id')
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User')
+  @RequirePermission('applicants:update')
   @ApiOperation({ summary: 'Update applicant fields (agency users can only edit own-agency candidates)' })
   update(@Param('id') id: string, @Body() dto: UpdateApplicantDto, @CurrentUser() user: any) {
     return this.applicantsService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
@@ -78,6 +82,7 @@ export class ApplicantsController {
 
   @Patch(':id/photo')
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
+  @RequirePermission('applicants:update')
   @ApiOperation({ summary: 'Upload or replace applicant photo' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('photo', memoryUpload({
@@ -93,6 +98,7 @@ export class ApplicantsController {
 
   @Patch(':id/status')
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
+  @RequirePermission('applicants:update')
   @ApiOperation({ summary: 'Update applicant status' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   updateStatus(@Param('id') id: string, @Body('status') status: string, @CurrentUser() user: any) {
@@ -103,6 +109,7 @@ export class ApplicantsController {
 
   @Patch(':id/stage')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter')
+  @RequirePermission('applicants:update')
   @ApiOperation({ summary: 'Set current workflow stage for an applicant' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   setCurrentStage(@Param('id') id: string, @Body('stageId') stageId: string, @CurrentUser() user: any) {
@@ -133,6 +140,7 @@ export class ApplicantsController {
 
   @Post(':id/convert-to-candidate')
   @Roles('System Admin', 'HR Manager', 'Recruiter')
+  @RequirePermission('applicants:convert')
   @ApiOperation({ summary: 'Promote a Lead to a Candidate (optionally assign to holding agency)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   convertLeadToCandidate(@Param('id') id: string, @Body() dto: ConvertLeadDto, @CurrentUser() user: any) {
@@ -143,6 +151,7 @@ export class ApplicantsController {
 
   @Patch(':id/agency')
   @Roles('System Admin', 'HR Manager', 'Recruiter')
+  @RequirePermission('applicants:update')
   @ApiOperation({ summary: 'Reassign applicant to a different agency (records history)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   reassignAgency(@Param('id') id: string, @Body() dto: AssignAgencyDto, @CurrentUser() user: any) {
@@ -153,6 +162,7 @@ export class ApplicantsController {
 
   @Get(':id/financial')
   @Roles('System Admin', 'HR Manager', 'Finance', 'Recruiter')
+  @RequirePermission('finance:read')
   @ApiOperation({ summary: 'Get financial profile (Candidates only)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   getFinancialProfile(@Param('id') id: string) {
@@ -161,6 +171,7 @@ export class ApplicantsController {
 
   @Patch(':id/financial')
   @Roles('System Admin', 'HR Manager', 'Finance')
+  @RequirePermission('finance:update')
   @ApiOperation({ summary: 'Create or update financial profile (Candidates only)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   upsertFinancialProfile(
@@ -175,6 +186,7 @@ export class ApplicantsController {
 
   @Get(':id/agency-history')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter')
+  @RequirePermission('applicants:read')
   @ApiOperation({ summary: 'Get agency assignment history for an applicant' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   getAgencyHistory(@Param('id') id: string) {
@@ -185,6 +197,7 @@ export class ApplicantsController {
 
   @Post('bulk-action')
   @Roles('System Admin', 'HR Manager', 'Recruiter')
+  @RequirePermission('applicants:bulk-action')
   @ApiOperation({ summary: 'Perform a bulk action on multiple applicants' })
   bulkAction(@Body() dto: BulkActionDto, @CurrentUser() user: any) {
     return this.applicantsService.bulkAction(
@@ -198,6 +211,7 @@ export class ApplicantsController {
 
   @Get('export/csv')
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Finance', 'Compliance Officer')
+  @RequirePermission('applicants:export')
   @ApiOperation({ summary: 'Export applicants as CSV file (honours same filters as list endpoint, or pass ids=a,b,c to export only those rows)' })
   async exportCsv(
     @Query() filter: FilterApplicantsDto & { ids?: string },
@@ -262,6 +276,7 @@ export class ApplicantsController {
 
   @Post(':id/convert')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('applicants:convert')
   @ApiOperation({ summary: 'Convert Candidate to employee (CANDIDATE tier required)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   convertToEmployee(@Param('id') id: string, @Body() dto: ConvertToEmployeeDto, @CurrentUser() user: any) {
@@ -272,6 +287,7 @@ export class ApplicantsController {
 
   @Delete(':id')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('applicants:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete applicant' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
@@ -282,6 +298,7 @@ export class ApplicantsController {
 
   @Post('delete-requests')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('applicants:delete')
   @ApiOperation({ summary: 'List all candidate delete requests' })
   getDeleteRequests(@Query() query: any) {
     return this.applicantsService.getDeleteRequests(query);
@@ -289,6 +306,7 @@ export class ApplicantsController {
 
   @Patch('delete-requests/:requestId')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('applicants:delete')
   @ApiOperation({ summary: 'Approve or reject a candidate delete request' })
   @ApiParam({ name: 'requestId', description: 'Delete Request UUID' })
   reviewDeleteRequest(
@@ -301,6 +319,7 @@ export class ApplicantsController {
 
   @Post(':id/delete-request')
   @Roles('Agency Manager', 'Agency User')
+  @RequirePermission('applicants:delete')
   @ApiOperation({ summary: 'Submit a delete request for a candidate (agency users only)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   requestDelete(

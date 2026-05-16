@@ -3906,6 +3906,7 @@
       "filterAllRoles": "Alle Rollen",
       "filterAllStatuses": "Alle Status",
       "filterAllAgencies": "Alle Agenturen",
+      "filterAllTenants": "Alle Mandanten",
       "filterAllDepts": "Alle Abteilungen",
       "filterAllCountries": "Alle Länder",
       "clearFilters": "Filter löschen",

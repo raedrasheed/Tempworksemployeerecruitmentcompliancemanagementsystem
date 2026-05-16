@@ -3948,6 +3948,7 @@
       "filterAllRoles": "Все роли",
       "filterAllStatuses": "Все статусы",
       "filterAllAgencies": "Все агентства",
+      "filterAllTenants": "Все арендаторы",
       "filterAllDepts": "Все отделы",
       "filterAllCountries": "Все страны",
       "clearFilters": "Очистить фильтры",

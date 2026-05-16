@@ -3906,6 +3906,7 @@
       "filterAllRoles": "Tüm Roller",
       "filterAllStatuses": "Tüm Durumlar",
       "filterAllAgencies": "Tüm Ajanslar",
+      "filterAllTenants": "Tüm Kiracılar",
       "filterAllDepts": "Tüm Departmanlar",
       "filterAllCountries": "Tüm Ülkeler",
       "clearFilters": "Filtreleri temizle",

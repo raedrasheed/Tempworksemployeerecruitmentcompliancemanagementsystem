@@ -118,7 +118,7 @@ export class UsersService {
   // Find all
   // ---------------------------------------------------------------------------
   async findAll(
-    query: PaginationDto & { roleId?: string; agencyId?: string; status?: string },
+    query: PaginationDto & { roleId?: string; agencyId?: string; status?: string; tenantId?: string },
     callerRole?: string,
     callerAgencyId?: string,
     callerAgencyIsSystem?: boolean,
@@ -148,6 +148,15 @@ export class UsersService {
         where.AND = [{ role: { name: { not: 'System Admin' } } }];
       }
       if (query.agencyId) where.agencyId = query.agencyId;
+      // Phase 3.22 — tenant filter. Internal callers (System Admin /
+      // PlatformAdmin) get the global view by default but can narrow
+      // by tenant via the User Management screen's Tenant dropdown.
+      // Filter resolves through the user's agency.tenantId — works
+      // even when User.tenantId itself is unbackfilled in legacy
+      // single-tenant deployments.
+      if (query.tenantId) {
+        where.agency = { tenantId: query.tenantId };
+      }
     }
 
     if (search) {

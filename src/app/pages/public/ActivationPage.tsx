@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { authApi, setTokens, setCurrentUser, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
+import { ErrorBanner } from '../../components/ui/error-banner';
 
 type StrengthLabel = 'weak' | 'medium' | 'strong';
 
@@ -131,13 +132,10 @@ export function ActivationPage() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {!token && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-              {t('activation.noTokenError')}
-            </div>
-          )}
+          {!token && <ErrorBanner message={t('activation.noTokenError')} />}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <ErrorBanner message={error} />
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
                 {t('activation.newPasswordLabel')}
@@ -192,12 +190,6 @@ export function ActivationPage() {
                 <p className="text-xs text-red-500">{t('activation.passwordMismatchHint')}</p>
               )}
             </div>
-
-            {error && (
-              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                {error}
-              </div>
-            )}
 
             <Button
               type="submit"

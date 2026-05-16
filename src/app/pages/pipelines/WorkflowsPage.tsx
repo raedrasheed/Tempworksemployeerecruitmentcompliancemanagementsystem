@@ -5,6 +5,7 @@ import { workflowApi, usersApi } from '../../services/api';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { toast } from 'sonner';
 import { apiError } from '../../../i18n/apiError';
+import { ErrorBanner } from '../../components/ui/error-banner';
 import {
   Layers,
   Plus,
@@ -218,7 +219,7 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
         <h2 className="text-lg font-semibold text-foreground mb-1">{t('pipelines.list.newWorkflowTitle')}</h2>
         <p className="text-sm text-muted-foreground mb-4">{t('pipelines.list.newWorkflowBody')}</p>
-        {error && <p className="text-sm text-destructive mb-3">{error}</p>}
+        <ErrorBanner message={error} className="mb-3" />
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">{t('pipelines.list.nameRequired')}</label>
@@ -369,9 +370,7 @@ export function WorkflowsPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-3">{error}</div>
-      )}
+      <ErrorBanner message={error} autoFocus={false} />
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

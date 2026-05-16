@@ -1,4 +1,9 @@
 {
+  "banner": {
+    "title": "Error",
+    "retry": "Retry",
+    "dismiss": "Dismiss"
+  },
   "generic": {
     "UNEXPECTED": "Something went wrong. Please try again.",
     "NETWORK": "Network error. Please check your connection and try again.",

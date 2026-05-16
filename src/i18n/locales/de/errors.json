@@ -1,4 +1,9 @@
 {
+  "banner": {
+    "title": "Fehler",
+    "retry": "Erneut versuchen",
+    "dismiss": "Schließen"
+  },
   "generic": {
     "UNEXPECTED": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
     "NETWORK": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",

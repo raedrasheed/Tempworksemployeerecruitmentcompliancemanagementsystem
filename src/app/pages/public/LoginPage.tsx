@@ -10,6 +10,7 @@ import { authApi, resolveAssetUrl, getLastCompany } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 import { apiError } from '../../../i18n/apiError';
+import { ErrorBanner } from '../../components/ui/error-banner';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -168,6 +169,7 @@ export function LoginPage() {
         <CardContent className="space-y-6">
           {twoFactor ? (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <ErrorBanner message={error} />
               <div className="flex items-center gap-3 p-3 rounded-md bg-[#EFF6FF] border border-[#2563EB]/20">
                 <ShieldCheck className="w-5 h-5 text-[#2563EB] shrink-0" />
                 <p className="text-sm text-[#0F172A]">{t('twoFactor.noticeBanner')}</p>
@@ -188,12 +190,6 @@ export function LoginPage() {
                   required
                 />
               </div>
-
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                  {error}
-                </div>
-              )}
 
               <Button
                 type="submit"
@@ -223,6 +219,7 @@ export function LoginPage() {
             </form>
           ) : (
           <form onSubmit={handleLogin} className="space-y-4">
+            <ErrorBanner message={error} />
 
             {/* Phase 3.14 — Company / Workspace / Tenant slug.
                 Required. Normalized lowercase before send.
@@ -277,12 +274,6 @@ export function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
-
-            {error && (
-              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                {error}
-              </div>
-            )}
 
             <Button
               type="submit"

@@ -11,6 +11,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { CountrySelect } from '../../components/ui/CountrySelect';
 import { Badge } from '../../components/ui/badge';
+import { ErrorBanner } from '../../components/ui/error-banner';
 import { Card, CardContent } from '../../components/ui/card';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 import { formatDate, formatNumber } from '../../../i18n/formatters';
@@ -243,11 +244,7 @@ export function JobListings() {
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm">
-                {error}
-              </div>
-            )}
+            <ErrorBanner message={error} onRetry={() => window.location.reload()} autoFocus={false} />
 
             {!loading && !error && jobs.length === 0 && (
               <div className="text-center py-16 text-muted-foreground">

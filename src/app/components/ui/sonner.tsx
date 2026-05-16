@@ -13,6 +13,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       dir={dir}
+      // Surface errors and confirmations at the top so they land
+      // inside the user's eye-line instead of below the fold. The
+      // app uses sonner as the canonical channel for transient
+      // errors (~400 callsites) — a single position prop fixes all
+      // of them at once. Callers can still override `position` per
+      // toast.
+      position="top-center"
+      richColors
+      closeButton
       style={
         {
           "--normal-bg": "var(--popover)",

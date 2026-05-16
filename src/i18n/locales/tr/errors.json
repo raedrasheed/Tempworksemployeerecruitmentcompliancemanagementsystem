@@ -1,4 +1,9 @@
 {
+  "banner": {
+    "title": "Hata",
+    "retry": "Tekrar dene",
+    "dismiss": "Kapat"
+  },
   "generic": {
     "UNEXPECTED": "Bir şeyler yanlış gitti. Lütfen tekrar deneyin.",
     "NETWORK": "Ağ hatası. Bağlantınızı kontrol edin ve tekrar deneyin.",

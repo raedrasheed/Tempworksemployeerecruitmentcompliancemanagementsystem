@@ -130,28 +130,105 @@ export class NotificationsService {
 
   /// Get notifications for a user with pagination.
   /// `locale` is the resolved `Accept-Language` value; defaults to 'en'.
-  async getUserNotifications(userId: string, skip = 0, take = 20, locale: ServerLocale = 'en') {
+  /// `caller` is passed through so external actors (Agency User/Manager
+  /// + custom roles tied to a non-system agency) only see notifications
+  /// about entities they can actually access — see callerEntityFilter().
+  async getUserNotifications(
+    userId: string,
+    skip = 0,
+    take = 20,
+    locale: ServerLocale = 'en',
+    caller?: { agencyId?: string; agencyIsSystem?: boolean },
+  ) {
     const t = this.scope().tenantWhere();
+    const entityFilter = await this.callerEntityFilter(caller);
+    const where = { userId, deletedAt: null, ...t, ...entityFilter };
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({ // @tenant-reviewed: phase210-pilot-scope
-        where: { userId, deletedAt: null, ...t },
+        where,
         orderBy: { createdAt: 'desc' },
         skip,
         take,
       }),
       this.prisma.notification.count({ // @tenant-reviewed: phase210-pilot-scope
-        where: { userId, deletedAt: null, ...t },
+        where,
       }),
     ]);
     return { data: notifications.map(n => this.translateRow(n as any, locale)), total };
   }
 
   /// Get unread notification count for a user
-  async getUnreadCount(userId: string): Promise<number> {
+  async getUnreadCount(
+    userId: string,
+    caller?: { agencyId?: string; agencyIsSystem?: boolean },
+  ): Promise<number> {
     const t = this.scope().tenantWhere();
+    const entityFilter = await this.callerEntityFilter(caller);
     return this.prisma.notification.count({ // @tenant-reviewed: phase210-pilot-scope
-      where: { userId, isRead: false, deletedAt: null, ...t },
+      where: { userId, isRead: false, deletedAt: null, ...t, ...entityFilter },
     });
+  }
+
+  /**
+   * Phase 3.22 — restrict notifications about Employees/Applicants to
+   * the entities the caller can actually view. Without this filter an
+   * Officer (or any custom external role) sees notifications about
+   * every employee in the tenant simply because finance/document
+   * fan-out broadcast their notification to every user with the
+   * relevant role at creation time. Returns `{}` for PlatformAdmin
+   * and System Admin so they keep the global view.
+   *
+   * Filter shape:
+   *   • Notifications with no relatedEntity              → pass
+   *   • Notifications about anything except Employee /
+   *     Applicant (Vehicle, MaintenanceRecord, Document,
+   *     etc.)                                            → pass
+   *   • Notifications about Employee / Applicant         → only if
+   *     relatedEntityId is one the caller has access to
+   *
+   * The Employee accessible set comes from
+   * EmployeeAgencyAccess(canView=true), the same source
+   * EmployeesService.findAll uses. The Applicant set comes from
+   * agencyId == caller.agencyId (mirrors ApplicantsService.findAll).
+   * Entity type strings cover both `'Employee'` (vehicle/scan side)
+   * and `'EMPLOYEE'` (finance side) since the codebase doesn't
+   * normalise them.
+   */
+  private async callerEntityFilter(
+    caller?: { agencyId?: string; agencyIsSystem?: boolean },
+  ): Promise<Record<string, any>> {
+    if (!caller || !caller.agencyId || caller.agencyIsSystem === true) return {};
+    const t = this.scope().tenantWhere();
+    const [empGrants, applicants] = await Promise.all([
+      this.prisma.employeeAgencyAccess.findMany({ // @tenant-reviewed: phase322-notifications-entity-scope
+        where: { agencyId: caller.agencyId, canView: true },
+        select: { employeeId: true },
+      }),
+      this.prisma.applicant.findMany({ // @tenant-reviewed: phase322-notifications-entity-scope
+        where: { agencyId: caller.agencyId, deletedAt: null, ...t },
+        select: { id: true },
+      }),
+    ]);
+    const accessibleIds = [
+      ...empGrants.map((g: any) => g.employeeId),
+      ...applicants.map((a: any) => a.id),
+    ];
+    const RESTRICTED = ['Employee', 'EMPLOYEE', 'Applicant', 'APPLICANT'];
+    return {
+      OR: [
+        { relatedEntity: null },
+        { relatedEntity: { notIn: RESTRICTED } },
+        {
+          AND: [
+            { relatedEntity: { in: RESTRICTED } },
+            // Sentinel '__none__' keeps the IN clause non-empty when
+            // the user has zero accessible entities — Prisma would
+            // otherwise translate `in: []` to a no-op match.
+            { relatedEntityId: { in: accessibleIds.length > 0 ? accessibleIds : ['__none__'] } },
+          ],
+        },
+      ],
+    };
   }
 
   /// Mark a notification as read.

@@ -16,12 +16,14 @@ export class NotificationsController {
     @Headers('accept-language') acceptLanguage?: string,
   ) {
     const locale = resolveAcceptLanguage(acceptLanguage);
-    return this.notificationsService.getUserNotifications(req.user.id, parseInt(skip), parseInt(take), locale);
+    const caller = { agencyId: req.user?.agencyId, agencyIsSystem: req.user?.agencyIsSystem };
+    return this.notificationsService.getUserNotifications(req.user.id, parseInt(skip), parseInt(take), locale, caller);
   }
 
   @Get('unread-count')
   async getUnreadCount(@Request() req: any) {
-    const count = await this.notificationsService.getUnreadCount(req.user.id);
+    const caller = { agencyId: req.user?.agencyId, agencyIsSystem: req.user?.agencyIsSystem };
+    const count = await this.notificationsService.getUnreadCount(req.user.id, caller);
     return { unreadCount: count };
   }
 

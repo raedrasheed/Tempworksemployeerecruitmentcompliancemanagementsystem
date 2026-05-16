@@ -100,6 +100,11 @@ export class VehiclesService {
   private callerTenantWhere(caller: any): Record<string, any> {
     if (!caller) return {};
     if (caller.agencyIsSystem) return {};
+    // Phase 3.22 — pilot-off rows carry tenantId=null. Skip the
+    // strict filter in legacy mode so the listing matches the
+    // /employees pattern (scope().tenantWhere() only). See the
+    // same fix in attendance.service.ts and job-ads.service.ts.
+    if (!this.scope().active) return {};
     const t = caller.tenantId;
     if (!t) return {};
     return { tenantId: t };

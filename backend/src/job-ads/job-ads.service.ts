@@ -73,6 +73,11 @@ export class JobAdsService {
   private callerTenantWhere(caller: any): Record<string, any> {
     if (!caller) return {};
     if (caller.agencyIsSystem) return {}; // PlatformAdmin sees everything
+    // Phase 3.22 — pilot-off rows have tenantId=null; applying the
+    // strict filter would exclude them and make the listing report
+    // zero. Rely on scope().tenantWhere() (which is a no-op when
+    // inactive) for the legacy single-tenant deployment path.
+    if (!this.scope().active) return {};
     const t = caller.tenantId;
     if (!t) return {}; // no scope info → behave like legacy until login-v2
     return { tenantId: t };

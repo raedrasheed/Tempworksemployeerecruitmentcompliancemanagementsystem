@@ -92,11 +92,22 @@ export class AttendanceService {
    * the filter; everyone else sees only their own tenant's employees.
    * Falls back to `{}` when no tenant context is present so legacy
    * single-tenant deployments behave exactly like before.
+   *
+   * Phase 3.22 — also short-circuit to `{}` when the pilot scope is
+   * INACTIVE (MULTI_TENANT_ENABLED=false or the module isn't on the
+   * allow-list). Pilot-off employees are created with `tenantId=null`,
+   * and applying a strict `{ tenantId: caller.tenantId }` filter would
+   * exclude every one of them — making the Attendance Sheets page
+   * report "0 employees" while the /employees list (which uses only
+   * `scope().tenantWhere()`) shows them all. In pilot-off mode the
+   * legacy single-tenant deployment is implicitly tenant-isolated,
+   * so this extra filter adds no security and breaks the read.
    * @tenant-reviewed: phase318-tenant-public-jobs
    */
   private callerTenantWhere(caller: any): Record<string, any> {
     if (!caller) return {};
     if (caller.agencyIsSystem) return {};
+    if (!this.scope().active) return {};
     const t = caller.tenantId;
     if (!t) return {};
     return { tenantId: t };

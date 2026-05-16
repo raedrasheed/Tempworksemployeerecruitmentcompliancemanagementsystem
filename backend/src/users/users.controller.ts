@@ -25,6 +25,7 @@ export class UsersController {
 
   @Post('bulk-import')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('users:create')
   @ApiOperation({ summary: 'Bulk import users from CSV records' })
   bulkImport(@Body() dto: { records: any[] }, @CurrentUser('id') actorId: string) {
     return this.usersService.bulkImport(dto.records, actorId);
@@ -32,6 +33,7 @@ export class UsersController {
 
   @Get('bulk-export')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('users:read')
   @ApiOperation({ summary: 'Bulk export users (no pagination)' })
   bulkExport(@Query() query: any, @CurrentUser() caller: any) {
     return this.usersService.bulkExport(query, caller?.role, caller?.agencyId);
@@ -41,6 +43,7 @@ export class UsersController {
 
   @Get('me')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @RequirePermission('users:read')
   @ApiOperation({ summary: 'Get current user profile' })
   getMe(@CurrentUser() caller: any) {
     // Pass the caller's own role + agency so the agency-scoping and
@@ -51,6 +54,7 @@ export class UsersController {
 
   @Patch('profile')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @RequirePermission('users:update')
   @ApiOperation({ summary: 'Update own profile (restricted fields only)' })
   updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(userId, dto, userId);
@@ -58,6 +62,7 @@ export class UsersController {
 
   @Patch('preferences')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @RequirePermission('users:update')
   @ApiOperation({ summary: 'Update own preferences (language, timezone, notifications)' })
   updatePreferences(@CurrentUser('id') userId: string, @Body() dto: UpdatePreferencesDto) {
     return this.usersService.updatePreferences(userId, dto, userId);
@@ -66,6 +71,7 @@ export class UsersController {
   // Legacy self-profile update route (kept for backward compatibility)
   @Patch('me/profile')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @RequirePermission('users:update')
   @ApiOperation({ summary: 'Update current user profile (legacy route)' })
   updateMeProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(userId, dto, userId);
@@ -75,6 +81,7 @@ export class UsersController {
 
   @Get()
   @Roles('System Admin', 'HR Manager', 'Read Only', 'Agency Manager')
+  @RequirePermission('users:read')
   @ApiOperation({ summary: 'List users (Agency Manager sees only own-agency users)' })
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
@@ -86,6 +93,7 @@ export class UsersController {
 
   @Get(':id')
   @Roles('System Admin', 'HR Manager', 'Agency Manager')
+  @RequirePermission('users:read')
   @ApiOperation({ summary: 'Get user by ID (Agency Manager limited to own-agency users)' })
   findOne(@Param('id') id: string, @CurrentUser() caller: any) {
     return this.usersService.findOne(id, caller?.role, caller?.agencyId, caller?.agencyIsSystem, caller?.id);
@@ -93,6 +101,7 @@ export class UsersController {
 
   @Post()
   @Roles('System Admin', 'Agency Manager')
+  @RequirePermission('users:create')
   @ApiOperation({ summary: 'Create new user (Agency Manager scoped to own agency with max-users limit)' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   create(@Body() dto: CreateUserDto, @CurrentUser() caller: any) {
@@ -142,6 +151,7 @@ export class UsersController {
   // Any logged-in user can upload their own photo
   @Post('me/photo')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @RequirePermission('users:create')
   @ApiOperation({ summary: 'Upload own profile photo' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('photo', memoryUpload({
@@ -159,6 +169,7 @@ export class UsersController {
   // Admin/HR can upload photo for any user
   @Post(':id/photo')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('users:create')
   @ApiOperation({ summary: 'Upload user profile photo' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('photo', memoryUpload({
@@ -178,6 +189,7 @@ export class UsersController {
 
   @Post(':id/unlock')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('users:create')
   @ApiOperation({ summary: 'Unlock a locked user account' })
   unlockUser(@Param('id') id: string, @CurrentUser('id') actorId: string) {
     return this.usersService.unlockUser(id, actorId);
@@ -187,6 +199,7 @@ export class UsersController {
 
   @Post(':id/approve')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('users:create')
   @ApiOperation({ summary: 'Approve an agency-created user so they enter operational status' })
   approveAgencyUser(@Param('id') id: string, @CurrentUser('id') actorId: string) {
     return this.usersService.approveAgencyUser(id, actorId);
@@ -194,6 +207,7 @@ export class UsersController {
 
   @Post(':id/manager-override')
   @Roles('System Admin')
+  @RequirePermission('users:create')
   @ApiOperation({
     summary:
       'Grant or revoke the owning Agency Manager\'s ability to edit/delete an approved user. ' +
@@ -211,6 +225,7 @@ export class UsersController {
 
   @Get(':id/activation-link')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('users:read')
   @ApiOperation({ summary: 'Generate a fresh activation link for a PENDING/INACTIVE user' })
   getActivationLink(@Param('id') id: string) {
     return this.usersService.getActivationLink(id);
@@ -220,6 +235,7 @@ export class UsersController {
 
   @Get(':id/permissions')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('users:read')
   @ApiOperation({ summary: 'Get user role permissions + overrides' })
   getUserPermissions(@Param('id') id: string) {
     return this.usersService.getUserPermissions(id);
@@ -227,6 +243,7 @@ export class UsersController {
 
   @Post(':id/permissions')
   @Roles('System Admin')
+  @RequirePermission('users:create')
   @ApiOperation({ summary: 'Grant or revoke a permission override for a user' })
   setPermission(
     @Param('id') id: string,
@@ -238,6 +255,7 @@ export class UsersController {
 
   @Delete(':id/permissions/:permission')
   @Roles('System Admin')
+  @RequirePermission('users:delete')
   @ApiOperation({ summary: 'Remove a permission override for a user' })
   removePermission(
     @Param('id') id: string,

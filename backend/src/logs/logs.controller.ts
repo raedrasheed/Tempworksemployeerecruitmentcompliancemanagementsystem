@@ -5,6 +5,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Logs')
@@ -16,6 +17,7 @@ export class LogsController {
 
   @Get()
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
+  @RequirePermission('logs:read')
   @ApiOperation({ summary: 'Get audit logs – scoped to the caller\'s visibility' })
   @ApiQuery({ name: 'userId', required: false })
   @ApiQuery({ name: 'entity', required: false })
@@ -42,6 +44,7 @@ export class LogsController {
 
   @Get('stats')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
+  @RequirePermission('logs:read')
   @ApiOperation({ summary: 'Get audit log statistics – scoped to the caller\'s visibility' })
   getStats(@CurrentUser() caller: any) {
     return this.logsService.getStats(
@@ -52,6 +55,7 @@ export class LogsController {
   /** Clear all logs, optionally filtered by date range or entity. System Admin only. */
   @Delete()
   @Roles('System Admin')
+  @RequirePermission('logs:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Clear audit logs (System Admin only)' })
   @ApiQuery({ name: 'fromDate', required: false })
@@ -68,6 +72,7 @@ export class LogsController {
   /** Delete a single log entry. System Admin only. */
   @Delete(':id')
   @Roles('System Admin')
+  @RequirePermission('logs:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a single log entry (System Admin only)' })
   deleteOne(@Param('id') id: string) {

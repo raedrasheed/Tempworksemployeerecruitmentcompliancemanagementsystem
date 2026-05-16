@@ -12,6 +12,7 @@ import { FilterJobAdsDto } from './dto/filter-job-ads.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import {
@@ -80,6 +81,7 @@ export class JobAdsController {
 
   @Get('constants')
   @Roles(...JOB_ADS_READ_ROLES)
+  @RequirePermission('job-ads:read')
   @ApiOperation({ summary: 'Get job-ads module constants (statuses, categories, contract types, currencies)' })
   getConstants() {
     return {
@@ -94,6 +96,7 @@ export class JobAdsController {
 
   @Get()
   @Roles(...JOB_ADS_READ_ROLES)
+  @RequirePermission('job-ads:read')
   @ApiOperation({ summary: 'List job ads (paginated + filtered, dashboard) — scoped to the caller\'s active tenant' })
   findAll(@Query() filter: FilterJobAdsDto, @CurrentUser() user: any) {
     return this.jobAdsService.findAll(filter, user);
@@ -103,6 +106,7 @@ export class JobAdsController {
 
   @Get(':id')
   @Roles(...JOB_ADS_READ_ROLES)
+  @RequirePermission('job-ads:read')
   @ApiOperation({ summary: 'Get a single job ad by ID' })
   @ApiParam({ name: 'id', description: 'Job ad UUID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
@@ -113,6 +117,7 @@ export class JobAdsController {
 
   @Post()
   @Roles(...JOB_ADS_WRITE_ROLES)
+  @RequirePermission('job-ads:create')
   @ApiOperation({ summary: 'Create a job ad' })
   @ApiResponse({ status: 201, description: 'Job ad created' })
   create(@Body() dto: CreateJobAdDto, @CurrentUser() user: any) {
@@ -123,6 +128,7 @@ export class JobAdsController {
 
   @Patch(':id')
   @Roles(...JOB_ADS_WRITE_ROLES)
+  @RequirePermission('job-ads:update')
   @ApiOperation({ summary: 'Update a job ad (partial)' })
   @ApiParam({ name: 'id', description: 'Job ad UUID' })
   update(
@@ -137,6 +143,7 @@ export class JobAdsController {
 
   @Delete(':id')
   @Roles(...JOB_ADS_WRITE_ROLES)
+  @RequirePermission('job-ads:delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a job ad' })
   @ApiParam({ name: 'id', description: 'Job ad UUID' })

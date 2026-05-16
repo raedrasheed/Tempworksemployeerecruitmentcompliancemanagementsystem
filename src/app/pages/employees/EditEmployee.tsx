@@ -6,6 +6,8 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { CountrySelect } from '../../components/ui/CountrySelect';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
@@ -90,6 +92,12 @@ export function EditEmployee() {
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
+    if (fieldErrs[field]) clearError(field);
+  };
+  // Sibling helper for components that emit a raw string (CountrySelect,
+  // PhoneInput) instead of a synthetic ChangeEvent.
+  const setValue = (field: string) => (value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
     if (fieldErrs[field]) clearError(field);
   };
 
@@ -224,9 +232,12 @@ export function EditEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">{t('employees.add.phone')}</Label>
-                    <Input id="phone" type="tel" value={form.phone} onChange={set('phone')} required
-                      aria-invalid={!!fieldErrs.phone}
-                      className={fieldErrs.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <PhoneInput
+                      id="phone"
+                      value={form.phone}
+                      onChange={setValue('phone')}
+                      required
+                    />
                     <FieldError errors={fieldErrs} name="phone" />
                   </div>
                 </div>
@@ -237,7 +248,11 @@ export function EditEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="nationality">{t('employees.add.citizenship')}</Label>
-                    <Input id="nationality" value={form.nationality} onChange={set('nationality')} required />
+                    <CountrySelect
+                      value={form.nationality}
+                      onChange={setValue('nationality')}
+                      required
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -247,7 +262,11 @@ export function EditEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="emergencyPhone">{t('employees.add.emergencyPhone')}</Label>
-                    <Input id="emergencyPhone" type="tel" value={form.emergencyPhone} onChange={set('emergencyPhone')} />
+                    <PhoneInput
+                      id="emergencyPhone"
+                      value={form.emergencyPhone}
+                      onChange={setValue('emergencyPhone')}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -275,7 +294,11 @@ export function EditEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="country">{t('employees.add.country')}</Label>
-                    <Input id="country" value={form.country} onChange={set('country')} required />
+                    <CountrySelect
+                      value={form.country}
+                      onChange={setValue('country')}
+                      required
+                    />
                   </div>
                 </div>
               </CardContent>

@@ -151,11 +151,21 @@ export class UsersService {
       // Phase 3.22 — tenant filter. Internal callers (System Admin /
       // PlatformAdmin) get the global view by default but can narrow
       // by tenant via the User Management screen's Tenant dropdown.
-      // Filter resolves through the user's agency.tenantId — works
-      // even when User.tenantId itself is unbackfilled in legacy
-      // single-tenant deployments.
+      // Match users whose agency.tenantId resolves to the chosen
+      // tenant (primary attribution for tenant-scoped users) OR who
+      // hold an active TenantMembership for it (covers SUPER /
+      // multi-tenant members whose primary agency lives elsewhere —
+      // these were missing pre-3.22, so a SUPER admin viewing the
+      // RINT tenant saw zero users despite three active memberships).
+      // Wrapped in AND so a concurrent OR (search) composes cleanly.
       if (query.tenantId) {
-        where.agency = { tenantId: query.tenantId };
+        const tenantOr = {
+          OR: [
+            { agency: { tenantId: query.tenantId } },
+            { memberships: { some: { tenantId: query.tenantId, status: 'ACTIVE' as any } } },
+          ],
+        };
+        where.AND = [...(where.AND ?? []), tenantOr];
       }
     }
 

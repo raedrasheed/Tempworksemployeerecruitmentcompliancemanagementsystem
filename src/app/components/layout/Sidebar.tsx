@@ -63,7 +63,7 @@ const AGENCY_ROLES = ['Agency User', 'Agency Manager'];
 // null means always visible to any authenticated user.
 // labelKey is resolved against the `nav` namespace at render time.
 const allNavigationItems: NavItem[] = [
-  { icon: LayoutDashboard, labelKey: 'dashboard',           path: '/dashboard',                  permission: null },
+  { icon: LayoutDashboard, labelKey: 'dashboard',           path: '/dashboard',                  permission: 'dashboard:read' },
   { icon: UserCheck,       labelKey: 'applicants',          path: '/dashboard/applicants',       permission: 'applicants:read' },
   { icon: UserCheck,       labelKey: 'candidates',          path: '/dashboard/candidates',       permission: 'applicants:read' },
   { icon: Users,           labelKey: 'employees',           path: '/dashboard/employees',        permission: 'employees:read' },

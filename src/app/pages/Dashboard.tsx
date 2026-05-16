@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -88,16 +88,57 @@ function matchStageToCategory(stageName: string) {
   return null;
 }
 
+// ── Permission-based landing helper ───────────────────────────────────────────
+//
+// Mirrors the order of Sidebar.tsx's primary navigation items so the
+// fallback page after a /dashboard redirect is the same one the user
+// would have clicked first in the menu. Returns null when the user
+// holds no view permission — the caller renders an access-denied
+// screen in that case.
+function firstAccessibleRoute(canView: (mod: string) => boolean): string | null {
+  const ordered: Array<[string, string]> = [
+    ['applicants',  '/dashboard/applicants'],
+    ['employees',   '/dashboard/employees'],
+    ['attendance',  '/dashboard/attendance'],
+    ['vehicles',    '/dashboard/vehicles'],
+    ['documents',   '/dashboard/documents-compliance'],
+    ['workflow',    '/dashboard/workflows'],
+    ['agencies',    '/dashboard/agencies'],
+    ['reports',     '/dashboard/reports'],
+    ['finance',     '/dashboard/finance'],
+    ['job-ads',     '/dashboard/job-ads'],
+    ['notifications', '/dashboard/notifications'],
+    ['users',       '/dashboard/users'],
+    ['roles',       '/dashboard/roles-permissions'],
+    ['logs',        '/dashboard/system-logs'],
+    ['recycle-bin', '/dashboard/deleted-records'],
+    ['settings',    '/dashboard/settings'],
+  ];
+  for (const [perm, path] of ordered) {
+    if (canView(perm)) return path;
+  }
+  return null;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function Dashboard() {
   const { t } = useTranslation('dashboard');
+  const { t: tc } = useTranslation('common');
   const activityLabel = useActivityLabel();
   const timeAgo = useTimeAgo();
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
   const applicantsPath = '/dashboard/applicants';
-  const { canCreate, can } = usePermissions();
+  const { canView, canCreate, can } = usePermissions();
+
+  // Permission-gated landing. Users without `dashboard:read` should
+  // never see the empty-data shell with a 403 "Failed to load
+  // dashboard data" banner — bounce them to the first sidebar item
+  // they CAN access, mirroring the Sidebar permission map. If they
+  // hold no view permission at all, the access-denied screen below
+  // renders.
+  const dashboardFallback = firstAccessibleRoute(canView);
 
   const [data,       setData]       = useState<any>(null);
   const [loading,    setLoading]    = useState(true);
@@ -159,6 +200,20 @@ export function Dashboard() {
 
   // ── Stat card sub-component ────────────────────────────────────────────────
   const Skeleton = () => <div className="h-7 w-16 bg-muted animate-pulse rounded" />;
+
+  // Permission gate. Redirect users without `dashboard:read` to the
+  // first sidebar item they can access; if they hold no view
+  // permission, show the access-denied screen used throughout the
+  // app (AddAgency, EditUser, FinanceDashboard, etc.).
+  if (!canView('dashboard')) {
+    if (dashboardFallback) return <Navigate to={dashboardFallback} replace />;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+        <p className="text-lg font-semibold text-[#0F172A]">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm text-muted-foreground mt-1">{tc('permissions.noPermission')}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
